@@ -1,8 +1,26 @@
 [package]
 name = "adversary"
 version = "0.1.0"
+authors = ["Isaac Chen"]
+description = "Adversarial property-based testing for Rust."
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/ijchen/adversary"
+documentation = "https://docs.rs/adversary"
 edition = "2021"
+include = ["/src/", "/Cargo.toml", "/README.md", "/LICENSE-*"]
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+[dev-dependencies]
+
+[profile.release]
+lto = "thin" # TODO: benchmark what setting is best here
+
+[profile.test]
+opt-level = 3           # Enable optimizations
+debug-assertions = true # This is the default value, but make it clear we care
+overflow-checks = true  # This is the default value, but make it clear we care
