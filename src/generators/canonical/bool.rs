@@ -18,7 +18,7 @@ impl Adversarial<bool> for Canonical {
     }
 
     fn adversarial(&self) -> impl Iterator<Item = bool> {
-        [true, false].into_iter()
+        [false, true].into_iter()
     }
 }
 

@@ -27,23 +27,23 @@ mod tests {
 
         const MAX_RUNS: usize = 1_000_000;
 
-        let gen = any::<u32>();
+        let gen = any();
         let rng = &mut rand::thread_rng();
 
         let mut failing_input = None;
-        let inputs: Vec<u32> = if gen
+        let inputs = if gen
             .cardinality()
             .is_some_and(|cardinality| cardinality <= MAX_RUNS)
         {
-            gen.exhaustive().collect()
+            Box::new(gen.exhaustive()) as Box<dyn Iterator<Item = _>>
         } else if gen.adversarial_count() <= MAX_RUNS {
-            gen.adversarial()
-                .chain(std::iter::repeat_with(|| gen.sample(rng)).take(MAX_RUNS))
-                .collect()
+            Box::new(
+                gen.adversarial()
+                    .chain(std::iter::repeat_with(|| gen.sample(rng)).take(MAX_RUNS)),
+            ) as Box<dyn Iterator<Item = _>>
         } else {
-            std::iter::repeat_with(|| gen.sample(rng))
-                .take(MAX_RUNS)
-                .collect()
+            Box::new(std::iter::repeat_with(|| gen.sample(rng)).take(MAX_RUNS))
+                as Box<dyn Iterator<Item = _>>
         };
         for input in inputs {
             let passed = check(input);
