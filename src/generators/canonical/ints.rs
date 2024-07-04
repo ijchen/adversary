@@ -56,10 +56,10 @@ macro_rules! signed_specific {
         impl Shrink<$t> for Canonical {
             type History = IntHistory<$t>;
 
-            fn history_from_failure(&self, failing_input: $t) -> Self::History {
+            fn history_from_failure(&self, failing_input: &$t) -> Self::History {
                 IntHistory {
                     largest_passing: None,
-                    smallest_failing: failing_input,
+                    smallest_failing: *failing_input,
                 }
             }
 
@@ -67,17 +67,17 @@ macro_rules! signed_specific {
                 format!("TODO ({history:?})")
             }
 
-            fn update_history(&self, history: &mut Self::History, input: $t, test_passed: bool) {
+            fn update_history(&self, history: &mut Self::History, input: &$t, test_passed: bool) {
                 match (test_passed, history.largest_passing) {
-                    (true, None) => history.largest_passing = Some(input),
+                    (true, None) => history.largest_passing = Some(*input),
                     (true, Some(largest_passing)) => {
                         if input.unsigned_abs() > largest_passing.unsigned_abs() {
-                            history.largest_passing = Some(input);
+                            history.largest_passing = Some(*input);
                         }
                     }
                     (false, _) => {
                         if input.unsigned_abs() < history.smallest_failing.unsigned_abs() {
-                            history.smallest_failing = input;
+                            history.smallest_failing = *input;
                         }
                     }
                 }
@@ -126,10 +126,10 @@ macro_rules! unsigned_specific {
         impl Shrink<$t> for Canonical {
             type History = IntHistory<$t>;
 
-            fn history_from_failure(&self, failing_input: $t) -> Self::History {
+            fn history_from_failure(&self, failing_input: &$t) -> Self::History {
                 IntHistory {
                     largest_passing: None,
-                    smallest_failing: failing_input,
+                    smallest_failing: *failing_input,
                 }
             }
 
@@ -137,17 +137,17 @@ macro_rules! unsigned_specific {
                 format!("TODO ({history:?})")
             }
 
-            fn update_history(&self, history: &mut Self::History, input: $t, test_passed: bool) {
+            fn update_history(&self, history: &mut Self::History, input: &$t, test_passed: bool) {
                 match (test_passed, history.largest_passing) {
-                    (true, None) => history.largest_passing = Some(input),
+                    (true, None) => history.largest_passing = Some(*input),
                     (true, Some(largest_passing)) => {
-                        if input > largest_passing {
-                            history.largest_passing = Some(input);
+                        if *input > largest_passing {
+                            history.largest_passing = Some(*input);
                         }
                     }
                     (false, _) => {
-                        if input < history.smallest_failing {
-                            history.smallest_failing = input;
+                        if *input < history.smallest_failing {
+                            history.smallest_failing = *input;
                         }
                     }
                 }

@@ -47,7 +47,7 @@ pub struct BoolHistory {
 impl Shrink<bool> for Canonical {
     type History = BoolHistory;
 
-    fn history_from_failure(&self, failing_input: bool) -> Self::History {
+    fn history_from_failure(&self, failing_input: &bool) -> Self::History {
         match failing_input {
             true => BoolHistory {
                 inner: BoolHistoryInner::TrueFailFalseUnkn,
@@ -62,7 +62,7 @@ impl Shrink<bool> for Canonical {
         format!("TODO ({history:?})")
     }
 
-    fn update_history(&self, history: &mut Self::History, input: bool, test_passed: bool) {
+    fn update_history(&self, history: &mut Self::History, input: &bool, test_passed: bool) {
         use BoolHistoryInner as B;
 
         history.inner = match (history.inner, input, test_passed) {

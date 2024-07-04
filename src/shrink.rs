@@ -1,11 +1,11 @@
 use rand::Rng;
 
-pub trait Shrink<T: Clone> {
+pub trait Shrink<T> {
     type History;
 
-    fn history_from_failure(&self, failing_input: T) -> Self::History;
+    fn history_from_failure(&self, failing_input: &T) -> Self::History;
 
-    fn update_history(&self, history: &mut Self::History, input: T, test_passed: bool);
+    fn update_history(&self, history: &mut Self::History, input: &T, test_passed: bool);
 
     fn generate_report_details(&self, history: Self::History) -> String;
 

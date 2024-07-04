@@ -31,7 +31,7 @@ impl Sample<()> for Canonical {
 impl Shrink<()> for Canonical {
     type History = ();
 
-    fn history_from_failure(&self, _failing_input: ()) -> Self::History {
+    fn history_from_failure(&self, _failing_input: &()) -> Self::History {
         todo!()
     }
 
@@ -40,7 +40,7 @@ impl Shrink<()> for Canonical {
         "() failed".to_string()
     }
 
-    fn update_history(&self, _history: &mut Self::History, _input: (), _test_passed: bool) {
+    fn update_history(&self, _history: &mut Self::History, _input: &(), _test_passed: bool) {
         // Nothing to do here
     }
 

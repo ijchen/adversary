@@ -61,17 +61,19 @@ mod tests {
 
         eprintln!("initial failing input: {failing_input}");
 
-        let mut history = gen.history_from_failure(failing_input);
+        let mut history = gen.history_from_failure(&failing_input);
         while let Some(next_input) = gen.next_input(rng, &history) {
             let passed = check(next_input);
             eprintln!(
                 "next input: {next_input} ({})",
                 if passed { "passed" } else { "failed" }
             );
+
+            gen.update_history(&mut history, &next_input, passed);
+
             if !passed {
                 failing_input = next_input
             }
-            gen.update_history(&mut history, next_input, passed);
         }
 
         assert_eq!(failing_input, FAIL_THRESHOLD);
@@ -84,11 +86,11 @@ mod tests {
             n < FAIL_THRESHOLD
         }
 
-        let failing_input = test(check, any(), &mut rand::thread_rng());
+        let failing_input = test(|&n| check(n), any(), &mut rand::thread_rng());
 
         assert_eq!(
             failing_input.unwrap_err().minimal_failing_input,
-            FAIL_THRESHOLD
+            Some(FAIL_THRESHOLD)
         );
     }
 }

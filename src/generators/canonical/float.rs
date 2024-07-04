@@ -59,7 +59,7 @@ macro_rules! impl_input_generator_float {
             impl Shrink<$f> for Canonical {
                 type History = ();
 
-                fn history_from_failure(&self, _failing_input: $f) -> Self::History {
+                fn history_from_failure(&self, _failing_input: &$f) -> Self::History {
                     todo!()
                 }
 
@@ -67,7 +67,7 @@ macro_rules! impl_input_generator_float {
                     todo!()
                 }
 
-                fn update_history(&self, _history: &mut Self::History, _input: $f, _test_passed: bool) {
+                fn update_history(&self, _history: &mut Self::History, _input: &$f, _test_passed: bool) {
                     todo!()
                 }
 
