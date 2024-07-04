@@ -2,16 +2,20 @@ mod adversarial;
 mod exhaustive;
 pub mod generators;
 mod input_generator;
+mod report;
 mod sample;
 mod shrink;
+mod test_runner;
 
 pub use rand;
 
 pub use adversarial::Adversarial;
 pub use exhaustive::Exhaustive;
 pub use input_generator::InputGenerator;
+pub use report::Report;
 pub use sample::Sample;
 pub use shrink::Shrink;
+pub use test_runner::test;
 
 #[cfg(test)]
 mod tests {
@@ -71,5 +75,20 @@ mod tests {
         }
 
         assert_eq!(failing_input, FAIL_THRESHOLD);
+    }
+
+    #[test]
+    fn my_test_2() {
+        const FAIL_THRESHOLD: u32 = 123454321;
+        fn check(n: u32) -> bool {
+            n < FAIL_THRESHOLD
+        }
+
+        let failing_input = test(check, any(), &mut rand::thread_rng());
+
+        assert_eq!(
+            failing_input.unwrap_err().minimal_failing_input,
+            FAIL_THRESHOLD
+        );
     }
 }

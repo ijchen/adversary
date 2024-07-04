@@ -63,6 +63,10 @@ macro_rules! impl_input_generator_float {
                     todo!()
                 }
 
+                fn generate_report_details(&self, _history: Self::History) -> String {
+                    todo!()
+                }
+
                 fn update_history(&self, _history: &mut Self::History, _input: $f, _test_passed: bool) {
                     todo!()
                 }

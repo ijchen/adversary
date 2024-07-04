@@ -58,6 +58,10 @@ impl Shrink<bool> for Canonical {
         }
     }
 
+    fn generate_report_details(&self, history: Self::History) -> String {
+        format!("TODO ({history:?})")
+    }
+
     fn update_history(&self, history: &mut Self::History, input: bool, test_passed: bool) {
         use BoolHistoryInner as B;
 

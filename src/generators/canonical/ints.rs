@@ -24,7 +24,7 @@ macro_rules! common {
     };
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct IntHistory<T: Copy> {
     largest_passing: Option<T>,
     smallest_failing: T,
@@ -61,6 +61,10 @@ macro_rules! signed_specific {
                     largest_passing: None,
                     smallest_failing: failing_input,
                 }
+            }
+
+            fn generate_report_details(&self, history: Self::History) -> String {
+                format!("TODO ({history:?})")
             }
 
             fn update_history(&self, history: &mut Self::History, input: $t, test_passed: bool) {
@@ -127,6 +131,10 @@ macro_rules! unsigned_specific {
                     largest_passing: None,
                     smallest_failing: failing_input,
                 }
+            }
+
+            fn generate_report_details(&self, history: Self::History) -> String {
+                format!("TODO ({history:?})")
             }
 
             fn update_history(&self, history: &mut Self::History, input: $t, test_passed: bool) {

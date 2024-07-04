@@ -7,6 +7,8 @@ pub trait Shrink<T: Clone> {
 
     fn update_history(&self, history: &mut Self::History, input: T, test_passed: bool);
 
+    fn generate_report_details(&self, history: Self::History) -> String;
+
     /// TODO: better docs
     /// This API is especially likely to change as I figure out a decent way to
     /// do this.

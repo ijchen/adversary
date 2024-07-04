@@ -35,6 +35,11 @@ impl Shrink<()> for Canonical {
         todo!()
     }
 
+    fn generate_report_details(&self, _history: Self::History) -> String {
+        // TODO: update once I know better what reports should look like
+        "() failed".to_string()
+    }
+
     fn update_history(&self, _history: &mut Self::History, _input: (), _test_passed: bool) {
         // Nothing to do here
     }
