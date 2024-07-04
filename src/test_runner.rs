@@ -1,3 +1,5 @@
+use std::panic::RefUnwindSafe;
+
 use rand::Rng;
 
 use crate::{InputGenerator, Report};
@@ -12,8 +14,6 @@ fn find_failing_input<T>(
 
     #[inline]
     fn helper<T>(test: &impl Fn(&T) -> bool, mut inputs: impl Iterator<Item = T>) -> Option<T> {
-        // TODO: can we avoid cloning everything twice? We only need to clone
-        // when the test fails
         inputs.find(|input| !test(input))
     }
 
@@ -64,7 +64,7 @@ fn shrink_and_generate_report<T>(
 
 // TODO: add ability to customize how we sample the generator
 // TODO: handle generator impls that lie about their sizes
-pub fn test<T>(
+pub fn run_test<T>(
     test: impl Fn(&T) -> bool,
     mut generator: impl InputGenerator<T>,
     rng: &mut impl Rng,
@@ -81,4 +81,16 @@ pub fn test<T>(
         rng,
         failing_input,
     ))
+}
+
+pub fn run_test_panics<T: RefUnwindSafe>(
+    test: impl Fn(&T) + RefUnwindSafe,
+    generator: impl InputGenerator<T>,
+    rng: &mut impl Rng,
+) -> Result<(), Report<T>> {
+    run_test(
+        |value| std::panic::catch_unwind(|| test(value)).is_ok(),
+        generator,
+        rng,
+    )
 }
