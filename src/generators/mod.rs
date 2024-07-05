@@ -1,3 +1,3 @@
 mod canonical;
 
-pub use canonical::{any, Canonical};
+pub use canonical::any;
