@@ -1,4 +1,4 @@
-use crate::{Adversarial, Exhaustive, InputGenerator, Sample, Shrink};
+use crate::{Adversarial, Exhaustive, Sample, Shrink};
 
 use super::Canonical;
 
@@ -92,5 +92,3 @@ impl Shrink<bool> for Canonical {
         }
     }
 }
-
-impl InputGenerator<bool> for Canonical {}

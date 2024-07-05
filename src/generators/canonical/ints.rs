@@ -1,4 +1,4 @@
-use crate::{Adversarial, Exhaustive, InputGenerator, Sample, Shrink};
+use crate::{Adversarial, Exhaustive, Sample, Shrink};
 
 use super::Canonical;
 
@@ -19,8 +19,6 @@ macro_rules! common {
                 rng.gen()
             }
         }
-
-        impl InputGenerator<$t> for Canonical {}
     };
 }
 

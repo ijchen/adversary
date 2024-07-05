@@ -1,4 +1,4 @@
-use crate::{Adversarial, Exhaustive, InputGenerator, Sample, Shrink};
+use crate::{Adversarial, Exhaustive, Sample, Shrink};
 
 use super::Canonical;
 
@@ -75,8 +75,6 @@ macro_rules! impl_input_generator_float {
                     todo!()
                 }
             }
-
-            impl InputGenerator<$f> for Canonical {}
         )+
     }
 }
