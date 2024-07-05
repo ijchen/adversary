@@ -40,14 +40,13 @@ impl<
         G2: Adversarial<T2>,
     > Adversarial<(T0, T1, T2)> for (G0, G1, G2)
 {
-    fn adversarial_count(&self) -> usize {
-        1usize
-            .checked_mul(G0::adversarial_count(&self.0))
-            .unwrap() // TODO: these can actually panic
-            .checked_mul(G1::adversarial_count(&self.1))
-            .unwrap() // TODO: these can actually panic
-            .checked_mul(G2::adversarial_count(&self.2))
-            .unwrap() // TODO: these can actually panic
+    fn adversarial_count(&self) -> Option<usize> {
+        Some(
+            1usize
+                .checked_mul(G0::adversarial_count(&self.0)?)?
+                .checked_mul(G1::adversarial_count(&self.1)?)?
+                .checked_mul(G2::adversarial_count(&self.2)?)?,
+        )
     }
 
     fn adversarial(&self) -> impl Iterator<Item = (T0, T1, T2)> {

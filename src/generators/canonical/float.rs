@@ -16,8 +16,8 @@ macro_rules! impl_input_generator_float {
             }
 
             impl Adversarial<$f> for Canonical {
-                fn adversarial_count(&self) -> usize {
-                    16
+                fn adversarial_count(&self) -> Option<usize> {
+                    Some(16)
                 }
 
                 fn adversarial(&self) -> impl Iterator<Item = $f> {

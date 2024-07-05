@@ -23,7 +23,7 @@ where
     Canonical: Adversarial<T1>,
     Canonical: Adversarial<T2>,
 {
-    fn adversarial_count(&self) -> usize {
+    fn adversarial_count(&self) -> Option<usize> {
         <(Self, Self, Self) as Adversarial<(T0, T1, T2)>>::adversarial_count(&(Self, Self, Self))
     }
 

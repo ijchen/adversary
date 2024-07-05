@@ -22,7 +22,10 @@ fn find_failing_input<T>(
         .is_some_and(|cardinality| cardinality <= MAX_RUNS)
     {
         helper(&test, generator.exhaustive())
-    } else if generator.adversarial_count() <= MAX_RUNS {
+    } else if generator
+        .adversarial_count()
+        .is_some_and(|adversarial_count| adversarial_count <= MAX_RUNS)
+    {
         helper(
             &test,
             generator

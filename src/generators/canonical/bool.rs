@@ -13,8 +13,8 @@ impl Exhaustive<bool> for Canonical {
 }
 
 impl Adversarial<bool> for Canonical {
-    fn adversarial_count(&self) -> usize {
-        2
+    fn adversarial_count(&self) -> Option<usize> {
+        Some(2)
     }
 
     fn adversarial(&self) -> impl Iterator<Item = bool> {

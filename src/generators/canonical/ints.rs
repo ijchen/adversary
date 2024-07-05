@@ -31,8 +31,8 @@ pub struct IntHistory<T: Copy> {
 macro_rules! signed_specific {
     ($t: ty) => {
         impl Adversarial<$t> for Canonical {
-            fn adversarial_count(&self) -> usize {
-                7
+            fn adversarial_count(&self) -> Option<usize> {
+                Some(7)
             }
 
             fn adversarial(&self) -> impl Iterator<Item = $t> {
@@ -110,8 +110,8 @@ macro_rules! signed_specific {
 macro_rules! unsigned_specific {
     ($t: ty) => {
         impl Adversarial<$t> for Canonical {
-            fn adversarial_count(&self) -> usize {
-                4
+            fn adversarial_count(&self) -> Option<usize> {
+                Some(4)
             }
 
             fn adversarial(&self) -> impl Iterator<Item = $t> {
