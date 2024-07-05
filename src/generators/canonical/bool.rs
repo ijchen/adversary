@@ -8,7 +8,7 @@ impl Exhaustive<bool> for Canonical {
     }
 
     fn exhaustive(&self) -> impl Iterator<Item = bool> {
-        [true, false].into_iter()
+        [false, true].into_iter()
     }
 }
 
