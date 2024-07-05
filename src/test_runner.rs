@@ -27,7 +27,8 @@ fn find_failing_input<T>(
             &test,
             generator
                 .adversarial()
-                .chain(std::iter::repeat_with(|| generator.sample(rng)).take(MAX_RUNS)),
+                .chain(std::iter::repeat_with(|| generator.sample(rng)))
+                .take(MAX_RUNS),
         )
     } else {
         helper(
