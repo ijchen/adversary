@@ -32,8 +32,8 @@ mod tests {
         let failing_input = run_test(|&n| check(n), any(), &mut rand::thread_rng());
 
         assert_eq!(
-            failing_input.unwrap_err().minimal_failing_input,
-            Some(FAIL_THRESHOLD)
+            *failing_input.unwrap_err().minimal_failing_input(),
+            FAIL_THRESHOLD
         );
     }
 
@@ -47,8 +47,8 @@ mod tests {
         let failing_input = run_test_panics(|&n| check(n), any(), &mut rand::thread_rng());
 
         assert_eq!(
-            failing_input.unwrap_err().minimal_failing_input,
-            Some(FAIL_THRESHOLD)
+            *failing_input.unwrap_err().minimal_failing_input(),
+            FAIL_THRESHOLD
         );
     }
 
@@ -99,5 +99,33 @@ mod tests {
             &mut rand::thread_rng(),
         )
         .unwrap();
+    }
+
+    #[test]
+    fn my_test_6() {
+        assert_eq!(
+            *run_test(
+                |value: &Option<()>| value.is_some(),
+                any(),
+                &mut rand::thread_rng(),
+            )
+            .unwrap_err()
+            .minimal_failing_input(),
+            None
+        )
+    }
+
+    #[test]
+    fn my_test_7() {
+        assert_eq!(
+            *run_test(
+                |value: &Option<u32>| value.is_none() || value.is_some_and(|n| n < 103),
+                any(),
+                &mut rand::thread_rng(),
+            )
+            .unwrap_err()
+            .minimal_failing_input(),
+            Some(103)
+        )
     }
 }

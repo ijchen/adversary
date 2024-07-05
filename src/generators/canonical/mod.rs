@@ -3,6 +3,7 @@ use crate::InputGenerator;
 mod bool;
 mod float;
 mod ints;
+mod option;
 mod tuple;
 mod unit;
 

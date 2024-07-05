@@ -61,7 +61,7 @@ fn shrink_and_generate_report<T>(
 
     Report {
         original_failing_input: failing_input,
-        minimal_failing_input,
+        shrunk_failing_input: minimal_failing_input,
         details: generator.generate_report_details(history),
     }
 }
