@@ -63,4 +63,41 @@ mod tests {
         )
         .unwrap()
     }
+
+    #[test]
+    fn my_test_5() {
+        fn add(a: u32, b: u32) -> u64 {
+            u64::from(a) + u64::from(b)
+        }
+
+        // Zero identity
+        run_test(
+            |value: &_| add(*value, 0) == (*value).into(),
+            any(),
+            &mut rand::thread_rng(),
+        )
+        .unwrap();
+
+        // Commutativity
+        run_test(
+            |value: &(_, _, ())| add(value.0, value.1) == add(value.1, value.0),
+            any(),
+            &mut rand::thread_rng(),
+        )
+        .unwrap();
+
+        // Associativity
+        run_test(
+            |value: &(_, _, _)| match (
+                add(value.1, value.2).try_into(),
+                add(value.0, value.1).try_into(),
+            ) {
+                (Ok(sum1), Ok(sum2)) => add(value.0, sum1) == add(sum2, value.2),
+                _ => true,
+            },
+            any(),
+            &mut rand::thread_rng(),
+        )
+        .unwrap();
+    }
 }

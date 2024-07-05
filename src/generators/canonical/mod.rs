@@ -3,6 +3,7 @@ use crate::InputGenerator;
 mod bool;
 mod float;
 mod ints;
+mod tuple;
 mod unit;
 
 /// A struct that acts as a canonical input generator for many types.
