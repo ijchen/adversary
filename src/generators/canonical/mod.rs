@@ -6,6 +6,7 @@ mod ints;
 mod option;
 mod tuple;
 mod unit;
+mod vec;
 
 /// A struct that acts as a canonical input generator for many types.
 #[derive(Debug)]
