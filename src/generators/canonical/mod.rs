@@ -1,5 +1,6 @@
 use crate::InputGenerator;
 
+mod array;
 mod bool;
 mod float;
 mod ints;
