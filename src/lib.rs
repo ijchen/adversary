@@ -19,6 +19,8 @@ pub use test_runner::{run_test, run_test_panics};
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
     use generators::any;
 
@@ -127,5 +129,16 @@ mod tests {
             .minimal_failing_input(),
             Some(103)
         )
+    }
+
+    #[test]
+    fn my_test_8() {
+        fn f(value: u8) -> String {
+            format!("0x{value:02x}")
+        }
+
+        let v: HashSet<_> = any::<u8>().adv_map(f).exhaustive().collect();
+
+        assert_eq!(v, (0..=u8::MAX).map(f).collect())
     }
 }
