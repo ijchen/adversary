@@ -1,94 +1,129 @@
-use crate::{Adversarial, Exhaustive, Sample, Shrink};
+use crate::{
+    input_generator::NextAttempt,
+    report::{Importance, Observation},
+    Canonical, InputGenerator,
+};
 
-use super::Canonical;
+struct CanonicalBoolGenerator;
 
-impl Exhaustive<bool> for Canonical {
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+enum ObservedOutcomes {
+    #[default]
+    Nothing,
+    Passed,
+    Failed,
+    Both,
+}
+
+impl ObservedOutcomes {
+    pub fn observe_outcome(&mut self, passed: bool) {
+        *self = match (*self, passed) {
+            (Self::Nothing | Self::Passed, true) => Self::Passed,
+            (Self::Nothing | Self::Failed, false) => Self::Failed,
+            (Self::Failed, true) | (Self::Passed, false) | (Self::Both, _) => Self::Both,
+        };
+    }
+
+    pub fn has_failed(self) -> bool {
+        match self {
+            Self::Nothing => false,
+            Self::Passed => false,
+            Self::Failed => true,
+            Self::Both => true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+struct BoolHistory {
+    pub t: ObservedOutcomes,
+    pub f: ObservedOutcomes,
+}
+
+impl InputGenerator for CanonicalBoolGenerator {
+    type Input = bool;
+
+    type History = BoolHistory;
+
     fn cardinality(&self) -> Option<usize> {
         Some(2)
     }
 
-    fn exhaustive(&self) -> impl Iterator<Item = bool> {
+    fn exhaustive(&self) -> impl Iterator<Item = Self::Input> {
         [false, true].into_iter()
     }
-}
 
-impl Adversarial<bool> for Canonical {
     fn adversarial_count(&self) -> Option<usize> {
         Some(2)
     }
 
-    fn adversarial(&self) -> impl Iterator<Item = bool> {
+    fn adversarial(&self) -> impl Iterator<Item = Self::Input> {
         [false, true].into_iter()
     }
-}
 
-impl Sample<bool> for Canonical {
-    fn sample(&self, rng: &mut impl rand::Rng) -> bool {
+    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::Input {
         rng.gen()
     }
-}
 
-#[derive(Debug, Clone, Copy)]
-enum BoolHistoryInner {
-    TruePassFalseFail,
-    TrueUnknFalseFail,
-    TrueFailFalsePass,
-    TrueFailFalseUnkn,
-    TrueFailFalseFail,
-}
+    fn new_history(&self) -> Self::History {
+        Default::default()
+    }
 
-#[derive(Debug)]
-pub struct BoolHistory {
-    inner: BoolHistoryInner,
-}
-
-// TODO: do a much more thoughtful and improved implementation - this is just a
-// basic impl to get started with.
-impl Shrink<bool> for Canonical {
-    type History = BoolHistory;
-
-    fn history_from_failure(&self, failing_input: &bool) -> Self::History {
-        match failing_input {
-            true => BoolHistory {
-                inner: BoolHistoryInner::TrueFailFalseUnkn,
-            },
-            false => BoolHistory {
-                inner: BoolHistoryInner::TrueUnknFalseFail,
-            },
+    fn update_history(&self, history: &mut Self::History, input: &Self::Input, test_passed: bool) {
+        match input {
+            true => history.t.observe_outcome(test_passed),
+            false => history.f.observe_outcome(test_passed),
         }
     }
 
-    fn generate_report_details(&self, history: Self::History) -> String {
-        format!("TODO ({history:?})")
+    fn generate_observations(&self, history: Self::History) -> Vec<Observation> {
+        let mut observations = Vec::new();
+
+        if history.f == ObservedOutcomes::Both {
+            observations.push(Observation::new(
+                "false was observed both passing and failing - possible non-deterministic behavior",
+                Importance::MaybeRelevant,
+            ));
+        }
+
+        if history.t == ObservedOutcomes::Both {
+            observations.push(Observation::new(
+                "true was observed both passing and failing - possible non-deterministic behavior",
+                Importance::MaybeRelevant,
+            ));
+        }
+
+        if history.t.has_failed() && history.f.has_failed() {
+            observations.push(Observation::new(
+                "both true and false were observed as failing - this value probably doesn't matter",
+                Importance::MaybeRelevant,
+            ));
+        }
+
+        observations
     }
 
-    fn update_history(&self, history: &mut Self::History, input: &bool, test_passed: bool) {
-        use BoolHistoryInner as B;
-
-        history.inner = match (history.inner, input, test_passed) {
-            // No new information
-            (B::TruePassFalseFail | B::TrueFailFalsePass | B::TrueFailFalseFail, _, _) => {
-                history.inner
-            }
-            (B::TrueUnknFalseFail, false, _) | (B::TrueFailFalseUnkn, true, _) => history.inner,
-
-            // Some new information
-            (B::TrueUnknFalseFail, true, true) => B::TruePassFalseFail,
-            (B::TrueUnknFalseFail, true, false) => B::TrueFailFalseFail,
-            (B::TrueFailFalseUnkn, false, true) => B::TrueFailFalsePass,
-            (B::TrueFailFalseUnkn, false, false) => B::TrueFailFalseFail,
+    fn next_input(
+        &self,
+        _rng: &mut impl rand::Rng,
+        history: &Self::History,
+    ) -> NextAttempt<Self::Input> {
+        // If we haven't tried false yet, try to shrink to it
+        if history.f == ObservedOutcomes::Nothing {
+            return NextAttempt::ShrinkAttempt(false);
         }
+
+        // If we haven't tried true yet, try it for information
+        if history.t == ObservedOutcomes::Nothing {
+            return NextAttempt::InfoGathering(true);
+        }
+
+        NextAttempt::Done
     }
+}
 
-    fn next_input(&self, _rng: &mut impl rand::Rng, history: &Self::History) -> Option<bool> {
-        use BoolHistoryInner as B;
-
-        match history.inner {
-            B::TrueFailFalseUnkn => Some(false),
-            B::TruePassFalseFail
-            | B::TrueUnknFalseFail
-            | B::TrueFailFalsePass
-            | B::TrueFailFalseFail => None,
-        }
+impl Canonical for bool {
+    fn canonical() -> impl InputGenerator<Input = Self> {
+        CanonicalBoolGenerator
     }
 }

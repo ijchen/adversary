@@ -1,6 +1,3 @@
-mod adapters;
 mod canonical;
-mod tuple;
 
-pub(crate) use adapters::Map;
-pub use canonical::any;
+pub use canonical::{any, Canonical};

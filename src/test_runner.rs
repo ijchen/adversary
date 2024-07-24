@@ -2,11 +2,11 @@ use std::panic::RefUnwindSafe;
 
 use rand::Rng;
 
-use crate::{InputGenerator, Report};
+use crate::{input_generator::NextAttempt, InputGenerator, Report};
 
 fn find_failing_input<T>(
     test: &impl Fn(&T) -> bool,
-    generator: &mut impl InputGenerator<T>,
+    generator: &mut impl InputGenerator<Input = T>,
     rng: &mut impl Rng,
 ) -> Option<T> {
     // TODO: allow customizing this
@@ -41,15 +41,19 @@ fn find_failing_input<T>(
     }
 }
 
+#[allow(unused)] // TODO(ichen): some things are unused bc of refactoring
 fn shrink_and_generate_report<T>(
     test: &impl Fn(&T) -> bool,
-    generator: &impl InputGenerator<T>,
+    generator: &impl InputGenerator<Input = T>,
     rng: &mut impl Rng,
     failing_input: T,
 ) -> Report<T> {
-    let mut history = generator.history_from_failure(&failing_input);
+    let mut history = generator.new_history();
+    generator.update_history(&mut history, &failing_input, false);
     let mut minimal_failing_input = None;
-    while let Some(next_input) = generator.next_input(rng, &history) {
+    while let NextAttempt::InfoGathering(next_input) | NextAttempt::ShrinkAttempt(next_input) =
+        generator.next_input(rng, &history)
+    {
         let passed = test(&next_input);
 
         generator.update_history(&mut history, &next_input, passed);
@@ -59,18 +63,19 @@ fn shrink_and_generate_report<T>(
         }
     }
 
-    Report {
-        original_failing_input: failing_input,
-        shrunk_failing_input: minimal_failing_input,
-        details: generator.generate_report_details(history),
-    }
+    // Report {
+    //     original_failing_input: failing_input,
+    //     shrunk_failing_input: minimal_failing_input,
+    //     details: generator.generate_report(history),
+    // }
+    todo!()
 }
 
 // TODO: add ability to customize how we sample the generator
 // TODO: handle generator impls that lie about their sizes
 pub fn run_test<T>(
     test: impl Fn(&T) -> bool,
-    mut generator: impl InputGenerator<T>,
+    mut generator: impl InputGenerator<Input = T>,
     rng: &mut impl Rng,
 ) -> Result<(), Report<T>> {
     // Find a failing input
@@ -89,7 +94,7 @@ pub fn run_test<T>(
 
 pub fn run_test_panics<T: RefUnwindSafe>(
     test: impl Fn(&T) + RefUnwindSafe,
-    generator: impl InputGenerator<T>,
+    generator: impl InputGenerator<Input = T>,
     rng: &mut impl Rng,
 ) -> Result<(), Report<T>> {
     run_test(
