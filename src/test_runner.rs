@@ -1,6 +1,6 @@
 use std::panic::RefUnwindSafe;
 
-use rand::Rng;
+use crate::rand::Rng;
 
 use crate::{input_generator::NextAttempt, report::ShrinkStep, InputGenerator, Report};
 

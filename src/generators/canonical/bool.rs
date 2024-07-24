@@ -61,7 +61,7 @@ impl InputGenerator for CanonicalBoolGenerator {
         [false, true].into_iter()
     }
 
-    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::Input {
+    fn sample(&self, rng: &mut (impl crate::rand::Rng + ?Sized)) -> Self::Input {
         rng.gen()
     }
 
@@ -105,7 +105,7 @@ impl InputGenerator for CanonicalBoolGenerator {
 
     fn next_input(
         &self,
-        _rng: &mut impl rand::Rng,
+        _rng: &mut impl crate::rand::Rng,
         history: &Self::History,
     ) -> NextAttempt<Self::Input> {
         // If we haven't tried false yet, try to shrink to it
