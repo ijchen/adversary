@@ -42,6 +42,7 @@ struct BoolHistory {
 
 impl InputGenerator for CanonicalBoolGenerator {
     type Input = bool;
+    type InputIdentifier = Self::Input;
 
     type History = BoolHistory;
 
@@ -49,28 +50,35 @@ impl InputGenerator for CanonicalBoolGenerator {
         Some(2)
     }
 
-    fn exhaustive(&self) -> impl Iterator<Item = Self::Input> {
-        [false, true].into_iter()
+    fn exhaustive(&self) -> impl Iterator<Item = (Self::Input, Self::InputIdentifier)> {
+        [(false, false), (true, true)].into_iter()
     }
 
     fn adversarial_count(&self) -> Option<usize> {
         Some(2)
     }
 
-    fn adversarial(&self) -> impl Iterator<Item = Self::Input> {
-        [false, true].into_iter()
+    fn adversarial(&self) -> impl Iterator<Item = (Self::Input, Self::InputIdentifier)> {
+        [(false, false), (true, true)].into_iter()
     }
 
-    fn sample(&self, rng: &mut (impl crate::rand::Rng + ?Sized)) -> Self::Input {
-        rng.gen()
+    fn sample(&self, rng: &mut (impl crate::rand::Rng + ?Sized)) -> (Self::Input, Self::Input) {
+        let input = rng.gen();
+
+        (input, input)
     }
 
     fn new_history(&self) -> Self::History {
         Default::default()
     }
 
-    fn update_history(&self, history: &mut Self::History, input: &Self::Input, test_passed: bool) {
-        match input {
+    fn update_history(
+        &self,
+        history: &mut Self::History,
+        input_identifier: Self::InputIdentifier,
+        test_passed: bool,
+    ) {
+        match input_identifier {
             true => history.t.observe_outcome(test_passed),
             false => history.f.observe_outcome(test_passed),
         }
@@ -107,15 +115,15 @@ impl InputGenerator for CanonicalBoolGenerator {
         &self,
         _rng: &mut impl crate::rand::Rng,
         history: &Self::History,
-    ) -> NextAttempt<Self::Input> {
+    ) -> NextAttempt<(Self::Input, Self::InputIdentifier)> {
         // If we haven't tried false yet, try to shrink to it
         if history.f == ObservedOutcomes::Nothing {
-            return NextAttempt::ShrinkAttempt(false);
+            return NextAttempt::ShrinkAttempt((false, false));
         }
 
         // If we haven't tried true yet, try it for information
         if history.t == ObservedOutcomes::Nothing {
-            return NextAttempt::InfoGathering(true);
+            return NextAttempt::InfoGathering((true, true));
         }
 
         NextAttempt::Done

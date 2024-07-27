@@ -4,29 +4,31 @@ use crate::rand::Rng;
 
 use crate::{input_generator::NextAttempt, report::ShrinkStep, InputGenerator, Report};
 
-struct FailingInputReport<T> {
+struct FailingInputReport<T, I> {
     pub failing_input: T,
+    pub failing_input_identifier: I,
     pub passing_runs: u64,
 }
 
-fn find_failing_input<T>(
+fn find_failing_input<T, I>(
     test: &impl Fn(&T) -> bool,
-    generator: &mut impl InputGenerator<Input = T>,
+    generator: &mut impl InputGenerator<Input = T, InputIdentifier = I>,
     rng: &mut impl Rng,
-) -> Option<FailingInputReport<T>> {
+) -> Option<FailingInputReport<T, I>> {
     #[inline]
-    fn helper<T>(
+    fn helper<T, I>(
         test: &impl Fn(&T) -> bool,
-        inputs: impl Iterator<Item = T>,
-    ) -> Option<FailingInputReport<T>> {
+        inputs: impl Iterator<Item = (T, I)>,
+    ) -> Option<FailingInputReport<T, I>> {
         // TODO: maybe make this all functional and appease the lambda bros
         let mut passing_runs: u64 = 0;
-        for input in inputs {
+        for (input, input_identifier) in inputs {
             let test_passed = test(&input);
 
             if !test_passed {
                 return Some(FailingInputReport {
                     failing_input: input,
+                    failing_input_identifier: input_identifier,
                     passing_runs,
                 });
             }
@@ -70,15 +72,19 @@ fn find_failing_input<T>(
 }
 
 #[allow(unused)] // TODO(ichen): some things are unused bc of refactoring
-fn shrink_and_generate_report<T>(
+fn shrink_and_generate_report<T, I>(
     test: &impl Fn(&T) -> bool,
-    generator: &impl InputGenerator<Input = T>,
+    generator: &impl InputGenerator<Input = T, InputIdentifier = I>,
     rng: &mut impl Rng,
-    failing_input_report: FailingInputReport<T>,
+    failing_input_report: FailingInputReport<T, I>,
 ) -> Report<T> {
     let mut history = generator.new_history();
 
-    generator.update_history(&mut history, &failing_input_report.failing_input, false);
+    generator.update_history(
+        &mut history,
+        failing_input_report.failing_input_identifier,
+        false,
+    );
 
     let mut shrink_steps = vec![ShrinkStep::new(
         failing_input_report.failing_input,
@@ -88,7 +94,8 @@ fn shrink_and_generate_report<T>(
     // TODO(ichen): limit how many times this loop can run (to guard against
     // faulty InputGenerator::next_input impls)
     loop {
-        let (input, info_gathering) = match generator.next_input(rng, &history) {
+        let ((input, input_identifier), info_gathering) = match generator.next_input(rng, &history)
+        {
             NextAttempt::Done => break,
             NextAttempt::InfoGathering(input) => (input, true),
             NextAttempt::ShrinkAttempt(input) => (input, false),
@@ -96,7 +103,7 @@ fn shrink_and_generate_report<T>(
 
         let test_passed = test(&input);
 
-        generator.update_history(&mut history, &input, test_passed);
+        generator.update_history(&mut history, input_identifier, test_passed);
 
         shrink_steps.push(ShrinkStep::new(input, info_gathering, test_passed))
     }

@@ -5,7 +5,12 @@
 //! funny, and I think the fact that someday I might look back at this and be
 //! embarassed is even funnier.
 
+// TODO(ichen): for now, a lot of this is unused. Will want to either delete or
+// make official things from this module eventually.
+#![allow(dead_code)]
+
 mod add_adversarial;
 mod impl_input_generator_for_slice;
+mod map;
 mod replace_adversarial;
 mod without_shrinking;

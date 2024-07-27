@@ -2,14 +2,15 @@ use crate::{input_generator::NextAttempt, InputGenerator};
 
 struct AddAdversarial<G: InputGenerator> {
     generator: G,
-    adversarial: Box<[G::Input]>,
+    adversarial: Box<[(G::Input, G::InputIdentifier)]>,
 }
 
 impl<G: InputGenerator> InputGenerator for AddAdversarial<G>
 where
-    G::Input: Clone,
+    (G::Input, G::InputIdentifier): Clone,
 {
     type Input = G::Input;
+    type InputIdentifier = G::InputIdentifier;
 
     type History = G::History;
 
@@ -17,7 +18,7 @@ where
         self.generator.cardinality()
     }
 
-    fn exhaustive(&self) -> impl Iterator<Item = Self::Input> {
+    fn exhaustive(&self) -> impl Iterator<Item = (Self::Input, Self::InputIdentifier)> {
         self.generator.exhaustive()
     }
 
@@ -27,13 +28,13 @@ where
             .checked_add(self.adversarial.len())
     }
 
-    fn adversarial(&self) -> impl Iterator<Item = Self::Input> {
+    fn adversarial(&self) -> impl Iterator<Item = (Self::Input, Self::InputIdentifier)> {
         self.generator
             .adversarial()
             .chain(self.adversarial.iter().cloned())
     }
 
-    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::Input {
+    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> (Self::Input, Self::InputIdentifier) {
         self.generator.sample(rng)
     }
 
@@ -41,8 +42,14 @@ where
         self.generator.new_history()
     }
 
-    fn update_history(&self, history: &mut Self::History, input: &Self::Input, test_passed: bool) {
-        self.generator.update_history(history, input, test_passed)
+    fn update_history(
+        &self,
+        history: &mut Self::History,
+        input_identifier: Self::InputIdentifier,
+        test_passed: bool,
+    ) {
+        self.generator
+            .update_history(history, input_identifier, test_passed)
     }
 
     fn generate_observations(&self, history: Self::History) -> Vec<crate::report::Observation> {
@@ -53,7 +60,7 @@ where
         &self,
         rng: &mut impl rand::Rng,
         history: &Self::History,
-    ) -> NextAttempt<Self::Input> {
+    ) -> NextAttempt<(Self::Input, Self::InputIdentifier)> {
         self.generator.next_input(rng, history)
     }
 }
