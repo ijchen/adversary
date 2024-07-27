@@ -1,5 +1,7 @@
 pub mod generators;
 mod input_generator;
+mod input_generator_ext;
+pub mod prelude;
 mod report;
 mod test_runner;
 
@@ -7,6 +9,7 @@ pub use rand;
 
 pub use generators::{any, Canonical};
 pub use input_generator::InputGenerator;
+pub use input_generator_ext::InputGeneratorExt;
 pub use report::{Report, ShrinkStep};
 pub use test_runner::{run_test, run_test_panics};
 

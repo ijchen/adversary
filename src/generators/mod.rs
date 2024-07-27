@@ -1,3 +1,4 @@
+pub(crate) mod adapters;
 mod canonical;
 mod the_kitchen;
 

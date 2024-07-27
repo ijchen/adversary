@@ -7,7 +7,6 @@ pub struct Map<G, F> {
 
 impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
     type Input = U;
-
     type InputIdentifier = G::InputIdentifier;
 
     type History = G::History;

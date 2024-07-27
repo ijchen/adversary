@@ -11,6 +11,5 @@
 
 mod add_adversarial;
 mod impl_input_generator_for_slice;
-mod map;
 mod replace_adversarial;
 mod without_shrinking;
