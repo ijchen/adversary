@@ -1,4 +1,4 @@
-use std::{collections::HashSet, ops::Range};
+use std::{collections::HashSet, ops::RangeInclusive};
 
 use crate::{input_generator::NextAttempt, InputGenerator};
 
@@ -12,7 +12,7 @@ pub struct UnsignedRangeHistory<T> {
     max_passing: Option<T>,
 }
 
-impl InputGenerator for Range<utype> {
+impl InputGenerator for RangeInclusive<utype> {
     type Input = utype;
 
     type InputIdentifier = Self::Input;
@@ -20,9 +20,13 @@ impl InputGenerator for Range<utype> {
     type History = UnsignedRangeHistory<utype>;
 
     fn cardinality(&self) -> Option<usize> {
-        assert!(self.start < self.end);
+        assert!(!self.is_empty());
 
-        usize::try_from(self.end - self.start).ok()
+        // TODO(ichen): I haven't fully thought through if overflow can cause
+        // issues here (especially when coming from other Range types)
+        usize::try_from(self.end() - self.start())
+            .ok()
+            .and_then(|n| n.checked_add(1))
     }
 
     fn exhaustive(&self) -> impl Iterator<Item = (Self::Input, Self::InputIdentifier)> {
@@ -41,7 +45,7 @@ impl InputGenerator for Range<utype> {
         // optimize it to be as fast as we can get it... this HashSet stuff is
         // almost certainly going to be very slow
 
-        HashSet::from([self.start, self.start + 1, self.end - 2, self.end - 1])
+        HashSet::from([*self.start(), self.start() + 1, self.end() - 1, *self.end()])
             .into_iter()
             .map(|n| (n, n))
     }
@@ -63,16 +67,16 @@ impl InputGenerator for Range<utype> {
         _rng: &mut impl rand::Rng,
         history: &Self::History,
     ) -> crate::input_generator::NextAttempt<(Self::Input, Self::InputIdentifier)> {
-        assert!(self.start < self.end);
+        assert!(!self.is_empty());
 
         // If we already know the minimum value is failing, we're done shrinking
-        if history.min_failing.is_some_and(|n| n == self.start) {
+        if history.min_failing.is_some_and(|n| n == *self.start()) {
             return NextAttempt::Done;
         }
 
         // If we don't have a lower bound, try the minimum value
         if history.max_passing.is_none() {
-            return NextAttempt::ShrinkAttempt((self.start, self.start));
+            return NextAttempt::ShrinkAttempt((*self.start(), *self.start()));
         }
 
         // This is a sort of odd state where we don't have any failing inputs.
@@ -139,21 +143,21 @@ mod tests {
     #[test]
     fn test_shrinks_to_min() {
         assert_eq!(
-            run_test(|_| false, 0..6, &mut crate::rand::thread_rng())
+            run_test(|_| false, 0..=6, &mut crate::rand::thread_rng())
                 .unwrap_err()
                 .simplest_failing_input,
             0
         );
 
         assert_eq!(
-            run_test(|&n| n < 123, 45..1000, &mut crate::rand::thread_rng())
+            run_test(|&n| n < 123, 45..=1000, &mut crate::rand::thread_rng())
                 .unwrap_err()
                 .simplest_failing_input,
             123
         );
 
         assert_eq!(
-            run_test(|&n| n < 643, 45..2000000, &mut crate::rand::thread_rng())
+            run_test(|&n| n < 643, 45..=2000000, &mut crate::rand::thread_rng())
                 .unwrap_err()
                 .simplest_failing_input,
             643
@@ -162,7 +166,7 @@ mod tests {
         assert_eq!(
             run_test(
                 |&n| n < 1234,
-                532..u128::MAX,
+                532..=u128::MAX,
                 &mut crate::rand::thread_rng()
             )
             .unwrap_err()
