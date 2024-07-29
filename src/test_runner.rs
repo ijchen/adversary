@@ -2,6 +2,7 @@ use std::panic::RefUnwindSafe;
 
 use crate::rand::Rng;
 
+use crate::IntoInputGenerator;
 use crate::{input_generator::NextAttempt, report::ShrinkStep, InputGenerator, Report};
 
 struct FailingInputReport<T, I> {
@@ -71,7 +72,6 @@ fn find_failing_input<T, I>(
     }
 }
 
-#[allow(unused)] // TODO(ichen): some things are unused bc of refactoring
 fn shrink_and_generate_report<T, I>(
     test: &impl Fn(&T) -> bool,
     generator: &impl InputGenerator<Input = T, InputIdentifier = I>,
@@ -136,9 +136,11 @@ fn shrink_and_generate_report<T, I>(
 // TODO: handle generator impls that lie about their sizes
 pub fn run_test<T>(
     test: impl Fn(&T) -> bool,
-    mut generator: impl InputGenerator<Input = T>,
+    generator: impl IntoInputGenerator<Input = T>,
     rng: &mut impl Rng,
 ) -> Result<(), Report<T>> {
+    let mut generator = generator.into_input_generator();
+
     // Find a failing input
     let Some(failing_input_report) = find_failing_input(&test, &mut generator, rng) else {
         return Ok(());
@@ -155,7 +157,7 @@ pub fn run_test<T>(
 
 pub fn run_test_panics<T: RefUnwindSafe>(
     test: impl Fn(&T) + RefUnwindSafe,
-    generator: impl InputGenerator<Input = T>,
+    generator: impl IntoInputGenerator<Input = T>,
     rng: &mut impl Rng,
 ) -> Result<(), Report<T>> {
     run_test(
