@@ -1,4 +1,7 @@
-use crate::{input_generator::NextAttempt, InputGenerator};
+use crate::{
+    input_generator::{InputWithShrinkable, NextAttempt},
+    InputGenerator,
+};
 
 /// Okay so hear me out - what if we implemented [`InputGenerator`] for slices?
 ///
@@ -6,7 +9,7 @@ use crate::{input_generator::NextAttempt, InputGenerator};
 
 impl<'a, T> InputGenerator for &'a [T] {
     type Input = &'a T;
-    type InputIdentifier = Self::Input;
+    type ShrinkableInput = Self::Input;
 
     type History = ();
 
@@ -14,22 +17,29 @@ impl<'a, T> InputGenerator for &'a [T] {
         Some(self.len())
     }
 
-    fn exhaustive(&self) -> impl Iterator<Item = (Self::Input, Self::InputIdentifier)> {
-        self.into_iter().map(|v| (v, v))
+    fn exhaustive(
+        &self,
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+        self.into_iter().map(|v| InputWithShrinkable(v, v))
     }
 
     fn adversarial_count(&self) -> Option<usize> {
         Some(0)
     }
 
-    fn adversarial(&self) -> impl Iterator<Item = (Self::Input, Self::InputIdentifier)> {
+    fn adversarial(
+        &self,
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
         std::iter::empty()
     }
 
-    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> (Self::Input, Self::InputIdentifier) {
+    fn sample(
+        &self,
+        rng: &mut (impl rand::Rng + ?Sized),
+    ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
         let v = crate::rand::seq::SliceRandom::choose(*self, rng).unwrap();
 
-        (v, v)
+        InputWithShrinkable(v, v)
     }
 
     fn new_history(&self) -> Self::History {
@@ -39,7 +49,7 @@ impl<'a, T> InputGenerator for &'a [T] {
     fn update_history(
         &self,
         _history: &mut Self::History,
-        _input_identifier: Self::InputIdentifier,
+        _shrinkable_input: Self::ShrinkableInput,
         _test_passed: bool,
     ) {
     }
@@ -52,14 +62,14 @@ impl<'a, T> InputGenerator for &'a [T] {
         &self,
         _rng: &mut impl crate::rand::Rng,
         _history: &Self::History,
-    ) -> NextAttempt<(Self::Input, Self::InputIdentifier)> {
+    ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
         NextAttempt::Done
     }
 }
 
 impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
     type Input = &'a T;
-    type InputIdentifier = Self::Input;
+    type ShrinkableInput = Self::Input;
 
     type History = ();
 
@@ -67,22 +77,29 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
         Some(N)
     }
 
-    fn exhaustive(&self) -> impl Iterator<Item = (Self::Input, Self::InputIdentifier)> {
-        self.into_iter().map(|v| (v, v))
+    fn exhaustive(
+        &self,
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+        self.into_iter().map(|v| InputWithShrinkable(v, v))
     }
 
     fn adversarial_count(&self) -> Option<usize> {
         Some(0)
     }
 
-    fn adversarial(&self) -> impl Iterator<Item = (Self::Input, Self::InputIdentifier)> {
+    fn adversarial(
+        &self,
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
         std::iter::empty()
     }
 
-    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> (Self::Input, Self::InputIdentifier) {
+    fn sample(
+        &self,
+        rng: &mut (impl rand::Rng + ?Sized),
+    ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
         let v = crate::rand::seq::SliceRandom::choose(self.as_slice(), rng).unwrap();
 
-        (v, v)
+        InputWithShrinkable(v, v)
     }
 
     fn new_history(&self) -> Self::History {
@@ -92,7 +109,7 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
     fn update_history(
         &self,
         _history: &mut Self::History,
-        _input_identifier: Self::InputIdentifier,
+        _shrinkable_input: Self::ShrinkableInput,
         _test_passed: bool,
     ) {
     }
@@ -105,7 +122,7 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
         &self,
         _rng: &mut impl crate::rand::Rng,
         _history: &Self::History,
-    ) -> NextAttempt<(Self::Input, Self::InputIdentifier)> {
+    ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
         NextAttempt::Done
     }
 }

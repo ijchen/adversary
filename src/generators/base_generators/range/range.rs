@@ -1,6 +1,9 @@
 use std::{collections::HashSet, ops::Range};
 
-use crate::{input_generator::NextAttempt, InputGenerator};
+use crate::{
+    input_generator::{InputWithShrinkable, NextAttempt},
+    InputGenerator,
+};
 
 #[allow(non_camel_case_types)] // TODO: gonna be a metavariable in a macro
 type utype = u128;
@@ -15,7 +18,7 @@ pub struct UnsignedRangeHistory<T> {
 impl InputGenerator for Range<utype> {
     type Input = utype;
 
-    type InputIdentifier = Self::Input;
+    type ShrinkableInput = Self::Input;
 
     type History = UnsignedRangeHistory<utype>;
 
@@ -25,8 +28,10 @@ impl InputGenerator for Range<utype> {
         usize::try_from(self.end - self.start).ok()
     }
 
-    fn exhaustive(&self) -> impl Iterator<Item = (Self::Input, Self::InputIdentifier)> {
-        self.clone().map(|n| (n, n))
+    fn exhaustive(
+        &self,
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+        self.clone().map(|n| InputWithShrinkable(n, n))
     }
 
     fn adversarial_count(&self) -> Option<usize> {
@@ -35,7 +40,9 @@ impl InputGenerator for Range<utype> {
         Some(self.adversarial().count())
     }
 
-    fn adversarial(&self) -> impl Iterator<Item = (Self::Input, Self::InputIdentifier)> {
+    fn adversarial(
+        &self,
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
         // TODO(ichen): see if we can make this const evaluatable (assuming the
         // compiler knows the range bounds at compile time). If not, at least
         // optimize it to be as fast as we can get it... this HashSet stuff is
@@ -43,12 +50,15 @@ impl InputGenerator for Range<utype> {
 
         HashSet::from([self.start, self.start + 1, self.end - 2, self.end - 1])
             .into_iter()
-            .map(|n| (n, n))
+            .map(|n| InputWithShrinkable(n, n))
     }
 
-    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> (Self::Input, Self::InputIdentifier) {
+    fn sample(
+        &self,
+        rng: &mut (impl rand::Rng + ?Sized),
+    ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
         let n = rng.gen_range(self.clone());
-        (n, n)
+        InputWithShrinkable(n, n)
     }
 
     fn new_history(&self) -> Self::History {
@@ -62,7 +72,7 @@ impl InputGenerator for Range<utype> {
         &self,
         _rng: &mut impl rand::Rng,
         history: &Self::History,
-    ) -> crate::input_generator::NextAttempt<(Self::Input, Self::InputIdentifier)> {
+    ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
         assert!(self.start < self.end);
 
         // If we already know the minimum value is failing, we're done shrinking
@@ -72,7 +82,7 @@ impl InputGenerator for Range<utype> {
 
         // If we don't have a lower bound, try the minimum value
         if history.max_passing.is_none() {
-            return NextAttempt::ShrinkAttempt((self.start, self.start));
+            return NextAttempt::ShrinkAttempt(InputWithShrinkable(self.start, self.start));
         }
 
         // This is a sort of odd state where we don't have any failing inputs.
@@ -99,30 +109,30 @@ impl InputGenerator for Range<utype> {
 
         // If we're not done, try the midpoint of our upper and lower bounds
         let next_attempt = (min_failing - max_passing) / 2 + max_passing;
-        NextAttempt::ShrinkAttempt((next_attempt, next_attempt))
+        NextAttempt::ShrinkAttempt(InputWithShrinkable(next_attempt, next_attempt))
     }
 
     fn update_history(
         &self,
         history: &mut Self::History,
-        input_identifier: Self::InputIdentifier,
+        shrinkable_input: Self::ShrinkableInput,
         test_passed: bool,
     ) {
         // If the test passed, update the lower bound
         if test_passed {
             assert!(history
                 .max_passing
-                .map_or(true, |max_passing| input_identifier > max_passing));
+                .map_or(true, |max_passing| shrinkable_input > max_passing));
 
-            history.max_passing = Some(input_identifier);
+            history.max_passing = Some(shrinkable_input);
         }
         // If the test failed, update the upper bound
         else {
             assert!(history
                 .min_failing
-                .map_or(true, |min_failing| input_identifier < min_failing));
+                .map_or(true, |min_failing| shrinkable_input < min_failing));
 
-            history.min_failing = Some(input_identifier);
+            history.min_failing = Some(shrinkable_input);
         }
     }
 

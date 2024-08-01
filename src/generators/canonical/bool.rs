@@ -1,5 +1,5 @@
 use crate::{
-    input_generator::NextAttempt,
+    input_generator::{InputWithShrinkable, NextAttempt},
     report::{Importance, Observation},
     Canonical, InputGenerator,
 };
@@ -42,7 +42,7 @@ struct BoolHistory {
 
 impl InputGenerator for CanonicalBoolGenerator {
     type Input = bool;
-    type InputIdentifier = Self::Input;
+    type ShrinkableInput = Self::Input;
 
     type History = BoolHistory;
 
@@ -50,22 +50,37 @@ impl InputGenerator for CanonicalBoolGenerator {
         Some(2)
     }
 
-    fn exhaustive(&self) -> impl Iterator<Item = (Self::Input, Self::InputIdentifier)> {
-        [(false, false), (true, true)].into_iter()
+    fn exhaustive(
+        &self,
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+        [
+            InputWithShrinkable(false, false),
+            InputWithShrinkable(true, true),
+        ]
+        .into_iter()
     }
 
     fn adversarial_count(&self) -> Option<usize> {
         Some(2)
     }
 
-    fn adversarial(&self) -> impl Iterator<Item = (Self::Input, Self::InputIdentifier)> {
-        [(false, false), (true, true)].into_iter()
+    fn adversarial(
+        &self,
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+        [
+            InputWithShrinkable(false, false),
+            InputWithShrinkable(true, true),
+        ]
+        .into_iter()
     }
 
-    fn sample(&self, rng: &mut (impl crate::rand::Rng + ?Sized)) -> (Self::Input, Self::Input) {
+    fn sample(
+        &self,
+        rng: &mut (impl crate::rand::Rng + ?Sized),
+    ) -> InputWithShrinkable<Self::Input, Self::Input> {
         let input = rng.gen();
 
-        (input, input)
+        InputWithShrinkable(input, input)
     }
 
     fn new_history(&self) -> Self::History {
@@ -75,10 +90,10 @@ impl InputGenerator for CanonicalBoolGenerator {
     fn update_history(
         &self,
         history: &mut Self::History,
-        input_identifier: Self::InputIdentifier,
+        shrinkable_input: Self::ShrinkableInput,
         test_passed: bool,
     ) {
-        match input_identifier {
+        match shrinkable_input {
             true => history.t.observe_outcome(test_passed),
             false => history.f.observe_outcome(test_passed),
         }
@@ -115,15 +130,15 @@ impl InputGenerator for CanonicalBoolGenerator {
         &self,
         _rng: &mut impl crate::rand::Rng,
         history: &Self::History,
-    ) -> NextAttempt<(Self::Input, Self::InputIdentifier)> {
+    ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
         // If we haven't tried false yet, try to shrink to it
         if history.f == ObservedOutcomes::Nothing {
-            return NextAttempt::ShrinkAttempt((false, false));
+            return NextAttempt::ShrinkAttempt(InputWithShrinkable(false, false));
         }
 
         // If we haven't tried true yet, try it for information
         if history.t == ObservedOutcomes::Nothing {
-            return NextAttempt::InfoGathering((true, true));
+            return NextAttempt::InfoGathering(InputWithShrinkable(true, true));
         }
 
         NextAttempt::Done

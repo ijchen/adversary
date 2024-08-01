@@ -5,14 +5,14 @@ pub trait InputGeneratorExt: InputGenerator {
     fn adv_map<U, F: Fn(Self::Input) -> U>(
         self,
         map_function: F,
-    ) -> impl InputGenerator<Input = U, InputIdentifier = Self::InputIdentifier, History = Self::History>;
+    ) -> impl InputGenerator<Input = U, ShrinkableInput = Self::ShrinkableInput, History = Self::History>;
 }
 
 impl<G: InputGenerator> InputGeneratorExt for G {
     fn adv_map<U, F: Fn(Self::Input) -> U>(
         self,
         map_function: F,
-    ) -> impl InputGenerator<Input = U, InputIdentifier = Self::InputIdentifier, History = Self::History>
+    ) -> impl InputGenerator<Input = U, ShrinkableInput = Self::ShrinkableInput, History = Self::History>
     {
         Map::new(self, map_function)
     }
