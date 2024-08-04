@@ -44,4 +44,29 @@ mod tests {
 
         run_test(|_: &bool| true, any(), &mut crate::rand::thread_rng()).unwrap();
     }
+
+    #[test]
+    fn test_2() {
+        let report = run_test_panics(
+            |v: &bool| assert!(!v),
+            any(),
+            &mut crate::rand::thread_rng(),
+        )
+        .unwrap_err();
+        assert_eq!(
+            report.panic_message,
+            Some("assertion failed: !v".to_string())
+        );
+
+        let report = run_test_panics(
+            |v: &bool| assert!(v, "My custom panic ({}) message [{}]", "at the disco", v),
+            any(),
+            &mut crate::rand::thread_rng(),
+        )
+        .unwrap_err();
+        assert_eq!(
+            report.panic_message,
+            Some("My custom panic (at the disco) message [false]".to_string())
+        );
+    }
 }
