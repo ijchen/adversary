@@ -5,9 +5,6 @@ use crate::{
     InputGenerator,
 };
 
-#[allow(non_camel_case_types)] // TODO: gonna be a metavariable in a macro
-type utype = u128;
-
 // TODO(ichen): I'd really like this struct to be private - I don't want to make
 // any API promises about it.
 pub struct UnsignedRangeHistory<T> {
@@ -15,136 +12,159 @@ pub struct UnsignedRangeHistory<T> {
     max_passing: Option<T>,
 }
 
-impl InputGenerator for RangeInclusive<utype> {
-    type Input = utype;
+macro_rules! unsigned_range_inclusive {
+    ($($t: ty),+$(,)?) => {
+        $(
+            impl InputGenerator for RangeInclusive<$t> {
+                type Input = $t;
 
-    type ShrinkableInput = Self::Input;
+                type ShrinkableInput = Self::Input;
 
-    type History = UnsignedRangeHistory<utype>;
+                type History = UnsignedRangeHistory<$t>;
 
-    fn cardinality(&self) -> Option<usize> {
-        assert!(!self.is_empty());
+                fn cardinality(&self) -> Option<usize> {
+                    assert!(!self.is_empty());
 
-        // TODO(ichen): I haven't fully thought through if overflow can cause
-        // issues here (especially when coming from other Range types)
-        usize::try_from(self.end() - self.start())
-            .ok()
-            .and_then(|n| n.checked_add(1))
-    }
+                    // TODO(ichen): I haven't fully thought through if overflow
+                    // can cause issues here (especially when coming from other
+                    // Range types)
+                    usize::try_from(self.end() - self.start())
+                        .ok()
+                        .and_then(|n| n.checked_add(1))
+                }
 
-    fn exhaustive(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
-        self.clone().map(|n| InputWithShrinkable(n, n))
-    }
+                fn exhaustive(
+                    &self,
+                ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+                    assert!(!self.is_empty());
 
-    fn adversarial_count(&self) -> Option<usize> {
-        // TODO(ichen): will eventually want to implement this without actually
-        // calling .adversarial()
-        Some(self.adversarial().count())
-    }
+                    self.clone().map(|n| InputWithShrinkable(n, n))
+                }
 
-    fn adversarial(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
-        // TODO(ichen): see if we can make this const evaluatable (assuming the
-        // compiler knows the range bounds at compile time). If not, at least
-        // optimize it to be as fast as we can get it... this HashSet stuff is
-        // almost certainly going to be very slow
+                fn adversarial_count(&self) -> Option<usize> {
+                    assert!(!self.is_empty());
 
-        HashSet::from([*self.start(), self.start() + 1, self.end() - 1, *self.end()])
-            .into_iter()
-            .map(|n| InputWithShrinkable(n, n))
-    }
+                    // TODO(ichen): will eventually want to implement this without actually
+                    // calling .adversarial()
+                    Some(self.adversarial().count())
+                }
 
-    fn sample(
-        &self,
-        rng: &mut (impl rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
-        let n = rng.gen_range(self.clone());
-        InputWithShrinkable(n, n)
-    }
+                fn adversarial(
+                    &self,
+                ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+                    // TODO(ichen): see if we can make this const evaluatable (assuming the
+                    // compiler knows the range bounds at compile time). If not, at least
+                    // optimize it to be as fast as we can get it... this HashSet stuff is
+                    // almost certainly going to be very slow
 
-    fn new_history(&self) -> Self::History {
-        UnsignedRangeHistory {
-            min_failing: None,
-            max_passing: None,
-        }
-    }
+                    assert!(!self.is_empty());
 
-    fn next_input(
-        &self,
-        _rng: &mut impl rand::Rng,
-        history: &Self::History,
-    ) -> crate::input_generator::NextAttempt<Self::Input, Self::ShrinkableInput> {
-        assert!(!self.is_empty());
+                    HashSet::from([*self.start(), self.start() + 1, self.end() - 1, *self.end()])
+                        .into_iter()
+                        .map(|n| InputWithShrinkable(n, n))
+                }
 
-        // If we already know the minimum value is failing, we're done shrinking
-        if history.min_failing.is_some_and(|n| n == *self.start()) {
-            return NextAttempt::Done;
-        }
+                fn sample(
+                    &self,
+                    rng: &mut (impl rand::Rng + ?Sized),
+                ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
+                    assert!(!self.is_empty());
 
-        // If we don't have a lower bound, try the minimum value
-        if history.max_passing.is_none() {
-            return NextAttempt::ShrinkAttempt(InputWithShrinkable(*self.start(), *self.start()));
-        }
+                    let n = rng.gen_range(self.clone());
+                    InputWithShrinkable(n, n)
+                }
 
-        // This is a sort of odd state where we don't have any failing inputs.
-        // We could try the max value, but realistically most tests aren't going
-        // to start failing if we just make the number as big as possible. For
-        // now, I'm just going to stop shrinking here. This can be revisited
-        // when we start doing more than just a simple binary search towards 0.
-        if history.min_failing.is_none() {
-            return NextAttempt::Done;
-        }
+                fn new_history(&self) -> Self::History {
+                    assert!(!self.is_empty());
 
-        // We have a minimum and maximum
-        let min_failing = history.min_failing.unwrap();
-        let max_passing = history.max_passing.unwrap();
+                    UnsignedRangeHistory {
+                        min_failing: None,
+                        max_passing: None,
+                    }
+                }
 
-        // TODO: document as an invariant
-        assert!(max_passing < min_failing);
+                fn next_input(
+                    &self,
+                    _rng: &mut impl rand::Rng,
+                    history: &Self::History,
+                ) -> crate::input_generator::NextAttempt<Self::Input, Self::ShrinkableInput> {
+                    assert!(!self.is_empty());
 
-        // If there's nothing between the upper and lower bounds, we're
-        // done searching.
-        if max_passing + 1 == min_failing {
-            return NextAttempt::Done;
-        }
+                    // If we already know the minimum value is failing, we're done shrinking
+                    if history.min_failing.is_some_and(|n| n == *self.start()) {
+                        return NextAttempt::Done;
+                    }
 
-        // If we're not done, try the midpoint of our upper and lower bounds
-        let next_attempt = (min_failing - max_passing) / 2 + max_passing;
-        NextAttempt::ShrinkAttempt(InputWithShrinkable(next_attempt, next_attempt))
-    }
+                    // If we don't have a lower bound, try the minimum value
+                    if history.max_passing.is_none() {
+                        return NextAttempt::ShrinkAttempt(InputWithShrinkable(*self.start(), *self.start()));
+                    }
 
-    fn update_history(
-        &self,
-        history: &mut Self::History,
-        shrinkable_input: Self::ShrinkableInput,
-        test_passed: bool,
-    ) {
-        // If the test passed, update the lower bound
-        if test_passed {
-            assert!(history
-                .max_passing
-                .map_or(true, |max_passing| shrinkable_input > max_passing));
+                    // This is a sort of odd state where we don't have any failing inputs.
+                    // We could try the max value, but realistically most tests aren't going
+                    // to start failing if we just make the number as big as possible. For
+                    // now, I'm just going to stop shrinking here. This can be revisited
+                    // when we start doing more than just a simple binary search towards 0.
+                    if history.min_failing.is_none() {
+                        return NextAttempt::Done;
+                    }
 
-            history.max_passing = Some(shrinkable_input);
-        }
-        // If the test failed, update the upper bound
-        else {
-            assert!(history
-                .min_failing
-                .map_or(true, |min_failing| shrinkable_input < min_failing));
+                    // We have a minimum and maximum
+                    let min_failing = history.min_failing.unwrap();
+                    let max_passing = history.max_passing.unwrap();
 
-            history.min_failing = Some(shrinkable_input);
-        }
-    }
+                    // TODO: document as an invariant
+                    assert!(max_passing < min_failing);
 
-    fn generate_observations(&self, _history: Self::History) -> Vec<crate::report::Observation> {
-        // TODO: be helpful
-        vec![]
-    }
+                    // If there's nothing between the upper and lower bounds, we're
+                    // done searching.
+                    if max_passing + 1 == min_failing {
+                        return NextAttempt::Done;
+                    }
+
+                    // If we're not done, try the midpoint of our upper and lower bounds
+                    let next_attempt = (min_failing - max_passing) / 2 + max_passing;
+                    NextAttempt::ShrinkAttempt(InputWithShrinkable(next_attempt, next_attempt))
+                }
+
+                fn update_history(
+                    &self,
+                    history: &mut Self::History,
+                    shrinkable_input: Self::ShrinkableInput,
+                    test_passed: bool,
+                ) {
+                    assert!(!self.is_empty());
+
+                    // If the test passed, update the lower bound
+                    if test_passed {
+                        assert!(history
+                            .max_passing
+                            .map_or(true, |max_passing| shrinkable_input > max_passing));
+
+                        history.max_passing = Some(shrinkable_input);
+                    }
+                    // If the test failed, update the upper bound
+                    else {
+                        assert!(history
+                            .min_failing
+                            .map_or(true, |min_failing| shrinkable_input < min_failing));
+
+                        history.min_failing = Some(shrinkable_input);
+                    }
+                }
+
+                fn generate_observations(&self, _history: Self::History) -> Vec<crate::report::Observation> {
+                    assert!(!self.is_empty());
+
+                    // TODO: be helpful
+                    vec![]
+                }
+            }
+        )+
+    };
 }
+
+unsigned_range_inclusive! { u8, u16, u32, u64, u128, usize }
 
 #[cfg(test)]
 mod tests {
@@ -153,23 +173,27 @@ mod tests {
     #[test]
     fn test_shrinks_to_min() {
         assert_eq!(
-            run_test(|_| false, 0..=6, &mut crate::rand::thread_rng())
+            run_test(|_| false, 0..=6u8, &mut crate::rand::thread_rng())
                 .unwrap_err()
                 .simplest_failing_input,
             0
         );
 
         assert_eq!(
-            run_test(|&n| n < 123, 45..=1000, &mut crate::rand::thread_rng())
+            run_test(|&n| n < 123, 45..=1000u32, &mut crate::rand::thread_rng())
                 .unwrap_err()
                 .simplest_failing_input,
             123
         );
 
         assert_eq!(
-            run_test(|&n| n < 643, 45..=2000000, &mut crate::rand::thread_rng())
-                .unwrap_err()
-                .simplest_failing_input,
+            run_test(
+                |&n| n < 643,
+                45..=2000000u128,
+                &mut crate::rand::thread_rng()
+            )
+            .unwrap_err()
+            .simplest_failing_input,
             643
         );
 

@@ -137,7 +137,7 @@ fn shrink_and_generate_report<T, I>(
 // TODO: handle generator impls that lie about their sizes
 pub fn run_test<T>(
     test: impl Fn(&T) -> bool,
-    generator: impl IntoInputGenerator<Input = T>,
+    generator: impl IntoInputGenerator<T>,
     rng: &mut impl Rng,
 ) -> Result<(), Report<T>> {
     let mut generator = generator.into_input_generator();
@@ -158,7 +158,7 @@ pub fn run_test<T>(
 
 pub fn run_test_panics<T: RefUnwindSafe>(
     test: impl Fn(&T) + RefUnwindSafe,
-    generator: impl IntoInputGenerator<Input = T>,
+    generator: impl IntoInputGenerator<T>,
     rng: &mut impl Rng,
 ) -> Result<(), Report<T>> {
     run_test(

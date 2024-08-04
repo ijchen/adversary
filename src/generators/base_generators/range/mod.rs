@@ -15,5 +15,5 @@
 // in a zero-cost way that avoids trait conflict issues, I'd absolutely love to
 // see what you're cooking up. Maybe some newtype enum dispatch thing?
 
-mod range;
+mod other;
 mod range_inclusive;

@@ -8,7 +8,7 @@ features:
 - [ ] Create base generators
   - [ ] Canonical
     - [x] [unit](https://doc.rust-lang.org/std/primitive.unit.html)
-    - [ ] [bool](https://doc.rust-lang.org/std/primitive.bool.html)
+    - [x] [bool](https://doc.rust-lang.org/std/primitive.bool.html)
     - [ ] integers
     - [ ] floats
     - [ ] [char](https://doc.rust-lang.org/std/primitive.char.html)
@@ -34,11 +34,16 @@ features:
       stuff?)
       - [ ] [IpAddr](https://doc.rust-lang.org/std/net/enum.IpAddr.html)
       - [ ] [SocketAddr](https://doc.rust-lang.org/std/net/enum.SocketAddr.html)
+    - [ ] [pointers](https://doc.rust-lang.org/std/primitive.pointer.html) (maybe?)
+    - [ ] [Instant](https://doc.rust-lang.org/std/time/struct.Instant.html) (maybe?)
     - [ ] TODO: more libstd types
     - [ ] TODO: popular crate types
-    - Maybe
-      - [ ] [pointers](https://doc.rust-lang.org/std/primitive.pointer.html)?
-      - [ ] [Instant](https://doc.rust-lang.org/std/time/struct.Instant.html)?
+  - [ ] Numerical ranges
+    - [x] All range types (inclusive/exclusive, bounded/unbounded)
+    - [x] Unsigned integers
+    - [ ] Signed integers
+    - [ ] Floating point numbers
+  - [ ] String regexes
 
 # License
 
