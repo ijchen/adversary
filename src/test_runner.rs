@@ -1,3 +1,5 @@
+use std::any::Any;
+use std::cell::RefCell;
 use std::panic::RefUnwindSafe;
 
 use crate::input_generator::InputWithShrinkable;
@@ -156,14 +158,39 @@ pub fn run_test<T>(
     ))
 }
 
+fn extract_panic_message(any: Box<dyn Any + Send + 'static>) -> Option<String> {
+    // Try downcasting to a &str first
+    let any = match any.downcast::<&str>() {
+        Ok(s) => return Some(s.to_string()),
+        Err(any) => any,
+    };
+
+    // Downcasting to a &str failed, try downcasting to a String
+    any.downcast::<String>().ok().map(|s| *s)
+}
+
 pub fn run_test_panics<T: RefUnwindSafe>(
     test: impl Fn(&T) + RefUnwindSafe,
     generator: impl IntoInputGenerator<T>,
     rng: &mut impl Rng,
 ) -> Result<(), Report<T>> {
+    // TODO(ichen): see if we can avoid interior mutability hack here
+    let panic_message = RefCell::new(None);
+
     run_test(
-        |value| std::panic::catch_unwind(|| test(value)).is_ok(),
+        |value| match std::panic::catch_unwind(|| test(value)) {
+            Ok(()) => true,
+            Err(e) => {
+                *panic_message.borrow_mut() = extract_panic_message(e);
+                false
+            }
+        },
         generator,
         rng,
     )
+    .map_err(|mut report| {
+        report.panic_message = panic_message.into_inner();
+
+        report
+    })
 }
