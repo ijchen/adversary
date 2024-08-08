@@ -1,81 +1,120 @@
-use std::marker::PhantomData;
+use crate::{
+    input_generator::{InputWithShrinkable, NextAttempt},
+    InputGenerator,
+};
 
-use crate::{Adversarial, Exhaustive, InputGenerator, Sample, Shrink};
-
-pub(crate) struct Map<T, U, G, F>
-where
-    G: InputGenerator<T>,
-    F: Fn(T) -> U,
-{
-    pub(crate) generator: G,
-    pub(crate) func: F,
-    // TODO(ichen): is this necessary? How does this affect dropck?
-    pub(crate) _phantom: PhantomData<T>,
+pub struct Map<G, F> {
+    inner_generator: G,
+    f: F,
 }
 
-// TODO(ichen): is this logically sound? It sort of isn't - we may not iterate
-// over all possible values of type U
-impl<T, U, G, F> Exhaustive<U> for Map<T, U, G, F>
-where
-    G: InputGenerator<T>,
-    F: Fn(T) -> U,
-{
+impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
+    type Input = U;
+    type ShrinkableInput = G::ShrinkableInput;
+
+    type History = G::History;
+
     fn cardinality(&self) -> Option<usize> {
-        G::cardinality(&self.generator)
+        self.inner_generator.cardinality()
     }
 
-    fn exhaustive(&self) -> impl Iterator<Item = U> {
-        G::exhaustive(&self.generator).map(|item| (self.func)(item))
+    fn exhaustive(
+        &self,
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+        self.inner_generator
+            .exhaustive()
+            .map(|InputWithShrinkable(input, shrinkable_input)| {
+                InputWithShrinkable((self.f)(input), shrinkable_input)
+            })
     }
-}
 
-// TODO(ichen): I feel like these outputs are no longer necessarily the
-// best adversarial ones... maybe we should consider this yeilding nothing?
-impl<T, U, G, F> Adversarial<U> for Map<T, U, G, F>
-where
-    G: InputGenerator<T>,
-    F: Fn(T) -> U,
-{
     fn adversarial_count(&self) -> Option<usize> {
-        G::adversarial_count(&self.generator)
+        self.inner_generator.adversarial_count()
     }
 
-    fn adversarial(&self) -> impl Iterator<Item = U> {
-        G::adversarial(&self.generator).map(|item| (self.func)(item))
+    fn adversarial(
+        &self,
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+        self.inner_generator
+            .adversarial()
+            .map(|InputWithShrinkable(input, shrinkable_input)| {
+                InputWithShrinkable((self.f)(input), shrinkable_input)
+            })
+    }
+
+    fn sample(
+        &self,
+        rng: &mut (impl rand::Rng + ?Sized),
+    ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
+        let InputWithShrinkable(input, shrinkable_input) = self.inner_generator.sample(rng);
+
+        InputWithShrinkable((self.f)(input), shrinkable_input)
+    }
+
+    fn new_history(&self) -> Self::History {
+        self.inner_generator.new_history()
+    }
+
+    fn next_input(
+        &self,
+        rng: &mut impl rand::Rng,
+        history: &Self::History,
+    ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
+        // TODO(ichen): consider impl'ing .map(...) on NextInput (that's what
+        // I'm doing here, just manually)
+        match self.inner_generator.next_input(rng, history) {
+            NextAttempt::Done => NextAttempt::Done,
+            NextAttempt::InfoGathering(InputWithShrinkable(input, shrinkable_input)) => {
+                NextAttempt::InfoGathering(InputWithShrinkable((self.f)(input), shrinkable_input))
+            }
+            NextAttempt::ShrinkAttempt(InputWithShrinkable(input, shrinkable_input)) => {
+                NextAttempt::ShrinkAttempt(InputWithShrinkable((self.f)(input), shrinkable_input))
+            }
+        }
+    }
+
+    fn update_history(
+        &self,
+        history: &mut Self::History,
+        shrinkable_input: Self::ShrinkableInput,
+        test_passed: bool,
+    ) {
+        self.inner_generator
+            .update_history(history, shrinkable_input, test_passed)
+    }
+
+    fn generate_observations(&self, history: Self::History) -> Vec<crate::report::Observation> {
+        self.inner_generator.generate_observations(history)
     }
 }
 
-impl<T, U, G, F> Sample<U> for Map<T, U, G, F>
-where
-    G: InputGenerator<T>,
-    F: Fn(T) -> U,
-{
-    fn sample(&self, rng: &mut impl rand::Rng) -> U {
-        (self.func)(self.generator.sample(rng))
+impl<U, G: InputGenerator, F: Fn(G::Input) -> U> Map<G, F> {
+    pub fn new(inner_generator: G, map_function: F) -> Self {
+        Self {
+            inner_generator,
+            f: map_function,
+        }
     }
 }
 
-impl<T, U, G, F> Shrink<U> for Map<T, U, G, F>
-where
-    G: InputGenerator<T>,
-    F: Fn(T) -> U,
-{
-    type History = ();
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::run_test;
 
-    fn history_from_failure(&self, _failing_input: &U) -> Self::History {
-        ()
-    }
-
-    fn update_history(&self, _history: &mut Self::History, _input: &U, _test_passed: bool) {
-        ()
-    }
-
-    fn generate_report_details(&self, _history: Self::History) -> String {
-        String::from("Array shrinking is not yet supported")
-    }
-
-    fn next_input(&self, _rng: &mut impl rand::Rng, _history: &Self::History) -> Option<U> {
-        // Shrinking not yet implemented
-        None
+    #[test]
+    fn test_map_does_the_map_thing() {
+        let report = run_test(
+            |n| n.len() == 1,
+            Map::new(
+                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].as_slice(),
+                |t| t.to_string(),
+            ),
+            &mut crate::rand::thread_rng(),
+        )
+        .unwrap_err();
+        assert_eq!(report.passing_runs, 10);
+        assert_eq!(report.shrink_steps, vec![]);
+        assert_eq!(report.simplest_failing_input, "10");
     }
 }

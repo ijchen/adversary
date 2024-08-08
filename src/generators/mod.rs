@@ -1,6 +1,6 @@
-mod adapters;
+pub(crate) mod adapters;
+mod base_generators;
 mod canonical;
-mod tuple;
+mod the_kitchen;
 
-pub(crate) use adapters::Map;
-pub use canonical::any;
+pub use canonical::{any, Canonical};

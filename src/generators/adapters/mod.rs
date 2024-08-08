@@ -1,3 +1,3 @@
 mod map;
 
-pub(crate) use map::Map;
+pub use map::Map;
