@@ -3,7 +3,7 @@ use crate::{
     InputGenerator,
 };
 
-struct WithoutShrinking<G>(G);
+pub struct WithoutShrinking<G>(G);
 
 impl<G: InputGenerator> InputGenerator for WithoutShrinking<G> {
     type Input = G::Input;
@@ -64,5 +64,11 @@ impl<G: InputGenerator> InputGenerator for WithoutShrinking<G> {
         _history: &Self::History,
     ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
         NextAttempt::Done
+    }
+}
+
+impl<G: InputGenerator> WithoutShrinking<G> {
+    pub fn new(inner_generator: G) -> Self {
+        Self(inner_generator)
     }
 }

@@ -1,4 +1,7 @@
-use crate::{generators::adapters::Map, InputGenerator};
+use crate::{
+    generators::adapters::{Map, WithoutShrinking},
+    InputGenerator,
+};
 
 pub trait InputGeneratorExt: InputGenerator + Sized {
     // TODO: docs
@@ -8,6 +11,11 @@ pub trait InputGeneratorExt: InputGenerator + Sized {
     ) -> impl InputGenerator<Input = U, ShrinkableInput = Self::ShrinkableInput, History = Self::History>
     {
         Map::new(self, map_function)
+    }
+
+    // TODO: docs
+    fn adv_without_shrinking(self) -> impl InputGenerator<Input = Self::Input> {
+        WithoutShrinking::new(self)
     }
 }
 
