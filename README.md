@@ -38,12 +38,20 @@ features:
     - [ ] [Instant](https://doc.rust-lang.org/std/time/struct.Instant.html) (maybe?)
     - [ ] TODO: more libstd types
     - [ ] TODO: popular crate types
+  - [ ] A single T value (Just<T>)
   - [ ] Numerical ranges
     - [x] All range types (inclusive/exclusive, bounded/unbounded)
     - [x] Unsigned integers
     - [ ] Signed integers
     - [ ] Floating point numbers
   - [ ] String regexes
+  - [ ] Bool with probability
+    - [ ] From float in 0.0..=1.0
+    - [ ] From ratio (3 in 5, for example)
+  - [ ] Vec<T> from length range and InputGenerator<Input = T>
+  - [ ] Result<T, E> from probability, shrink direction (Ok or Err), and
+  both Inputgenerator<Input = T> and InputGenerator<Input = E>
+  - [ ] Random T from a &[T] (just picks a value from the slice)
 
 # License
 
