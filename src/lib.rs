@@ -8,8 +8,8 @@ mod test_runner;
 
 pub use rand;
 
-pub use generators::{any, Canonical};
-pub use input_generator::InputGenerator;
+pub use generators::{any, just, just_with, Canonical};
+pub use input_generator::{InputGenerator, InputWithShrinkable, NextAttempt};
 pub use input_generator_ext::InputGeneratorExt;
 pub use into_input_generator::IntoInputGenerator;
 pub use report::{Report, ShrinkStep};

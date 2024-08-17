@@ -1,13 +1,13 @@
 use crate::{rand::Rng, report::Observation};
 
-// TODO(ichen): I believe this T is always (A, B) - consider restructuring this
-// struct to just be generic over two things instead
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum NextAttempt<T, S> {
     Done,
     InfoGathering(InputWithShrinkable<T, S>),
     ShrinkAttempt(InputWithShrinkable<T, S>),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InputWithShrinkable<T, S>(pub T, pub S);
 
 pub trait InputGenerator {

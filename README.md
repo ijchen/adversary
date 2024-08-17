@@ -38,7 +38,9 @@ features:
     - [ ] [Instant](https://doc.rust-lang.org/std/time/struct.Instant.html) (maybe?)
     - [ ] TODO: more libstd types
     - [ ] TODO: popular crate types
-  - [ ] A single T value (Just<T>)
+  - [x] A single T value with no shrinking
+    - [x] just(T)
+    - [x] just_with(impl Fn() -> T)
   - [ ] Numerical ranges
     - [x] All range types (inclusive/exclusive, bounded/unbounded)
     - [x] Unsigned integers
