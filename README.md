@@ -44,7 +44,7 @@ features:
   - [ ] Numerical ranges
     - [x] All range types (inclusive/exclusive, bounded/unbounded)
     - [x] Unsigned integers
-    - [ ] Signed integers
+    - [x] Signed integers
     - [ ] Floating point numbers
   - [ ] String regexes
   - [ ] Bool with probability
