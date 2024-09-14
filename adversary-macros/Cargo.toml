@@ -20,11 +20,3 @@ quote = "1.0.37"
 syn = "2.0.77"
 
 [dev-dependencies]
-
-[profile.release]
-lto = "thin" # TODO: benchmark what setting is best here
-
-[profile.test]
-opt-level = 3           # Enable optimizations
-debug-assertions = true # True is the default value, but make it clear we care
-overflow-checks = true  # True is the default value, but make it clear we care
