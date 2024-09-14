@@ -8,7 +8,7 @@ mod test_runner;
 
 pub use rand;
 
-pub use generators::{any, just, just_with, Canonical};
+pub use generators::{any, bool, just, just_with, Canonical};
 pub use input_generator::{InputGenerator, InputWithShrinkable, NextAttempt};
 pub use input_generator_ext::InputGeneratorExt;
 pub use into_input_generator::IntoInputGenerator;
@@ -18,6 +18,26 @@ pub use test_runner::{run_test, run_test_panics};
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tmp_test() {
+        fn generic_test<T: Clone>(value: T) {
+            let foo = just(value);
+            assert_eq!(size_of::<T>(), size_of_val(&foo));
+        }
+        generic_test("hi");
+        generic_test("hi".to_string());
+        generic_test(());
+        generic_test(true);
+        generic_test(42u8);
+        generic_test(42i32);
+        generic_test(42u128);
+        generic_test('a');
+        generic_test(Vec::<i32>::new());
+        generic_test(std::collections::HashMap::<String, i32>::new());
+        generic_test([0i32; 512]);
+        generic_test(Box::new(4i16));
+    }
 
     #[test]
     fn test_1() {

@@ -1,3 +1,4 @@
+pub mod bool;
 mod just;
 mod range;
 

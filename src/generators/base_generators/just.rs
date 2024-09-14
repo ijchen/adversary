@@ -3,6 +3,7 @@ use crate::{
     InputGenerator,
 };
 
+#[repr(transparent)]
 struct JustWith<F>(F);
 
 impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
@@ -72,7 +73,8 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
 /// An [`InputGenerator`] that always produces clones of the same value and
 /// never simplifies.
 pub fn just<T: Clone>(value: T) -> impl InputGenerator<Input = T> {
-    // TODO(ichen): make sure the compiler optimizes this closure away
+    // TODO(ichen): write unit tests to ensure the compiler optimizes this
+    // closure away
     JustWith(move || value.clone())
 }
 
