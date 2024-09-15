@@ -40,6 +40,11 @@ impl TestFunc {
 
         func.sig.inputs.clear();
 
+        let fn_body
+        *func.block = quote! {
+
+        }
+
         quote! {
             #[test]
             #func
