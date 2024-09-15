@@ -6,6 +6,8 @@ pub mod prelude;
 mod report;
 mod test_runner;
 
+#[cfg(feature = "macros")]
+pub use adversary_macros::adv_test;
 pub use rand;
 
 pub use generators::{any, bool, just, just_with, Canonical};
@@ -37,6 +39,11 @@ mod tests {
         generic_test(std::collections::HashMap::<String, i32>::new());
         generic_test([0i32; 512]);
         generic_test(Box::new(4i16));
+    }
+
+    #[adv_test(name = "[A-Z][a-z]*")]
+    fn bat(name: &str, age: u8) {
+        assert!(name.is_ascii() && age <= 100);
     }
 
     #[test]

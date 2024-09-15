@@ -6,6 +6,7 @@ version = 3
 name = "adversary"
 version = "0.1.0"
 dependencies = [
+ "adversary-macros",
  "rand",
 ]
 
