@@ -41,12 +41,10 @@ mod tests {
         generic_test(Box::new(4i16));
     }
 
-    #[adv_test(name = "[A-Z][a-z]*")]
-    #[should_panic(expected = "howdy")]
-    #[should_panic]
-    fn bat(name: &str, age: u8) -> ::std::option::Option<u8> {
-        assert!(name.is_ascii() && age <= 100);
-    }
+    // #[adv_test(name = "[A-Z][a-z]*")]
+    // fn bat(name: &str, age: u8) -> bool {
+    //     name.is_ascii() && age <= 100
+    // }
 
     #[test]
     fn test_1() {

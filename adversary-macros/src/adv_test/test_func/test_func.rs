@@ -1,10 +1,9 @@
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{format_ident, quote, quote_spanned};
 use syn::{
     punctuated::{Pair, Punctuated},
     spanned::Spanned,
-    Attribute, Block, FnArg, Ident, ItemFn, PatType, ReturnType, Signature, Token, Type,
-    Visibility,
+    Attribute, Block, FnArg, Ident, ItemFn, PatType, Token, Visibility,
 };
 
 use super::TestFuncOutput;
@@ -32,6 +31,16 @@ pub struct TestFunc {
 }
 
 impl TestFunc {
+    pub fn input_identifier_args(&self) -> Vec<Ident> {
+        self.inputs
+            .iter()
+            .flat_map(|arg| match &*arg.pat {
+                syn::Pat::Ident(arg) => Some(arg.ident.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
     pub fn parse(item: TokenStream) -> syn::Result<Self> {
         let item_fn: ItemFn = syn::parse2(item)?;
 
@@ -124,42 +133,52 @@ impl TestFunc {
         })
     }
 
-    // pub fn non_receiver_args(&self) -> impl Iterator<Item = &PatType> {
-    //     self.item_fn.sig.inputs.iter().map(|arg| match arg {
-    //         syn::FnArg::Receiver(_) => {
-    //             unreachable!("receiver args checked for in constructor for Self")
-    //         }
-    //         syn::FnArg::Typed(arg) => arg,
-    //     })
-    // }
-
     pub fn into_converted_tokens(self) -> TokenStream {
-        // let ItemFn {
-        //     attrs,
-        //     vis,
-        //     sig:
-        //         Signature {
-        //             constness,
-        //             asyncness,
-        //             unsafety,
-        //             abi,
-        //             fn_token,
-        //             ident,
-        //             generics,
-        //             paren_token,
-        //             inputs,
-        //             variadic,
-        //             output,
-        //         },
-        //     block,
-        // } = self.item_fn;
+        let Self {
+            attrs,
+            vis,
+            fn_token,
+            ident,
+            paren_token,
+            inputs,
+            output,
+            block,
+        } = self;
 
-        // quote! {
-        //     #[test]
-        //     #attrs
-        //     #vis
-        //     fn
-        // }
-        todo!()
+        let paren_token = quote_spanned! { paren_token.span.span() => () };
+
+        let inner_ret = match output {
+            TestFuncOutput::ShouldNotPanic
+            | TestFuncOutput::ShouldPanic
+            | TestFuncOutput::ShouldPanicWithMessage { .. } => quote! {},
+            TestFuncOutput::ShouldReturnTrue => quote! { -> bool },
+            TestFuncOutput::ShouldReturnOk { err_ty } => quote! { -> Result<(), #err_ty> },
+        };
+
+        // let generator_declarations = inputs.iter().map(|a| a.);
+
+        let arg_types = inputs.iter().map(|arg| &arg.ty);
+
+        let value_idents: Vec<Ident> = (0..inputs.len())
+            .map(|n| format_ident!("input_{n}"))
+            .collect();
+
+        quote! {
+            // TODO: use `::adversary` "absolute" paths
+            #[test]
+            #(#attrs)*
+            #vis #fn_token #ident #paren_token {
+                fn inner_test(#inputs) #inner_ret #block
+
+                let mut generator = (#(any::<#arg_types>()),*);
+                let mut rng = rand::thread_rng();
+
+                run_test(
+                    |(#(#value_idents),*)| inner_test(#(#value_idents),*),
+                    generator,
+                    &mut rng,
+                ).unwrap();
+            }
+        }
     }
 }
