@@ -42,7 +42,9 @@ mod tests {
     }
 
     #[adv_test(name = "[A-Z][a-z]*")]
-    fn bat(name: &str, age: u8) {
+    #[should_panic(expected = "howdy")]
+    #[should_panic]
+    fn bat(name: &str, age: u8) -> ::std::option::Option<u8> {
         assert!(name.is_ascii() && age <= 100);
     }
 
