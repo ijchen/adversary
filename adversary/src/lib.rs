@@ -48,7 +48,7 @@ mod tests {
 
     #[test]
     fn test_1() {
-        let report = run_test(|v: &bool| !v, any(), &mut crate::rand::thread_rng()).unwrap_err();
+        let report = run_test(|v: bool| !v, any(), &mut crate::rand::thread_rng()).unwrap_err();
         assert_eq!(report.passing_runs, 1);
         assert_eq!(
             report.shrink_steps,
@@ -56,12 +56,12 @@ mod tests {
         );
         assert_eq!(report.simplest_failing_input, true);
 
-        let report = run_test(|v: &bool| *v, any(), &mut crate::rand::thread_rng()).unwrap_err();
+        let report = run_test(|v: bool| v, any(), &mut crate::rand::thread_rng()).unwrap_err();
         assert_eq!(report.passing_runs, 0);
         assert_eq!(report.shrink_steps, vec![ShrinkStep::new(true, true, true)]);
         assert_eq!(report.simplest_failing_input, false);
 
-        let report = run_test(|_: &bool| false, any(), &mut crate::rand::thread_rng()).unwrap_err();
+        let report = run_test(|_: bool| false, any(), &mut crate::rand::thread_rng()).unwrap_err();
         assert_eq!(report.passing_runs, 0);
         assert_eq!(
             report.shrink_steps,
@@ -69,24 +69,20 @@ mod tests {
         );
         assert_eq!(report.simplest_failing_input, false);
 
-        run_test(|_: &bool| true, any(), &mut crate::rand::thread_rng()).unwrap();
+        run_test(|_: bool| true, any(), &mut crate::rand::thread_rng()).unwrap();
     }
 
     #[test]
     fn test_2() {
-        let report = run_test_panics(
-            |v: &bool| assert!(!v),
-            any(),
-            &mut crate::rand::thread_rng(),
-        )
-        .unwrap_err();
+        let report = run_test_panics(|v: bool| assert!(!v), any(), &mut crate::rand::thread_rng())
+            .unwrap_err();
         assert_eq!(
             report.panic_message,
             Some("assertion failed: !v".to_string())
         );
 
         let report = run_test_panics(
-            |v: &bool| assert!(v, "My custom panic ({}) message [{}]", "at the disco", v),
+            |v: bool| assert!(v, "My custom panic ({}) message [{}]", "at the disco", v),
             any(),
             &mut crate::rand::thread_rng(),
         )

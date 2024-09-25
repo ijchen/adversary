@@ -5,15 +5,15 @@ use crate::{
 
 struct AddAdversarial<G: InputGenerator> {
     generator: G,
-    adversarial: Box<[InputWithShrinkable<G::Input, G::ShrinkableInput>]>,
+    adversarial: Box<[InputWithShrinkable<G::Input, G::InputSource>]>,
 }
 
 impl<G: InputGenerator> InputGenerator for AddAdversarial<G>
 where
-    InputWithShrinkable<G::Input, G::ShrinkableInput>: Clone,
+    InputWithShrinkable<G::Input, G::InputSource>: Clone,
 {
     type Input = G::Input;
-    type ShrinkableInput = G::ShrinkableInput;
+    type InputSource = G::InputSource;
 
     type History = G::History;
 
@@ -23,7 +23,7 @@ where
 
     fn exhaustive(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
         self.generator.exhaustive()
     }
 
@@ -35,7 +35,7 @@ where
 
     fn adversarial(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
         self.generator
             .adversarial()
             .chain(self.adversarial.iter().cloned())
@@ -44,7 +44,7 @@ where
     fn sample(
         &self,
         rng: &mut (impl rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
+    ) -> InputWithShrinkable<Self::Input, Self::InputSource> {
         self.generator.sample(rng)
     }
 
@@ -55,7 +55,7 @@ where
     fn update_history(
         &self,
         history: &mut Self::History,
-        shrinkable_input: Self::ShrinkableInput,
+        shrinkable_input: Self::InputSource,
         test_passed: bool,
     ) {
         self.generator
@@ -70,7 +70,11 @@ where
         &self,
         rng: &mut impl rand::Rng,
         history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
+    ) -> NextAttempt<Self::Input, Self::InputSource> {
         self.generator.next_input(rng, history)
+    }
+
+    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
+        self.generator.create_input(input_source)
     }
 }

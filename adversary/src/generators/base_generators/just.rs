@@ -9,7 +9,7 @@ struct JustWith<F>(F);
 impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
     type Input = T;
 
-    type ShrinkableInput = ();
+    type InputSource = ();
 
     type History = ();
 
@@ -19,9 +19,8 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
 
     fn exhaustive(
         &self,
-    ) -> impl Iterator<
-        Item = crate::input_generator::InputWithShrinkable<Self::Input, Self::ShrinkableInput>,
-    > {
+    ) -> impl Iterator<Item = crate::input_generator::InputWithShrinkable<Self::Input, Self::InputSource>>
+    {
         std::iter::once(InputWithShrinkable((self.0)(), ()))
     }
 
@@ -31,16 +30,15 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
 
     fn adversarial(
         &self,
-    ) -> impl Iterator<
-        Item = crate::input_generator::InputWithShrinkable<Self::Input, Self::ShrinkableInput>,
-    > {
+    ) -> impl Iterator<Item = crate::input_generator::InputWithShrinkable<Self::Input, Self::InputSource>>
+    {
         std::iter::once(InputWithShrinkable((self.0)(), ()))
     }
 
     fn sample(
         &self,
         _rng: &mut (impl rand::Rng + ?Sized),
-    ) -> crate::input_generator::InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
+    ) -> crate::input_generator::InputWithShrinkable<Self::Input, Self::InputSource> {
         InputWithShrinkable((self.0)(), ())
     }
 
@@ -52,14 +50,14 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
         &self,
         _rng: &mut impl rand::Rng,
         _history: &Self::History,
-    ) -> crate::input_generator::NextAttempt<Self::Input, Self::ShrinkableInput> {
+    ) -> crate::input_generator::NextAttempt<Self::Input, Self::InputSource> {
         NextAttempt::Done
     }
 
     fn update_history(
         &self,
         _history: &mut Self::History,
-        _shrinkable_input: Self::ShrinkableInput,
+        _shrinkable_input: Self::InputSource,
         _test_passed: bool,
     ) {
         ()
@@ -67,6 +65,10 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
 
     fn generate_observations(&self, _history: Self::History) -> Vec<crate::report::Observation> {
         vec![]
+    }
+
+    fn create_input(&self, _input_source: &Self::InputSource) -> Self::Input {
+        (self.0)()
     }
 }
 

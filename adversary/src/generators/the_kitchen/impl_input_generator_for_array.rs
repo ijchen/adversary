@@ -10,7 +10,7 @@ use crate::{
 
 impl<T: Clone, const N: usize> InputGenerator for [T; N] {
     type Input = T;
-    type ShrinkableInput = usize;
+    type InputSource = usize;
 
     type History = ();
 
@@ -22,7 +22,7 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
 
     fn exhaustive(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
         assert!(!self.is_empty());
 
         self.into_iter()
@@ -38,7 +38,7 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
 
     fn adversarial(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
         assert!(!self.is_empty());
 
         std::iter::empty()
@@ -47,7 +47,7 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
     fn sample(
         &self,
         rng: &mut (impl rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
+    ) -> InputWithShrinkable<Self::Input, Self::InputSource> {
         assert!(!self.is_empty());
 
         let index = rng.gen_range(0..self.len());
@@ -65,7 +65,7 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
     fn update_history(
         &self,
         _history: &mut Self::History,
-        _shrinkable_input: Self::ShrinkableInput,
+        _shrinkable_input: Self::InputSource,
         _test_passed: bool,
     ) {
         assert!(!self.is_empty());
@@ -84,11 +84,15 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
         &self,
         _rng: &mut impl crate::rand::Rng,
         _history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
+    ) -> NextAttempt<Self::Input, Self::InputSource> {
         assert!(!self.is_empty());
 
         // TODO(ichen): implement for real
         NextAttempt::Done
+    }
+
+    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
+        self[*input_source].clone()
     }
 }
 
@@ -99,7 +103,7 @@ mod tests {
     #[test]
     fn test_array() {
         let report = run_test(
-            |&n| n < 5,
+            |n| n < 5,
             [0, 1, 2, 3, 4, 5, 6, 7, 8],
             &mut crate::rand::thread_rng(),
         )

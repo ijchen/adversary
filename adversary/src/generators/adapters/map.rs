@@ -10,7 +10,7 @@ pub struct Map<G, F> {
 
 impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
     type Input = U;
-    type ShrinkableInput = G::ShrinkableInput;
+    type InputSource = G::InputSource;
 
     type History = G::History;
 
@@ -20,7 +20,7 @@ impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
 
     fn exhaustive(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
         self.inner_generator
             .exhaustive()
             .map(|InputWithShrinkable(input, shrinkable_input)| {
@@ -34,7 +34,7 @@ impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
 
     fn adversarial(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
         self.inner_generator
             .adversarial()
             .map(|InputWithShrinkable(input, shrinkable_input)| {
@@ -45,7 +45,7 @@ impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
     fn sample(
         &self,
         rng: &mut (impl rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
+    ) -> InputWithShrinkable<Self::Input, Self::InputSource> {
         let InputWithShrinkable(input, shrinkable_input) = self.inner_generator.sample(rng);
 
         InputWithShrinkable((self.f)(input), shrinkable_input)
@@ -59,7 +59,7 @@ impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
         &self,
         rng: &mut impl rand::Rng,
         history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
+    ) -> NextAttempt<Self::Input, Self::InputSource> {
         // TODO(ichen): consider impl'ing .map(...) on NextInput (that's what
         // I'm doing here, just manually)
         match self.inner_generator.next_input(rng, history) {
@@ -76,7 +76,7 @@ impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
     fn update_history(
         &self,
         history: &mut Self::History,
-        shrinkable_input: Self::ShrinkableInput,
+        shrinkable_input: Self::InputSource,
         test_passed: bool,
     ) {
         self.inner_generator
@@ -85,6 +85,10 @@ impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
 
     fn generate_observations(&self, history: Self::History) -> Vec<crate::report::Observation> {
         self.inner_generator.generate_observations(history)
+    }
+
+    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
+        (self.f)(self.inner_generator.create_input(input_source))
     }
 }
 

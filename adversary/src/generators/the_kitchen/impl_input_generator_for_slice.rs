@@ -9,7 +9,7 @@ use crate::{
 
 impl<'a, T> InputGenerator for &'a [T] {
     type Input = &'a T;
-    type ShrinkableInput = Self::Input;
+    type InputSource = Self::Input;
 
     type History = ();
 
@@ -19,7 +19,7 @@ impl<'a, T> InputGenerator for &'a [T] {
 
     fn exhaustive(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
         self.into_iter().map(|v| InputWithShrinkable(v, v))
     }
 
@@ -29,14 +29,14 @@ impl<'a, T> InputGenerator for &'a [T] {
 
     fn adversarial(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
         std::iter::empty()
     }
 
     fn sample(
         &self,
         rng: &mut (impl rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
+    ) -> InputWithShrinkable<Self::Input, Self::InputSource> {
         let v = crate::rand::seq::SliceRandom::choose(*self, rng).unwrap();
 
         InputWithShrinkable(v, v)
@@ -49,7 +49,7 @@ impl<'a, T> InputGenerator for &'a [T] {
     fn update_history(
         &self,
         _history: &mut Self::History,
-        _shrinkable_input: Self::ShrinkableInput,
+        _shrinkable_input: Self::InputSource,
         _test_passed: bool,
     ) {
     }
@@ -62,14 +62,18 @@ impl<'a, T> InputGenerator for &'a [T] {
         &self,
         _rng: &mut impl crate::rand::Rng,
         _history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
+    ) -> NextAttempt<Self::Input, Self::InputSource> {
         NextAttempt::Done
+    }
+
+    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
+        input_source
     }
 }
 
 impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
     type Input = &'a T;
-    type ShrinkableInput = Self::Input;
+    type InputSource = Self::Input;
 
     type History = ();
 
@@ -79,7 +83,7 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
 
     fn exhaustive(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
         self.into_iter().map(|v| InputWithShrinkable(v, v))
     }
 
@@ -89,14 +93,14 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
 
     fn adversarial(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
         std::iter::empty()
     }
 
     fn sample(
         &self,
         rng: &mut (impl rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
+    ) -> InputWithShrinkable<Self::Input, Self::InputSource> {
         let v = crate::rand::seq::SliceRandom::choose(self.as_slice(), rng).unwrap();
 
         InputWithShrinkable(v, v)
@@ -109,7 +113,7 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
     fn update_history(
         &self,
         _history: &mut Self::History,
-        _shrinkable_input: Self::ShrinkableInput,
+        _shrinkable_input: Self::InputSource,
         _test_passed: bool,
     ) {
     }
@@ -122,8 +126,12 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
         &self,
         _rng: &mut impl crate::rand::Rng,
         _history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
+    ) -> NextAttempt<Self::Input, Self::InputSource> {
         NextAttempt::Done
+    }
+
+    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
+        input_source
     }
 }
 
@@ -134,7 +142,7 @@ mod tests {
     #[test]
     fn test_slice() {
         let report = run_test(
-            |&&n| n < 5,
+            |&n| n < 5,
             [0, 1, 2, 3, 4, 5, 6, 7, 8].as_slice(),
             &mut crate::rand::thread_rng(),
         )
@@ -147,7 +155,7 @@ mod tests {
     #[test]
     fn test_ref_array() {
         let report = run_test(
-            |&&n| n < 5,
+            |&n| n < 5,
             &[0, 1, 2, 3, 4, 5, 6, 7, 8],
             &mut crate::rand::thread_rng(),
         )

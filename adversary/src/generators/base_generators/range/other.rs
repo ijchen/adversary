@@ -64,7 +64,7 @@ mod tests {
         );
 
         assert_eq!(
-            run_test(|&n| n < 123, 45..1000u16, &mut crate::rand::thread_rng())
+            run_test(|n| n < 123, 45..1000u16, &mut crate::rand::thread_rng())
                 .unwrap_err()
                 .simplest_failing_input,
             123
@@ -72,7 +72,7 @@ mod tests {
 
         assert_eq!(
             run_test(
-                |&n| n < 643,
+                |n| n < 643,
                 45..2000000usize,
                 &mut crate::rand::thread_rng()
             )
@@ -82,13 +82,9 @@ mod tests {
         );
 
         assert_eq!(
-            run_test(
-                |&n| n < 1234,
-                532..u128::MAX,
-                &mut crate::rand::thread_rng()
-            )
-            .unwrap_err()
-            .simplest_failing_input,
+            run_test(|n| n < 1234, 532..u128::MAX, &mut crate::rand::thread_rng())
+                .unwrap_err()
+                .simplest_failing_input,
             1234
         );
     }

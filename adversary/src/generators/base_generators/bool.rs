@@ -45,7 +45,7 @@ struct BoolHistory {
 
 impl InputGenerator for ChanceGen {
     type Input = bool;
-    type ShrinkableInput = Self::Input;
+    type InputSource = Self::Input;
 
     type History = BoolHistory;
 
@@ -55,7 +55,7 @@ impl InputGenerator for ChanceGen {
 
     fn exhaustive(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
         [
             InputWithShrinkable(false, false),
             InputWithShrinkable(true, true),
@@ -69,7 +69,7 @@ impl InputGenerator for ChanceGen {
 
     fn adversarial(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
         [
             InputWithShrinkable(false, false),
             InputWithShrinkable(true, true),
@@ -93,7 +93,7 @@ impl InputGenerator for ChanceGen {
     fn update_history(
         &self,
         history: &mut Self::History,
-        shrinkable_input: Self::ShrinkableInput,
+        shrinkable_input: Self::InputSource,
         test_passed: bool,
     ) {
         match shrinkable_input {
@@ -133,7 +133,7 @@ impl InputGenerator for ChanceGen {
         &self,
         _rng: &mut impl crate::rand::Rng,
         history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
+    ) -> NextAttempt<Self::Input, Self::InputSource> {
         // If we haven't tried our "shrink to" value yet, try it
         let shrink_to_observed = match self.shrink_to {
             true => history.t,
@@ -156,6 +156,10 @@ impl InputGenerator for ChanceGen {
         }
 
         NextAttempt::Done
+    }
+
+    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
+        *input_source
     }
 }
 

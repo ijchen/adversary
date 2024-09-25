@@ -18,7 +18,7 @@ macro_rules! signed_range_inclusive {
             impl InputGenerator for RangeInclusive<$t> {
                 type Input = $t;
 
-                type ShrinkableInput = Self::Input;
+                type InputSource = Self::Input;
 
                 type History = SignedRangeHistory<$t>;
 
@@ -35,7 +35,7 @@ macro_rules! signed_range_inclusive {
 
                 fn exhaustive(
                     &self,
-                ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+                ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
                     assert!(!self.is_empty());
 
                     self.clone().map(|n| InputWithShrinkable(n, n))
@@ -51,7 +51,7 @@ macro_rules! signed_range_inclusive {
 
                 fn adversarial(
                     &self,
-                ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+                ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
                     // TODO(ichen): see if we can make this const evaluatable
                     // (assuming the compiler knows the range bounds at compile
                     // time). If not, at least optimize it to be as fast as we
@@ -69,7 +69,7 @@ macro_rules! signed_range_inclusive {
                 fn sample(
                     &self,
                     rng: &mut (impl rand::Rng + ?Sized),
-                ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
+                ) -> InputWithShrinkable<Self::Input, Self::InputSource> {
                     assert!(!self.is_empty());
 
                     let n = rng.gen_range(self.clone());
@@ -89,7 +89,7 @@ macro_rules! signed_range_inclusive {
                     &self,
                     _rng: &mut impl rand::Rng,
                     history: &Self::History,
-                ) -> crate::input_generator::NextAttempt<Self::Input, Self::ShrinkableInput> {
+                ) -> crate::input_generator::NextAttempt<Self::Input, Self::InputSource> {
                     assert!(!self.is_empty());
 
                     let min_abs_possible = if self.contains(&0) {
@@ -144,7 +144,7 @@ macro_rules! signed_range_inclusive {
                 fn update_history(
                     &self,
                     history: &mut Self::History,
-                    shrinkable_input: Self::ShrinkableInput,
+                    shrinkable_input: Self::InputSource,
                     test_passed: bool,
                 ) {
                     assert!(!self.is_empty());
@@ -173,6 +173,10 @@ macro_rules! signed_range_inclusive {
                     // TODO: be helpful
                     vec![]
                 }
+
+                fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
+                    *input_source
+                }
             }
         )+
     };
@@ -195,7 +199,7 @@ mod tests {
         );
 
         assert_eq!(
-            run_test(|&n| n < 123, -45..=1000i64, &mut crate::rand::thread_rng())
+            run_test(|n| n < 123, -45..=1000i64, &mut crate::rand::thread_rng())
                 .unwrap_err()
                 .simplest_failing_input,
             123
@@ -213,7 +217,7 @@ mod tests {
         );
 
         assert_eq!(
-            run_test(|&n| n > -100, -421..=-21i32, &mut crate::rand::thread_rng())
+            run_test(|n| n > -100, -421..=-21i32, &mut crate::rand::thread_rng())
                 .unwrap_err()
                 .simplest_failing_input,
             -100
@@ -221,7 +225,7 @@ mod tests {
 
         assert_eq!(
             run_test(
-                |&n| n < 643,
+                |n| n < 643,
                 45..=2000000i128,
                 &mut crate::rand::thread_rng()
             )
@@ -231,7 +235,7 @@ mod tests {
         );
 
         assert_eq!(
-            run_test(|&n| n > -6, i16::MIN..=3, &mut crate::rand::thread_rng())
+            run_test(|n| n > -6, i16::MIN..=3, &mut crate::rand::thread_rng())
                 .unwrap_err()
                 .simplest_failing_input,
             -6

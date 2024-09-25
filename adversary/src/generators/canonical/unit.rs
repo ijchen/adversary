@@ -8,7 +8,7 @@ struct CanonicalUnitGenerator;
 
 impl InputGenerator for CanonicalUnitGenerator {
     type Input = ();
-    type ShrinkableInput = Self::Input;
+    type InputSource = Self::Input;
 
     type History = ();
 
@@ -18,7 +18,7 @@ impl InputGenerator for CanonicalUnitGenerator {
 
     fn exhaustive(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
         std::iter::once(InputWithShrinkable((), ()))
     }
 
@@ -28,14 +28,14 @@ impl InputGenerator for CanonicalUnitGenerator {
 
     fn adversarial(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
         std::iter::once(InputWithShrinkable((), ()))
     }
 
     fn sample(
         &self,
         _rng: &mut (impl crate::rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
+    ) -> InputWithShrinkable<Self::Input, Self::InputSource> {
         InputWithShrinkable((), ())
     }
 
@@ -46,7 +46,7 @@ impl InputGenerator for CanonicalUnitGenerator {
     fn update_history(
         &self,
         _history: &mut Self::History,
-        _shrinkable_input: Self::ShrinkableInput,
+        _shrinkable_input: Self::InputSource,
         _test_passed: bool,
     ) {
     }
@@ -59,8 +59,12 @@ impl InputGenerator for CanonicalUnitGenerator {
         &self,
         _rng: &mut impl crate::rand::Rng,
         _history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
+    ) -> NextAttempt<Self::Input, Self::InputSource> {
         NextAttempt::Done
+    }
+
+    fn create_input(&self, _input_source: &Self::InputSource) -> Self::Input {
+        ()
     }
 }
 

@@ -7,6 +7,9 @@ pub enum NextAttempt<T, S> {
     ShrinkAttempt(InputWithShrinkable<T, S>),
 }
 
+// TODO(ichen): we probably don't even need this, now that `InputSource` is a
+// real thing. I think we could just pass those around, and construct `Input`s
+// on the fly as needed.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InputWithShrinkable<T, S>(pub T, pub S);
 
@@ -18,7 +21,7 @@ pub trait InputGenerator {
     // TODO(ichen): default this to Self::Input when associated type defaults
     // are stabilized (https://github.com/rust-lang/rust/issues/29661)
     // TODO: explain this
-    type ShrinkableInput;
+    type InputSource;
 
     /// A type that stores shrinking history with the necessary information to
     /// determine the next value to try during shrinking, when to stop
@@ -48,7 +51,7 @@ pub trait InputGenerator {
     /// [`cardinality`]: NewInputGenerator::cardinality
     fn exhaustive(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>>;
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>>;
 
     /// Returns the number of adversarial inputs that will be returned by
     /// [`adversarial`], or [`None`] if that value is greater than
@@ -73,7 +76,7 @@ pub trait InputGenerator {
     /// [`adversarial_count`]: NewInputGenerator::adversarial_count
     fn adversarial(
         &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>>;
+    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>>;
 
     // TODO: docs outdated because ShrinkableInput was added
     /// Samples a random value of type [`Input`].
@@ -90,7 +93,7 @@ pub trait InputGenerator {
     fn sample(
         &self,
         rng: &mut (impl Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput>;
+    ) -> InputWithShrinkable<Self::Input, Self::InputSource>;
 
     /// Returns a new, "blank slate" [`History`], ready to be used for the
     /// shrinking process.
@@ -103,16 +106,20 @@ pub trait InputGenerator {
         &self,
         rng: &mut impl Rng,
         history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::ShrinkableInput>;
+    ) -> NextAttempt<Self::Input, Self::InputSource>;
 
     /// TODO
     fn update_history(
         &self,
         history: &mut Self::History,
-        shrinkable_input: Self::ShrinkableInput,
+        shrinkable_input: Self::InputSource,
         test_passed: bool,
     );
 
     /// TODO
     fn generate_observations(&self, history: Self::History) -> Vec<Observation>;
+
+    // TODO: docs
+    // TODO: should this take an `InputSource` or an `&InputSource`?
+    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input;
 }
