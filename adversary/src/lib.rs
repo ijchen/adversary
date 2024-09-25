@@ -41,11 +41,6 @@ mod tests {
         generic_test(Box::new(4i16));
     }
 
-    // #[adv_test(name = "[A-Z][a-z]*")]
-    // fn bat(name: &str, age: u8) -> bool {
-    //     name.is_ascii() && age <= 100
-    // }
-
     #[test]
     fn test_1() {
         let report = run_test(|v: bool| !v, any(), &mut crate::rand::thread_rng()).unwrap_err();

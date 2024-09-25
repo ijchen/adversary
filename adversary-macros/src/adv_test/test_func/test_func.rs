@@ -160,7 +160,7 @@ impl TestFunc {
         let arg_types = inputs.iter().map(|arg| &arg.ty);
 
         let value_idents: Vec<Ident> = (0..inputs.len())
-            .map(|n| format_ident!("input_{n}"))
+            .map(|n| format_ident!("arg_{n}"))
             .collect();
 
         quote! {
@@ -170,10 +170,10 @@ impl TestFunc {
             #vis #fn_token #ident #paren_token {
                 fn inner_test(#inputs) #inner_ret #block
 
-                let mut generator = (#(any::<#arg_types>()),*);
-                let mut rng = rand::thread_rng();
+                let mut generator = (#(::adversary::any::<#arg_types>()),*);
+                let mut rng = ::adversary::rand::thread_rng();
 
-                run_test(
+                ::adversary::run_test_panics(
                     |(#(#value_idents),*)| inner_test(#(#value_idents),*),
                     generator,
                     &mut rng,
