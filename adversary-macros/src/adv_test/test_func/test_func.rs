@@ -164,7 +164,6 @@ impl TestFunc {
             .collect();
 
         quote! {
-            // TODO: use `::adversary` "absolute" paths
             #[test]
             #(#attrs)*
             #vis #fn_token #ident #paren_token -> ::std::process::ExitCode {
