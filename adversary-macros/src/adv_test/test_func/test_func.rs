@@ -115,7 +115,7 @@ impl TestFunc {
         if let Some(variadic) = item_fn.sig.variadic {
             return Err(syn::Error::new(
                 variadic.span(),
-                "adversary test functions cannot include a variadic argument",
+                "adversary test functions cannot be variadic",
             ));
         }
 
@@ -152,7 +152,9 @@ impl TestFunc {
             | TestFuncOutput::ShouldPanic
             | TestFuncOutput::ShouldPanicWithMessage { .. } => quote! {},
             TestFuncOutput::ShouldReturnTrue => quote! { -> bool },
-            TestFuncOutput::ShouldReturnOk { err_ty } => quote! { -> Result<(), #err_ty> },
+            TestFuncOutput::ShouldReturnOk { err_ty } => {
+                quote! { -> ::std::result::Result<(), #err_ty> }
+            }
         };
 
         let arg_types = inputs.iter().map(|arg| &arg.ty);
