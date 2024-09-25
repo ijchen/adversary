@@ -155,8 +155,6 @@ impl TestFunc {
             TestFuncOutput::ShouldReturnOk { err_ty } => quote! { -> Result<(), #err_ty> },
         };
 
-        // let generator_declarations = inputs.iter().map(|a| a.);
-
         let arg_types = inputs.iter().map(|arg| &arg.ty);
 
         let value_idents: Vec<Ident> = (0..inputs.len())
@@ -167,17 +165,20 @@ impl TestFunc {
             // TODO: use `::adversary` "absolute" paths
             #[test]
             #(#attrs)*
-            #vis #fn_token #ident #paren_token {
+            #vis #fn_token #ident #paren_token -> ::std::process::ExitCode {
                 fn inner_test(#inputs) #inner_ret #block
 
                 let mut generator = (#(::adversary::any::<#arg_types>()),*);
                 let mut rng = ::adversary::rand::thread_rng();
 
-                ::adversary::run_test_panics(
+                match ::adversary::run_test_panics(
                     |(#(#value_idents),*)| inner_test(#(#value_idents),*),
                     generator,
                     &mut rng,
-                ).unwrap();
+                ) {
+                    ::std::result::Result::Ok(_) => ::std::process::ExitCode::SUCCESS,
+                    ::std::result::Result::Err(_) => ::std::process::ExitCode::FAILURE,
+                }
             }
         }
     }
