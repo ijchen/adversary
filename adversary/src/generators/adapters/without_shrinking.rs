@@ -1,7 +1,4 @@
-use crate::{
-    input_generator::{InputWithShrinkable, NextAttempt},
-    InputGenerator,
-};
+use crate::{input_generator::NextAttempt, InputGenerator};
 
 pub struct WithoutShrinking<G>(G);
 
@@ -15,9 +12,7 @@ impl<G: InputGenerator> InputGenerator for WithoutShrinking<G> {
         self.0.cardinality()
     }
 
-    fn exhaustive(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
+    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
         self.0.exhaustive()
     }
 
@@ -25,16 +20,11 @@ impl<G: InputGenerator> InputGenerator for WithoutShrinking<G> {
         self.0.adversarial_count()
     }
 
-    fn adversarial(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
+    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
         self.0.adversarial()
     }
 
-    fn sample(
-        &self,
-        rng: &mut (impl rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::InputSource> {
+    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
         self.0.sample(rng)
     }
 
@@ -58,7 +48,7 @@ impl<G: InputGenerator> InputGenerator for WithoutShrinking<G> {
         &self,
         _rng: &mut impl rand::Rng,
         _history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::InputSource> {
+    ) -> NextAttempt<Self::InputSource> {
         NextAttempt::Done
     }
 

@@ -1,7 +1,4 @@
-use crate::{
-    input_generator::{InputWithShrinkable, NextAttempt},
-    InputGenerator,
-};
+use crate::{input_generator::NextAttempt, InputGenerator};
 
 #[repr(transparent)]
 struct JustWith<F>(F);
@@ -17,29 +14,20 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
         Some(1)
     }
 
-    fn exhaustive(
-        &self,
-    ) -> impl Iterator<Item = crate::input_generator::InputWithShrinkable<Self::Input, Self::InputSource>>
-    {
-        std::iter::once(InputWithShrinkable((self.0)(), ()))
+    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+        std::iter::once(())
     }
 
     fn adversarial_count(&self) -> Option<usize> {
         Some(1)
     }
 
-    fn adversarial(
-        &self,
-    ) -> impl Iterator<Item = crate::input_generator::InputWithShrinkable<Self::Input, Self::InputSource>>
-    {
-        std::iter::once(InputWithShrinkable((self.0)(), ()))
+    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+        std::iter::once(())
     }
 
-    fn sample(
-        &self,
-        _rng: &mut (impl rand::Rng + ?Sized),
-    ) -> crate::input_generator::InputWithShrinkable<Self::Input, Self::InputSource> {
-        InputWithShrinkable((self.0)(), ())
+    fn sample(&self, _rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+        ()
     }
 
     fn new_history(&self) -> Self::History {
@@ -50,7 +38,7 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
         &self,
         _rng: &mut impl rand::Rng,
         _history: &Self::History,
-    ) -> crate::input_generator::NextAttempt<Self::Input, Self::InputSource> {
+    ) -> NextAttempt<Self::InputSource> {
         NextAttempt::Done
     }
 
@@ -97,18 +85,18 @@ mod tests {
         assert_eq!(strategy.cardinality(), Some(1));
         assert!(strategy
             .exhaustive()
-            .map(|InputWithShrinkable(v, _)| v)
+            .map(|input_source| strategy.create_input(&input_source))
             .eq([35]));
 
         assert_eq!(strategy.adversarial_count(), Some(1));
         assert!(strategy
             .adversarial()
-            .map(|InputWithShrinkable(v, _)| v)
+            .map(|input_source| strategy.create_input(&input_source))
             .eq([35]));
 
         let mut rng = crate::rand::thread_rng();
         for _ in 0..100 {
-            assert_eq!(strategy.sample(&mut rng).0, 35);
+            assert_eq!(strategy.create_input(&strategy.sample(&mut rng)), 35);
         }
 
         let history = strategy.new_history();
@@ -128,18 +116,21 @@ mod tests {
         assert_eq!(strategy.cardinality(), Some(1));
         assert!(strategy
             .exhaustive()
-            .map(|InputWithShrinkable(v, _)| v)
+            .map(|input_source| strategy.create_input(&input_source))
             .eq([NotClone("hi")]));
 
         assert_eq!(strategy.adversarial_count(), Some(1));
         assert!(strategy
             .adversarial()
-            .map(|InputWithShrinkable(v, _)| v)
+            .map(|input_source| strategy.create_input(&input_source))
             .eq([NotClone("hi")]));
 
         let mut rng = crate::rand::thread_rng();
         for _ in 0..100 {
-            assert_eq!(strategy.sample(&mut rng).0, NotClone("hi"));
+            assert_eq!(
+                strategy.create_input(&strategy.sample(&mut rng)),
+                NotClone("hi")
+            );
         }
 
         let history = strategy.new_history();

@@ -1,16 +1,13 @@
-use crate::{
-    input_generator::{InputWithShrinkable, NextAttempt},
-    InputGenerator,
-};
+use crate::{input_generator::NextAttempt, InputGenerator};
 
 struct AddAdversarial<G: InputGenerator> {
     generator: G,
-    adversarial: Box<[InputWithShrinkable<G::Input, G::InputSource>]>,
+    adversarial: Box<[G::InputSource]>,
 }
 
 impl<G: InputGenerator> InputGenerator for AddAdversarial<G>
 where
-    InputWithShrinkable<G::Input, G::InputSource>: Clone,
+    G::InputSource: Clone,
 {
     type Input = G::Input;
     type InputSource = G::InputSource;
@@ -21,9 +18,7 @@ where
         self.generator.cardinality()
     }
 
-    fn exhaustive(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
+    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
         self.generator.exhaustive()
     }
 
@@ -33,18 +28,13 @@ where
             .checked_add(self.adversarial.len())
     }
 
-    fn adversarial(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
+    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
         self.generator
             .adversarial()
             .chain(self.adversarial.iter().cloned())
     }
 
-    fn sample(
-        &self,
-        rng: &mut (impl rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::InputSource> {
+    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
         self.generator.sample(rng)
     }
 
@@ -70,7 +60,7 @@ where
         &self,
         rng: &mut impl rand::Rng,
         history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::InputSource> {
+    ) -> NextAttempt<Self::InputSource> {
         self.generator.next_input(rng, history)
     }
 

@@ -1,7 +1,4 @@
-use crate::{
-    input_generator::{InputWithShrinkable, NextAttempt},
-    InputGenerator,
-};
+use crate::{input_generator::NextAttempt, InputGenerator};
 
 /// Okay so hear me out - what if we implemented [`InputGenerator`] for slices?
 ///
@@ -17,29 +14,20 @@ impl<'a, T> InputGenerator for &'a [T] {
         Some(self.len())
     }
 
-    fn exhaustive(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
-        self.into_iter().map(|v| InputWithShrinkable(v, v))
+    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+        self.into_iter()
     }
 
     fn adversarial_count(&self) -> Option<usize> {
         Some(0)
     }
 
-    fn adversarial(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
+    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
         std::iter::empty()
     }
 
-    fn sample(
-        &self,
-        rng: &mut (impl rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::InputSource> {
-        let v = crate::rand::seq::SliceRandom::choose(*self, rng).unwrap();
-
-        InputWithShrinkable(v, v)
+    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+        crate::rand::seq::SliceRandom::choose(*self, rng).unwrap()
     }
 
     fn new_history(&self) -> Self::History {
@@ -62,7 +50,7 @@ impl<'a, T> InputGenerator for &'a [T] {
         &self,
         _rng: &mut impl crate::rand::Rng,
         _history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::InputSource> {
+    ) -> NextAttempt<Self::InputSource> {
         NextAttempt::Done
     }
 
@@ -81,29 +69,20 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
         Some(N)
     }
 
-    fn exhaustive(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
-        self.into_iter().map(|v| InputWithShrinkable(v, v))
+    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+        self.into_iter()
     }
 
     fn adversarial_count(&self) -> Option<usize> {
         Some(0)
     }
 
-    fn adversarial(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
+    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
         std::iter::empty()
     }
 
-    fn sample(
-        &self,
-        rng: &mut (impl rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::InputSource> {
-        let v = crate::rand::seq::SliceRandom::choose(self.as_slice(), rng).unwrap();
-
-        InputWithShrinkable(v, v)
+    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+        crate::rand::seq::SliceRandom::choose(self.as_slice(), rng).unwrap()
     }
 
     fn new_history(&self) -> Self::History {
@@ -126,7 +105,7 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
         &self,
         _rng: &mut impl crate::rand::Rng,
         _history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::InputSource> {
+    ) -> NextAttempt<Self::InputSource> {
         NextAttempt::Done
     }
 

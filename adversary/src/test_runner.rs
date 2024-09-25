@@ -2,7 +2,6 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::panic::{RefUnwindSafe, UnwindSafe};
 
-use crate::input_generator::InputWithShrinkable;
 use crate::rand::Rng;
 
 use crate::IntoInputGenerator;
@@ -10,7 +9,7 @@ use crate::{input_generator::NextAttempt, report::ShrinkStep, InputGenerator, Re
 
 struct FailingInputReport<T, I> {
     pub failing_input: T,
-    pub failing_shrinkable_input: I,
+    pub failing_input_source: I,
     pub passing_runs: u64,
 }
 
@@ -82,13 +81,13 @@ fn find_failing_input<T, I>(
         .is_some_and(|cardinality| cardinality <= MAX_RUNS)
     {
         let mut passing_runs: u64 = 0;
-        for InputWithShrinkable(input, shrinkable_input) in generator.exhaustive() {
-            let test_passed = test(input);
+        for input_source in generator.exhaustive() {
+            let test_passed = test(generator.create_input(&input_source));
 
             if !test_passed {
                 return Some(FailingInputReport {
-                    failing_input: generator.create_input(&shrinkable_input),
-                    failing_shrinkable_input: shrinkable_input,
+                    failing_input: generator.create_input(&input_source),
+                    failing_input_source: input_source,
                     passing_runs,
                 });
             }
@@ -105,17 +104,17 @@ fn find_failing_input<T, I>(
         .is_some_and(|adversarial_count| adversarial_count <= MAX_RUNS)
     {
         let mut passing_runs: u64 = 0;
-        for InputWithShrinkable(input, shrinkable_input) in generator
+        for input_source in generator
             .adversarial()
             .chain(std::iter::repeat_with(|| generator.sample(rng)))
             .take(MAX_RUNS)
         {
-            let test_passed = test(input);
+            let test_passed = test(generator.create_input(&input_source));
 
             if !test_passed {
                 return Some(FailingInputReport {
-                    failing_input: generator.create_input(&shrinkable_input),
-                    failing_shrinkable_input: shrinkable_input,
+                    failing_input: generator.create_input(&input_source),
+                    failing_input_source: input_source,
                     passing_runs,
                 });
             }
@@ -129,15 +128,13 @@ fn find_failing_input<T, I>(
         None
     } else {
         let mut passing_runs: u64 = 0;
-        for InputWithShrinkable(input, shrinkable_input) in
-            std::iter::repeat_with(|| generator.sample(rng)).take(MAX_RUNS)
-        {
-            let test_passed = test(input);
+        for input_source in std::iter::repeat_with(|| generator.sample(rng)).take(MAX_RUNS) {
+            let test_passed = test(generator.create_input(&input_source));
 
             if !test_passed {
                 return Some(FailingInputReport {
-                    failing_input: generator.create_input(&shrinkable_input),
-                    failing_shrinkable_input: shrinkable_input,
+                    failing_input: generator.create_input(&input_source),
+                    failing_input_source: input_source,
                     passing_runs,
                 });
             }
@@ -162,7 +159,7 @@ fn shrink_and_generate_report<T, I>(
 
     generator.update_history(
         &mut history,
-        failing_input_report.failing_shrinkable_input,
+        failing_input_report.failing_input_source,
         false,
     );
 
@@ -174,22 +171,21 @@ fn shrink_and_generate_report<T, I>(
     // TODO(ichen): limit how many times this loop can run (to guard against
     // faulty InputGenerator::next_input impls)
     loop {
-        let (InputWithShrinkable(input, shrinkable_input), info_gathering) =
-            match generator.next_input(rng, &history) {
-                NextAttempt::Done => break,
-                NextAttempt::InfoGathering(input) => (input, true),
-                NextAttempt::ShrinkAttempt(input) => (input, false),
-            };
+        let (input_source, info_gathering) = match generator.next_input(rng, &history) {
+            NextAttempt::Done => break,
+            NextAttempt::InfoGathering(input_source) => (input_source, true),
+            NextAttempt::ShrinkAttempt(input_source) => (input_source, false),
+        };
 
-        let test_passed = test(input);
+        let test_passed = test(generator.create_input(&input_source));
 
         let shrink_step = ShrinkStep::new(
-            generator.create_input(&shrinkable_input),
+            generator.create_input(&input_source),
             info_gathering,
             test_passed,
         );
 
-        generator.update_history(&mut history, shrinkable_input, test_passed);
+        generator.update_history(&mut history, input_source, test_passed);
 
         shrink_steps.push(shrink_step);
     }

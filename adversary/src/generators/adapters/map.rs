@@ -1,7 +1,4 @@
-use crate::{
-    input_generator::{InputWithShrinkable, NextAttempt},
-    InputGenerator,
-};
+use crate::{input_generator::NextAttempt, InputGenerator};
 
 pub struct Map<G, F> {
     inner_generator: G,
@@ -18,37 +15,20 @@ impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
         self.inner_generator.cardinality()
     }
 
-    fn exhaustive(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
-        self.inner_generator
-            .exhaustive()
-            .map(|InputWithShrinkable(input, shrinkable_input)| {
-                InputWithShrinkable((self.f)(input), shrinkable_input)
-            })
+    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+        self.inner_generator.exhaustive()
     }
 
     fn adversarial_count(&self) -> Option<usize> {
         self.inner_generator.adversarial_count()
     }
 
-    fn adversarial(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
-        self.inner_generator
-            .adversarial()
-            .map(|InputWithShrinkable(input, shrinkable_input)| {
-                InputWithShrinkable((self.f)(input), shrinkable_input)
-            })
+    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+        self.inner_generator.adversarial()
     }
 
-    fn sample(
-        &self,
-        rng: &mut (impl rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::InputSource> {
-        let InputWithShrinkable(input, shrinkable_input) = self.inner_generator.sample(rng);
-
-        InputWithShrinkable((self.f)(input), shrinkable_input)
+    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+        self.inner_generator.sample(rng)
     }
 
     fn new_history(&self) -> Self::History {
@@ -59,18 +39,8 @@ impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
         &self,
         rng: &mut impl rand::Rng,
         history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::InputSource> {
-        // TODO(ichen): consider impl'ing .map(...) on NextInput (that's what
-        // I'm doing here, just manually)
-        match self.inner_generator.next_input(rng, history) {
-            NextAttempt::Done => NextAttempt::Done,
-            NextAttempt::InfoGathering(InputWithShrinkable(input, shrinkable_input)) => {
-                NextAttempt::InfoGathering(InputWithShrinkable((self.f)(input), shrinkable_input))
-            }
-            NextAttempt::ShrinkAttempt(InputWithShrinkable(input, shrinkable_input)) => {
-                NextAttempt::ShrinkAttempt(InputWithShrinkable((self.f)(input), shrinkable_input))
-            }
-        }
+    ) -> NextAttempt<Self::InputSource> {
+        self.inner_generator.next_input(rng, history)
     }
 
     fn update_history(

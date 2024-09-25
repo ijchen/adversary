@@ -1,8 +1,4 @@
-use crate::{
-    input_generator::{InputWithShrinkable, NextAttempt},
-    report::Observation,
-    InputGenerator,
-};
+use crate::{input_generator::NextAttempt, report::Observation, InputGenerator};
 
 /// Okay so hear me out - what if we implemented [`InputGenerator`] for arrays?
 ///
@@ -20,14 +16,10 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
         Some(N)
     }
 
-    fn exhaustive(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
+    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
         assert!(!self.is_empty());
 
-        self.into_iter()
-            .enumerate()
-            .map(|(index, value)| InputWithShrinkable(value.clone(), index))
+        0..self.len()
     }
 
     fn adversarial_count(&self) -> Option<usize> {
@@ -36,23 +28,16 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
         Some(0)
     }
 
-    fn adversarial(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
+    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
         assert!(!self.is_empty());
 
         std::iter::empty()
     }
 
-    fn sample(
-        &self,
-        rng: &mut (impl rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::InputSource> {
+    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
         assert!(!self.is_empty());
 
-        let index = rng.gen_range(0..self.len());
-
-        InputWithShrinkable(self[index].clone(), index)
+        rng.gen_range(0..self.len())
     }
 
     fn new_history(&self) -> Self::History {
@@ -84,7 +69,7 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
         &self,
         _rng: &mut impl crate::rand::Rng,
         _history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::InputSource> {
+    ) -> NextAttempt<Self::InputSource> {
         assert!(!self.is_empty());
 
         // TODO(ichen): implement for real

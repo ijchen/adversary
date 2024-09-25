@@ -1,9 +1,6 @@
 use std::{collections::HashSet, ops::RangeInclusive};
 
-use crate::{
-    input_generator::{InputWithShrinkable, NextAttempt},
-    InputGenerator,
-};
+use crate::{input_generator::NextAttempt, InputGenerator};
 
 // TODO(ichen): I'd really like this struct to be private - I don't want to make
 // any API promises about it.
@@ -35,10 +32,10 @@ macro_rules! signed_range_inclusive {
 
                 fn exhaustive(
                     &self,
-                ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
+                ) -> impl Iterator<Item = Self::InputSource> {
                     assert!(!self.is_empty());
 
-                    self.clone().map(|n| InputWithShrinkable(n, n))
+                    self.clone()
                 }
 
                 fn adversarial_count(&self) -> Option<usize> {
@@ -51,7 +48,7 @@ macro_rules! signed_range_inclusive {
 
                 fn adversarial(
                     &self,
-                ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
+                ) -> impl Iterator<Item = Self::InputSource> {
                     // TODO(ichen): see if we can make this const evaluatable
                     // (assuming the compiler knows the range bounds at compile
                     // time). If not, at least optimize it to be as fast as we
@@ -63,17 +60,15 @@ macro_rules! signed_range_inclusive {
                     HashSet::from([*self.start(), self.start() + 1, -1, 0, 1, self.end() - 1, *self.end()])
                         .into_iter()
                         .filter(|n| self.contains(n))
-                        .map(|n| InputWithShrinkable(n, n))
                 }
 
                 fn sample(
                     &self,
                     rng: &mut (impl rand::Rng + ?Sized),
-                ) -> InputWithShrinkable<Self::Input, Self::InputSource> {
+                ) -> Self::InputSource {
                     assert!(!self.is_empty());
 
-                    let n = rng.gen_range(self.clone());
-                    InputWithShrinkable(n, n)
+                    rng.gen_range(self.clone())
                 }
 
                 fn new_history(&self) -> Self::History {
@@ -89,7 +84,7 @@ macro_rules! signed_range_inclusive {
                     &self,
                     _rng: &mut impl rand::Rng,
                     history: &Self::History,
-                ) -> crate::input_generator::NextAttempt<Self::Input, Self::InputSource> {
+                ) -> NextAttempt<Self::InputSource> {
                     assert!(!self.is_empty());
 
                     let min_abs_possible = if self.contains(&0) {
@@ -108,7 +103,7 @@ macro_rules! signed_range_inclusive {
 
                     // If we don't have a lower bound, try the minimum value
                     if history.max_abs_passing.is_none() {
-                        return NextAttempt::ShrinkAttempt(InputWithShrinkable(min_abs_possible, min_abs_possible));
+                        return NextAttempt::ShrinkAttempt(min_abs_possible);
                     }
 
                     // This is a sort of odd state where we don't have any
@@ -138,7 +133,7 @@ macro_rules! signed_range_inclusive {
                     // If we're not done, try the midpoint of our upper and
                     // lower bounds
                     let next_attempt = (min_failing - max_passing) / 2 + max_passing;
-                    NextAttempt::ShrinkAttempt(InputWithShrinkable(next_attempt, next_attempt))
+                    NextAttempt::ShrinkAttempt(next_attempt)
                 }
 
                 fn update_history(

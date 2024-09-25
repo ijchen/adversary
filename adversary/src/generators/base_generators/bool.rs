@@ -1,6 +1,6 @@
 use crate::{
     report::{Importance, Observation},
-    InputGenerator, InputWithShrinkable, NextAttempt,
+    InputGenerator, NextAttempt,
 };
 
 struct ChanceGen {
@@ -53,37 +53,20 @@ impl InputGenerator for ChanceGen {
         Some(2)
     }
 
-    fn exhaustive(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
-        [
-            InputWithShrinkable(false, false),
-            InputWithShrinkable(true, true),
-        ]
-        .into_iter()
+    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+        [false, true].into_iter()
     }
 
     fn adversarial_count(&self) -> Option<usize> {
         Some(2)
     }
 
-    fn adversarial(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::InputSource>> {
-        [
-            InputWithShrinkable(false, false),
-            InputWithShrinkable(true, true),
-        ]
-        .into_iter()
+    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+        [false, true].into_iter()
     }
 
-    fn sample(
-        &self,
-        rng: &mut (impl crate::rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::Input> {
-        let input = rng.gen_bool(self.chance_of_true);
-
-        InputWithShrinkable(input, input)
+    fn sample(&self, rng: &mut (impl crate::rand::Rng + ?Sized)) -> Self::InputSource {
+        rng.gen_bool(self.chance_of_true)
     }
 
     fn new_history(&self) -> Self::History {
@@ -133,14 +116,14 @@ impl InputGenerator for ChanceGen {
         &self,
         _rng: &mut impl crate::rand::Rng,
         history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::InputSource> {
+    ) -> NextAttempt<Self::InputSource> {
         // If we haven't tried our "shrink to" value yet, try it
         let shrink_to_observed = match self.shrink_to {
             true => history.t,
             false => history.f,
         };
         if shrink_to_observed == ObservedOutcomes::Nothing {
-            return NextAttempt::ShrinkAttempt(InputWithShrinkable(self.shrink_to, self.shrink_to));
+            return NextAttempt::ShrinkAttempt(self.shrink_to);
         }
 
         // If we haven't tried the other (not "shrink to") yet, try it for information
@@ -149,10 +132,7 @@ impl InputGenerator for ChanceGen {
             false => history.t,
         };
         if other_observed == ObservedOutcomes::Nothing {
-            return NextAttempt::InfoGathering(InputWithShrinkable(
-                !self.shrink_to,
-                !self.shrink_to,
-            ));
+            return NextAttempt::InfoGathering(!self.shrink_to);
         }
 
         NextAttempt::Done
