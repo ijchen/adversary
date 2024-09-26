@@ -14,7 +14,8 @@ pub use generators::{any, bool, just, just_with, Canonical};
 pub use input_generator::{InputGenerator, NextAttempt};
 pub use input_generator_ext::InputGeneratorExt;
 pub use into_input_generator::IntoInputGenerator;
-pub use report::{Report, ShrinkStep};
+// TODO: don't publicly re-export Plaintext
+pub use report::{Plaintext, Report, ShrinkStep};
 pub use test_runner::{run_test, run_test_panics};
 
 #[cfg(test)]

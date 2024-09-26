@@ -10,6 +10,25 @@ pub struct Report<T> {
     pub simplest_failing_input: T,
 }
 
+// TODO: split this into its own submodule
+pub trait RenderReport {
+    fn render<T>(report: &Report<T>) -> String;
+}
+
+pub struct Plaintext;
+impl RenderReport for Plaintext {
+    fn render<T>(_report: &Report<T>) -> String {
+        // TODO: do this for real
+        "your test failed lol".to_string()
+    }
+}
+
+impl<T> Report<T> {
+    pub fn render<R: RenderReport>(&self) -> String {
+        R::render(self)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Observation {
     pub contents: String,

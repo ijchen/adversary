@@ -147,7 +147,7 @@ impl TestFunc {
 
         let paren_token = quote_spanned! { paren_token.span.span() => () };
 
-        let inner_ret = match output {
+        let inner_ret = match &output {
             TestFuncOutput::ShouldNotPanic
             | TestFuncOutput::ShouldPanic
             | TestFuncOutput::ShouldPanicWithMessage { .. } => quote! {},
@@ -163,6 +163,40 @@ impl TestFunc {
             .map(|n| format_ident!("arg_{n}"))
             .collect();
 
+        let test_name = ident.to_string();
+
+        let test_run = match &output {
+            TestFuncOutput::ShouldNotPanic => quote! {
+                ::adversary::run_test_panics(
+                    |(#(#value_idents),*)| inner_test(#(#value_idents),*),
+                    generator,
+                    &mut rng,
+                )
+            },
+            TestFuncOutput::ShouldPanic => {
+                return quote! { compile_error!("adversary tests that should panic are not yet implemented"); }
+            }
+            TestFuncOutput::ShouldPanicWithMessage {
+                expected_substring: _,
+            } => {
+                return quote! { compile_error!("adversary tests that should panic with a message are not yet implemented"); }
+            }
+            TestFuncOutput::ShouldReturnTrue => quote! {
+                ::adversary::run_test(
+                    |(#(#value_idents),*)| inner_test(#(#value_idents),*),
+                    generator,
+                    &mut rng,
+                )
+            },
+            TestFuncOutput::ShouldReturnOk { err_ty: _ } => {
+                // NOTE(ichen): should use the specialization hack to turn the
+                // error type into a string - first Display, then Debug, then a
+                // default message for types which don't impl either.
+                // https://lukaskalbertodt.github.io/2019/12/05/generalized-autoref-based-specialization.html
+                return quote! { compile_error!("adversary tests that return a Result<(), _> are not yet implemented") };
+            }
+        };
+
         quote! {
             #[test]
             #(#attrs)*
@@ -172,14 +206,17 @@ impl TestFunc {
                 let mut generator = (#(::adversary::any::<#arg_types>()),*);
                 let mut rng = ::adversary::rand::thread_rng();
 
-                match ::adversary::run_test_panics(
-                    |(#(#value_idents),*)| inner_test(#(#value_idents),*),
-                    generator,
-                    &mut rng,
-                ) {
-                    ::std::result::Result::Ok(_) => ::std::process::ExitCode::SUCCESS,
-                    ::std::result::Result::Err(_) => ::std::process::ExitCode::FAILURE,
-                }
+                let run_result = #test_run;
+
+                let mut report = match run_result {
+                    ::std::result::Result::Ok(()) => return ::std::process::ExitCode::SUCCESS,
+                    ::std::result::Result::Err(report) => report,
+                };
+                report.test_name = ::std::option::Option::Some(#test_name.to_string());
+
+                eprintln!("{}", report.render::<::adversary::Plaintext>());
+
+                ::std::process::ExitCode::FAILURE
             }
         }
     }
