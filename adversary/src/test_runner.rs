@@ -1,8 +1,7 @@
 use std::any::Any;
 use std::cell::RefCell;
-use std::panic::RefUnwindSafe;
+use std::panic::{RefUnwindSafe, UnwindSafe};
 
-use crate::input_generator::InputWithShrinkable;
 use crate::rand::Rng;
 
 use crate::IntoInputGenerator;
@@ -10,29 +9,132 @@ use crate::{input_generator::NextAttempt, report::ShrinkStep, InputGenerator, Re
 
 struct FailingInputReport<T, I> {
     pub failing_input: T,
-    pub failing_shrinkable_input: I,
+    pub failing_input_source: I,
     pub passing_runs: u64,
 }
 
-fn find_failing_input<T, I>(
-    test: &impl Fn(&T) -> bool,
-    generator: &mut impl InputGenerator<Input = T, ShrinkableInput = I>,
+fn find_failing_input<T, I: Clone>(
+    test: &impl Fn(T) -> bool,
+    generator: &mut impl InputGenerator<Input = T, InputSource = I>,
     rng: &mut impl Rng,
 ) -> Option<FailingInputReport<T, I>> {
-    #[inline]
-    fn helper<T, I>(
-        test: &impl Fn(&T) -> bool,
-        inputs: impl Iterator<Item = InputWithShrinkable<T, I>>,
-    ) -> Option<FailingInputReport<T, I>> {
-        // TODO: maybe make this all functional and appease the lambda bros
+    // #[inline]
+    // fn helper<T, I: Clone>(
+    //     test: &impl Fn(T) -> bool,
+    //     generator: &mut impl InputGenerator<Input = T, InputSource = I>,
+    //     inputs: impl Iterator<Item = I>,
+    // ) -> Option<FailingInputReport<T, I>> {
+    //     // TODO: maybe make this all functional and appease the lambda bros
+    //     let mut passing_runs: u64 = 0;
+    //     for input_source in inputs {
+    //         let test_passed = test(generator.create_input(input_source.clone()));
+
+    //         if !test_passed {
+    //             return Some(FailingInputReport {
+    //                 failing_input: generator.create_input(input_source.clone()),
+    //                 failing_input_source: input_source,
+    //                 passing_runs,
+    //             });
+    //         }
+
+    //         // TODO(ichen): maybe possibly consider handling overflow better
+    //         // than saturating (although, FWIW, at 50 billion inputs per second,
+    //         // it would take over 11 years to reach u64::MAX)
+    //         passing_runs = passing_runs.saturating_add(1);
+    //     }
+
+    //     None
+    // }
+
+    // TODO: allow customizing this
+    const MAX_RUNS: usize = 1_000_000;
+
+    // // TODO(ichen): consider the cost of triple-monomorphization here, and
+    // // possible alternatives.
+    // if generator
+    //     .cardinality()
+    //     .is_some_and(|cardinality| cardinality <= MAX_RUNS)
+    // {
+    //     helper(&test, generator, generator.exhaustive())
+    // } else if generator
+    //     .adversarial_count()
+    //     .is_some_and(|adversarial_count| adversarial_count <= MAX_RUNS)
+    // {
+    //     helper(
+    //         &test,
+    //         generator,
+    //         generator
+    //             .adversarial()
+    //             .chain(std::iter::repeat_with(|| generator.sample(rng)))
+    //             .take(MAX_RUNS),
+    //     )
+    // } else {
+    //     helper(
+    //         &test,
+    //         generator,
+    //         std::iter::repeat_with(|| generator.sample(rng)).take(MAX_RUNS),
+    //     )
+    // }
+
+    if generator
+        .cardinality()
+        .is_some_and(|cardinality| cardinality <= MAX_RUNS)
+    {
         let mut passing_runs: u64 = 0;
-        for InputWithShrinkable(input, shrinkable_input) in inputs {
-            let test_passed = test(&input);
+        for input_source in generator.exhaustive() {
+            let test_passed = test(generator.create_input(input_source.clone()));
 
             if !test_passed {
                 return Some(FailingInputReport {
-                    failing_input: input,
-                    failing_shrinkable_input: shrinkable_input,
+                    failing_input: generator.create_input(input_source.clone()),
+                    failing_input_source: input_source,
+                    passing_runs,
+                });
+            }
+
+            // TODO(ichen): maybe possibly consider handling overflow better
+            // than saturating (although, FWIW, at 50 billion inputs per second,
+            // it would take over 11 years to reach u64::MAX)
+            passing_runs = passing_runs.saturating_add(1);
+        }
+
+        None
+    } else if generator
+        .adversarial_count()
+        .is_some_and(|adversarial_count| adversarial_count <= MAX_RUNS)
+    {
+        let mut passing_runs: u64 = 0;
+        for input_source in generator
+            .adversarial()
+            .chain(std::iter::repeat_with(|| generator.sample(rng)))
+            .take(MAX_RUNS)
+        {
+            let test_passed = test(generator.create_input(input_source.clone()));
+
+            if !test_passed {
+                return Some(FailingInputReport {
+                    failing_input: generator.create_input(input_source.clone()),
+                    failing_input_source: input_source,
+                    passing_runs,
+                });
+            }
+
+            // TODO(ichen): maybe possibly consider handling overflow better
+            // than saturating (although, FWIW, at 50 billion inputs per second,
+            // it would take over 11 years to reach u64::MAX)
+            passing_runs = passing_runs.saturating_add(1);
+        }
+
+        None
+    } else {
+        let mut passing_runs: u64 = 0;
+        for input_source in std::iter::repeat_with(|| generator.sample(rng)).take(MAX_RUNS) {
+            let test_passed = test(generator.create_input(input_source.clone()));
+
+            if !test_passed {
+                return Some(FailingInputReport {
+                    failing_input: generator.create_input(input_source.clone()),
+                    failing_input_source: input_source,
                     passing_runs,
                 });
             }
@@ -45,49 +147,15 @@ fn find_failing_input<T, I>(
 
         None
     }
-
-    // TODO: allow customizing this
-    const MAX_RUNS: usize = 1_000_000;
-
-    // TODO(ichen): consider the cost of triple-monomorphization here, and
-    // possible alternatives.
-    if generator
-        .cardinality()
-        .is_some_and(|cardinality| cardinality <= MAX_RUNS)
-    {
-        helper(&test, generator.exhaustive())
-    } else if generator
-        .adversarial_count()
-        .is_some_and(|adversarial_count| adversarial_count <= MAX_RUNS)
-    {
-        helper(
-            &test,
-            generator
-                .adversarial()
-                .chain(std::iter::repeat_with(|| generator.sample(rng)))
-                .take(MAX_RUNS),
-        )
-    } else {
-        helper(
-            &test,
-            std::iter::repeat_with(|| generator.sample(rng)).take(MAX_RUNS),
-        )
-    }
 }
 
-fn shrink_and_generate_report<T, I>(
-    test: &impl Fn(&T) -> bool,
-    generator: &impl InputGenerator<Input = T, ShrinkableInput = I>,
+fn shrink_and_generate_report<T, I: Clone>(
+    test: &impl Fn(T) -> bool,
+    generator: &impl InputGenerator<Input = T, InputSource = I>,
     rng: &mut impl Rng,
     failing_input_report: FailingInputReport<T, I>,
 ) -> Report<T> {
-    let mut history = generator.new_history();
-
-    generator.update_history(
-        &mut history,
-        failing_input_report.failing_shrinkable_input,
-        false,
-    );
+    let mut history = generator.new_history(failing_input_report.failing_input_source);
 
     let mut shrink_steps = vec![ShrinkStep::new(
         failing_input_report.failing_input,
@@ -97,18 +165,23 @@ fn shrink_and_generate_report<T, I>(
     // TODO(ichen): limit how many times this loop can run (to guard against
     // faulty InputGenerator::next_input impls)
     loop {
-        let (InputWithShrinkable(input, shrinkable_input), info_gathering) =
-            match generator.next_input(rng, &history) {
-                NextAttempt::Done => break,
-                NextAttempt::InfoGathering(input) => (input, true),
-                NextAttempt::ShrinkAttempt(input) => (input, false),
-            };
+        let (input_source, info_gathering) = match generator.next_input(rng, &history) {
+            NextAttempt::Done => break,
+            NextAttempt::InfoGathering(input_source) => (input_source, true),
+            NextAttempt::ShrinkAttempt(input_source) => (input_source, false),
+        };
 
-        let test_passed = test(&input);
+        let test_passed = test(generator.create_input(input_source.clone()));
 
-        generator.update_history(&mut history, shrinkable_input, test_passed);
+        let shrink_step = ShrinkStep::new(
+            generator.create_input(input_source.clone()),
+            info_gathering,
+            test_passed,
+        );
 
-        shrink_steps.push(ShrinkStep::new(input, info_gathering, test_passed))
+        generator.update_history(&mut history, input_source, test_passed);
+
+        shrink_steps.push(shrink_step);
     }
 
     let ShrinkStep {
@@ -138,7 +211,7 @@ fn shrink_and_generate_report<T, I>(
 // TODO: add ability to customize how we sample the generator
 // TODO: handle generator impls that lie about their sizes
 pub fn run_test<T>(
-    test: impl Fn(&T) -> bool,
+    test: impl Fn(T) -> bool,
     generator: impl IntoInputGenerator<T>,
     rng: &mut impl Rng,
 ) -> Result<(), Report<T>> {
@@ -169,8 +242,8 @@ fn extract_panic_message(any: Box<dyn Any + Send + 'static>) -> Option<String> {
     any.downcast::<String>().ok().map(|s| *s)
 }
 
-pub fn run_test_panics<T: RefUnwindSafe>(
-    test: impl Fn(&T) + RefUnwindSafe,
+pub fn run_test_panics<T: UnwindSafe>(
+    test: impl Fn(T) + RefUnwindSafe,
     generator: impl IntoInputGenerator<T>,
     rng: &mut impl Rng,
 ) -> Result<(), Report<T>> {

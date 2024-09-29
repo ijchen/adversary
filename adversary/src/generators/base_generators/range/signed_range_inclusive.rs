@@ -1,9 +1,6 @@
 use std::{collections::HashSet, ops::RangeInclusive};
 
-use crate::{
-    input_generator::{InputWithShrinkable, NextAttempt},
-    InputGenerator,
-};
+use crate::{input_generator::NextAttempt, InputGenerator};
 
 // TODO(ichen): I'd really like this struct to be private - I don't want to make
 // any API promises about it.
@@ -18,7 +15,7 @@ macro_rules! signed_range_inclusive {
             impl InputGenerator for RangeInclusive<$t> {
                 type Input = $t;
 
-                type ShrinkableInput = Self::Input;
+                type InputSource = Self::Input;
 
                 type History = SignedRangeHistory<$t>;
 
@@ -35,10 +32,10 @@ macro_rules! signed_range_inclusive {
 
                 fn exhaustive(
                     &self,
-                ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+                ) -> impl Iterator<Item = Self::InputSource> {
                     assert!(!self.is_empty());
 
-                    self.clone().map(|n| InputWithShrinkable(n, n))
+                    self.clone()
                 }
 
                 fn adversarial_count(&self) -> Option<usize> {
@@ -51,7 +48,7 @@ macro_rules! signed_range_inclusive {
 
                 fn adversarial(
                     &self,
-                ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+                ) -> impl Iterator<Item = Self::InputSource> {
                     // TODO(ichen): see if we can make this const evaluatable
                     // (assuming the compiler knows the range bounds at compile
                     // time). If not, at least optimize it to be as fast as we
@@ -63,33 +60,35 @@ macro_rules! signed_range_inclusive {
                     HashSet::from([*self.start(), self.start() + 1, -1, 0, 1, self.end() - 1, *self.end()])
                         .into_iter()
                         .filter(|n| self.contains(n))
-                        .map(|n| InputWithShrinkable(n, n))
                 }
 
                 fn sample(
                     &self,
                     rng: &mut (impl rand::Rng + ?Sized),
-                ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
+                ) -> Self::InputSource {
                     assert!(!self.is_empty());
 
-                    let n = rng.gen_range(self.clone());
-                    InputWithShrinkable(n, n)
+                    rng.gen_range(self.clone())
                 }
 
-                fn new_history(&self) -> Self::History {
+                fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
                     assert!(!self.is_empty());
 
-                    SignedRangeHistory {
+                    let mut history = SignedRangeHistory {
                         min_abs_failing: None,
                         max_abs_passing: None,
-                    }
+                    };
+
+                    self.update_history(&mut history, failing_input, false);
+
+                    history
                 }
 
                 fn next_input(
                     &self,
                     _rng: &mut impl rand::Rng,
                     history: &Self::History,
-                ) -> crate::input_generator::NextAttempt<Self::Input, Self::ShrinkableInput> {
+                ) -> NextAttempt<Self::InputSource> {
                     assert!(!self.is_empty());
 
                     let min_abs_possible = if self.contains(&0) {
@@ -108,7 +107,7 @@ macro_rules! signed_range_inclusive {
 
                     // If we don't have a lower bound, try the minimum value
                     if history.max_abs_passing.is_none() {
-                        return NextAttempt::ShrinkAttempt(InputWithShrinkable(min_abs_possible, min_abs_possible));
+                        return NextAttempt::ShrinkAttempt(min_abs_possible);
                     }
 
                     // This is a sort of odd state where we don't have any
@@ -138,13 +137,13 @@ macro_rules! signed_range_inclusive {
                     // If we're not done, try the midpoint of our upper and
                     // lower bounds
                     let next_attempt = (min_failing - max_passing) / 2 + max_passing;
-                    NextAttempt::ShrinkAttempt(InputWithShrinkable(next_attempt, next_attempt))
+                    NextAttempt::ShrinkAttempt(next_attempt)
                 }
 
                 fn update_history(
                     &self,
                     history: &mut Self::History,
-                    shrinkable_input: Self::ShrinkableInput,
+                    shrinkable_input: Self::InputSource,
                     test_passed: bool,
                 ) {
                     assert!(!self.is_empty());
@@ -173,6 +172,10 @@ macro_rules! signed_range_inclusive {
                     // TODO: be helpful
                     vec![]
                 }
+
+                fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
+                    input_source
+                }
             }
         )+
     };
@@ -195,7 +198,7 @@ mod tests {
         );
 
         assert_eq!(
-            run_test(|&n| n < 123, -45..=1000i64, &mut crate::rand::thread_rng())
+            run_test(|n| n < 123, -45..=1000i64, &mut crate::rand::thread_rng())
                 .unwrap_err()
                 .simplest_failing_input,
             123
@@ -213,7 +216,7 @@ mod tests {
         );
 
         assert_eq!(
-            run_test(|&n| n > -100, -421..=-21i32, &mut crate::rand::thread_rng())
+            run_test(|n| n > -100, -421..=-21i32, &mut crate::rand::thread_rng())
                 .unwrap_err()
                 .simplest_failing_input,
             -100
@@ -221,7 +224,7 @@ mod tests {
 
         assert_eq!(
             run_test(
-                |&n| n < 643,
+                |n| n < 643,
                 45..=2000000i128,
                 &mut crate::rand::thread_rng()
             )
@@ -231,7 +234,7 @@ mod tests {
         );
 
         assert_eq!(
-            run_test(|&n| n > -6, i16::MIN..=3, &mut crate::rand::thread_rng())
+            run_test(|n| n > -6, i16::MIN..=3, &mut crate::rand::thread_rng())
                 .unwrap_err()
                 .simplest_failing_input,
             -6

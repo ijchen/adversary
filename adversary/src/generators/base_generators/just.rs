@@ -1,7 +1,4 @@
-use crate::{
-    input_generator::{InputWithShrinkable, NextAttempt},
-    InputGenerator,
-};
+use crate::{input_generator::NextAttempt, InputGenerator};
 
 #[repr(transparent)]
 struct JustWith<F>(F);
@@ -9,7 +6,7 @@ struct JustWith<F>(F);
 impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
     type Input = T;
 
-    type ShrinkableInput = ();
+    type InputSource = ();
 
     type History = ();
 
@@ -17,34 +14,23 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
         Some(1)
     }
 
-    fn exhaustive(
-        &self,
-    ) -> impl Iterator<
-        Item = crate::input_generator::InputWithShrinkable<Self::Input, Self::ShrinkableInput>,
-    > {
-        std::iter::once(InputWithShrinkable((self.0)(), ()))
+    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+        std::iter::once(())
     }
 
     fn adversarial_count(&self) -> Option<usize> {
         Some(1)
     }
 
-    fn adversarial(
-        &self,
-    ) -> impl Iterator<
-        Item = crate::input_generator::InputWithShrinkable<Self::Input, Self::ShrinkableInput>,
-    > {
-        std::iter::once(InputWithShrinkable((self.0)(), ()))
+    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+        std::iter::once(())
     }
 
-    fn sample(
-        &self,
-        _rng: &mut (impl rand::Rng + ?Sized),
-    ) -> crate::input_generator::InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
-        InputWithShrinkable((self.0)(), ())
+    fn sample(&self, _rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+        ()
     }
 
-    fn new_history(&self) -> Self::History {
+    fn new_history(&self, _failing_input: Self::InputSource) -> Self::History {
         ()
     }
 
@@ -52,14 +38,14 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
         &self,
         _rng: &mut impl rand::Rng,
         _history: &Self::History,
-    ) -> crate::input_generator::NextAttempt<Self::Input, Self::ShrinkableInput> {
+    ) -> NextAttempt<Self::InputSource> {
         NextAttempt::Done
     }
 
     fn update_history(
         &self,
         _history: &mut Self::History,
-        _shrinkable_input: Self::ShrinkableInput,
+        _shrinkable_input: Self::InputSource,
         _test_passed: bool,
     ) {
         ()
@@ -68,11 +54,15 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
     fn generate_observations(&self, _history: Self::History) -> Vec<crate::report::Observation> {
         vec![]
     }
+
+    fn create_input(&self, _input_source: Self::InputSource) -> Self::Input {
+        (self.0)()
+    }
 }
 
 /// An [`InputGenerator`] that always produces clones of the same value and
 /// never simplifies.
-pub fn just<T: Clone>(value: T) -> impl InputGenerator<Input = T> {
+pub fn just<T: Clone>(value: T) -> impl InputGenerator<Input = T, InputSource = ()> {
     // TODO(ichen): write unit tests to ensure the compiler optimizes this
     // closure away
     JustWith(move || value.clone())
@@ -80,7 +70,7 @@ pub fn just<T: Clone>(value: T) -> impl InputGenerator<Input = T> {
 
 /// An [`InputGenerator`] that computes a value from the provided closure and
 /// never simplifies.
-pub fn just_with<T>(f: impl Fn() -> T) -> impl InputGenerator<Input = T> {
+pub fn just_with<T>(f: impl Fn() -> T) -> impl InputGenerator<Input = T, InputSource = ()> {
     JustWith(f)
 }
 
@@ -95,21 +85,21 @@ mod tests {
         assert_eq!(strategy.cardinality(), Some(1));
         assert!(strategy
             .exhaustive()
-            .map(|InputWithShrinkable(v, _)| v)
+            .map(|input_source| strategy.create_input(input_source))
             .eq([35]));
 
         assert_eq!(strategy.adversarial_count(), Some(1));
         assert!(strategy
             .adversarial()
-            .map(|InputWithShrinkable(v, _)| v)
+            .map(|input_source| strategy.create_input(input_source))
             .eq([35]));
 
         let mut rng = crate::rand::thread_rng();
         for _ in 0..100 {
-            assert_eq!(strategy.sample(&mut rng).0, 35);
+            assert_eq!(strategy.create_input(strategy.sample(&mut rng)), 35);
         }
 
-        let history = strategy.new_history();
+        let history = strategy.new_history(());
         assert!(matches!(
             strategy.next_input(&mut rng, &history),
             NextAttempt::Done
@@ -126,21 +116,24 @@ mod tests {
         assert_eq!(strategy.cardinality(), Some(1));
         assert!(strategy
             .exhaustive()
-            .map(|InputWithShrinkable(v, _)| v)
+            .map(|input_source| strategy.create_input(input_source))
             .eq([NotClone("hi")]));
 
         assert_eq!(strategy.adversarial_count(), Some(1));
         assert!(strategy
             .adversarial()
-            .map(|InputWithShrinkable(v, _)| v)
+            .map(|input_source| strategy.create_input(input_source))
             .eq([NotClone("hi")]));
 
         let mut rng = crate::rand::thread_rng();
         for _ in 0..100 {
-            assert_eq!(strategy.sample(&mut rng).0, NotClone("hi"));
+            assert_eq!(
+                strategy.create_input(strategy.sample(&mut rng)),
+                NotClone("hi")
+            );
         }
 
-        let history = strategy.new_history();
+        let history = strategy.new_history(());
         assert!(matches!(
             strategy.next_input(&mut rng, &history),
             NextAttempt::Done

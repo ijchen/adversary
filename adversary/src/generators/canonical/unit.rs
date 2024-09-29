@@ -1,14 +1,10 @@
-use crate::{
-    input_generator::{InputWithShrinkable, NextAttempt},
-    report::Observation,
-    Canonical, InputGenerator,
-};
+use crate::{input_generator::NextAttempt, report::Observation, Canonical, InputGenerator};
 
 struct CanonicalUnitGenerator;
 
 impl InputGenerator for CanonicalUnitGenerator {
     type Input = ();
-    type ShrinkableInput = Self::Input;
+    type InputSource = Self::Input;
 
     type History = ();
 
@@ -16,37 +12,30 @@ impl InputGenerator for CanonicalUnitGenerator {
         Some(1)
     }
 
-    fn exhaustive(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
-        std::iter::once(InputWithShrinkable((), ()))
+    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+        std::iter::once(())
     }
 
     fn adversarial_count(&self) -> Option<usize> {
         Some(1)
     }
 
-    fn adversarial(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
-        std::iter::once(InputWithShrinkable((), ()))
+    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+        std::iter::once(())
     }
 
-    fn sample(
-        &self,
-        _rng: &mut (impl crate::rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
-        InputWithShrinkable((), ())
+    fn sample(&self, _rng: &mut (impl crate::rand::Rng + ?Sized)) -> Self::InputSource {
+        ()
     }
 
-    fn new_history(&self) -> Self::History {
+    fn new_history(&self, _failing_input: Self::InputSource) -> Self::History {
         ()
     }
 
     fn update_history(
         &self,
         _history: &mut Self::History,
-        _shrinkable_input: Self::ShrinkableInput,
+        _shrinkable_input: Self::InputSource,
         _test_passed: bool,
     ) {
     }
@@ -59,8 +48,12 @@ impl InputGenerator for CanonicalUnitGenerator {
         &self,
         _rng: &mut impl crate::rand::Rng,
         _history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
+    ) -> NextAttempt<Self::InputSource> {
         NextAttempt::Done
+    }
+
+    fn create_input(&self, _input_source: Self::InputSource) -> Self::Input {
+        ()
     }
 }
 

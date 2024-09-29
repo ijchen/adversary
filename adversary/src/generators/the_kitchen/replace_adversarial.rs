@@ -1,19 +1,16 @@
-use crate::{
-    input_generator::{InputWithShrinkable, NextAttempt},
-    InputGenerator,
-};
+use crate::{input_generator::NextAttempt, InputGenerator};
 
 struct ReplaceAdversarial<G: InputGenerator> {
     generator: G,
-    adversarial: Box<[InputWithShrinkable<G::Input, G::ShrinkableInput>]>,
+    adversarial: Box<[G::InputSource]>,
 }
 
 impl<G: InputGenerator> InputGenerator for ReplaceAdversarial<G>
 where
-    InputWithShrinkable<G::Input, G::ShrinkableInput>: Clone,
+    G::InputSource: Clone,
 {
     type Input = G::Input;
-    type ShrinkableInput = G::ShrinkableInput;
+    type InputSource = G::InputSource;
 
     type History = G::History;
 
@@ -21,9 +18,7 @@ where
         self.generator.cardinality()
     }
 
-    fn exhaustive(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
         self.generator.exhaustive()
     }
 
@@ -31,27 +26,22 @@ where
         Some(self.adversarial.len())
     }
 
-    fn adversarial(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
         self.adversarial.iter().cloned()
     }
 
-    fn sample(
-        &self,
-        rng: &mut (impl rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
+    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
         self.generator.sample(rng)
     }
 
-    fn new_history(&self) -> Self::History {
-        self.generator.new_history()
+    fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
+        self.generator.new_history(failing_input)
     }
 
     fn update_history(
         &self,
         history: &mut Self::History,
-        shrinkable_input: Self::ShrinkableInput,
+        shrinkable_input: Self::InputSource,
         test_passed: bool,
     ) {
         self.generator
@@ -66,7 +56,11 @@ where
         &self,
         rng: &mut impl rand::Rng,
         history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
+    ) -> NextAttempt<Self::InputSource> {
         self.generator.next_input(rng, history)
+    }
+
+    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
+        self.generator.create_input(input_source)
     }
 }

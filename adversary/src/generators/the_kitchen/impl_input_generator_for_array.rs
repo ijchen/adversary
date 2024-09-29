@@ -1,8 +1,4 @@
-use crate::{
-    input_generator::{InputWithShrinkable, NextAttempt},
-    report::Observation,
-    InputGenerator,
-};
+use crate::{input_generator::NextAttempt, report::Observation, InputGenerator};
 
 /// Okay so hear me out - what if we implemented [`InputGenerator`] for arrays?
 ///
@@ -10,7 +6,7 @@ use crate::{
 
 impl<T: Clone, const N: usize> InputGenerator for [T; N] {
     type Input = T;
-    type ShrinkableInput = usize;
+    type InputSource = usize;
 
     type History = ();
 
@@ -20,14 +16,10 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
         Some(N)
     }
 
-    fn exhaustive(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
         assert!(!self.is_empty());
 
-        self.into_iter()
-            .enumerate()
-            .map(|(index, value)| InputWithShrinkable(value.clone(), index))
+        0..self.len()
     }
 
     fn adversarial_count(&self) -> Option<usize> {
@@ -36,26 +28,19 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
         Some(0)
     }
 
-    fn adversarial(
-        &self,
-    ) -> impl Iterator<Item = InputWithShrinkable<Self::Input, Self::ShrinkableInput>> {
+    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
         assert!(!self.is_empty());
 
         std::iter::empty()
     }
 
-    fn sample(
-        &self,
-        rng: &mut (impl rand::Rng + ?Sized),
-    ) -> InputWithShrinkable<Self::Input, Self::ShrinkableInput> {
+    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
         assert!(!self.is_empty());
 
-        let index = rng.gen_range(0..self.len());
-
-        InputWithShrinkable(self[index].clone(), index)
+        rng.gen_range(0..self.len())
     }
 
-    fn new_history(&self) -> Self::History {
+    fn new_history(&self, _failing_input: Self::InputSource) -> Self::History {
         assert!(!self.is_empty());
 
         // TODO(ichen): implement for real
@@ -65,7 +50,7 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
     fn update_history(
         &self,
         _history: &mut Self::History,
-        _shrinkable_input: Self::ShrinkableInput,
+        _shrinkable_input: Self::InputSource,
         _test_passed: bool,
     ) {
         assert!(!self.is_empty());
@@ -84,11 +69,15 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
         &self,
         _rng: &mut impl crate::rand::Rng,
         _history: &Self::History,
-    ) -> NextAttempt<Self::Input, Self::ShrinkableInput> {
+    ) -> NextAttempt<Self::InputSource> {
         assert!(!self.is_empty());
 
         // TODO(ichen): implement for real
         NextAttempt::Done
+    }
+
+    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
+        self[input_source].clone()
     }
 }
 
@@ -99,7 +88,7 @@ mod tests {
     #[test]
     fn test_array() {
         let report = run_test(
-            |&n| n < 5,
+            |n| n < 5,
             [0, 1, 2, 3, 4, 5, 6, 7, 8],
             &mut crate::rand::thread_rng(),
         )
