@@ -8,7 +8,7 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
     type Input = T;
     type InputSource = usize;
 
-    type History = ();
+    type History = Self::InputSource;
 
     fn cardinality(&self) -> Option<usize> {
         assert!(!self.is_empty());
@@ -40,11 +40,14 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
         rng.gen_range(0..self.len())
     }
 
-    fn new_history(&self, _failing_input: Self::InputSource) -> Self::History {
+    fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
         assert!(!self.is_empty());
 
-        // TODO(ichen): implement for real
-        ()
+        failing_input
+    }
+
+    fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource {
+        *history
     }
 
     fn update_history(

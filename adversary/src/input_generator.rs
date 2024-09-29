@@ -101,6 +101,9 @@ pub trait InputGenerator {
     fn new_history(&self, failing_input: Self::InputSource) -> Self::History;
 
     /// TODO
+    fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource;
+
+    /// TODO
     fn next_input(
         &self,
         rng: &mut impl Rng,

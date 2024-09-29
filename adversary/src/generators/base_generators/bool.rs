@@ -77,6 +77,26 @@ impl InputGenerator for ChanceGen {
         history
     }
 
+    fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource {
+        let shrink_to_observed = match self.shrink_to {
+            true => history.t,
+            false => history.f,
+        };
+        let other_observed = match self.shrink_to {
+            true => history.f,
+            false => history.t,
+        };
+
+        // If the "shrink to" value failed, return that
+        if shrink_to_observed.has_failed() {
+            return self.shrink_to;
+        }
+
+        assert!(other_observed.has_failed());
+
+        !self.shrink_to
+    }
+
     fn update_history(
         &self,
         history: &mut Self::History,

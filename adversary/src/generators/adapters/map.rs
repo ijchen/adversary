@@ -35,6 +35,10 @@ impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
         self.inner_generator.new_history(failing_input)
     }
 
+    fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource {
+        self.inner_generator.current_simplest_failing(history)
+    }
+
     fn next_input(
         &self,
         rng: &mut impl rand::Rng,

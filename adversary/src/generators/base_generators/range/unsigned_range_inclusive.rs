@@ -5,7 +5,7 @@ use crate::{input_generator::NextAttempt, InputGenerator};
 // TODO(ichen): I'd really like this struct to be private - I don't want to make
 // any API promises about it.
 pub struct UnsignedRangeHistory<T> {
-    min_failing: Option<T>,
+    min_failing: T,
     max_passing: Option<T>,
 }
 
@@ -73,14 +73,14 @@ macro_rules! unsigned_range_inclusive {
                 fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
                     assert!(!self.is_empty());
 
-                    let mut history = UnsignedRangeHistory {
-                        min_failing: None,
+                    UnsignedRangeHistory {
+                        min_failing: failing_input,
                         max_passing: None,
-                    };
+                    }
+                }
 
-                    self.update_history(&mut history, failing_input, false);
-
-                    history
+                fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource {
+                    history.min_failing
                 }
 
                 fn next_input(
@@ -92,7 +92,7 @@ macro_rules! unsigned_range_inclusive {
 
                     // If we already know the minimum value is failing, we're
                     // done shrinking
-                    if history.min_failing.is_some_and(|n| n == *self.start()) {
+                    if history.min_failing == *self.start() {
                         return NextAttempt::Done;
                     }
 
@@ -101,19 +101,8 @@ macro_rules! unsigned_range_inclusive {
                         return NextAttempt::ShrinkAttempt(*self.start());
                     }
 
-                    // This is a sort of odd state where we don't have any
-                    // failing inputs. We could try the max value, but
-                    // realistically most tests aren't going to start failing if
-                    // we just make the number as big as possible. For now, I'm
-                    // just going to stop shrinking here. This can be revisited
-                    // when we start doing more than just a simple binary search
-                    // towards 0.
-                    if history.min_failing.is_none() {
-                        return NextAttempt::Done;
-                    }
-
                     // We have a minimum and maximum
-                    let min_failing = history.min_failing.unwrap();
+                    let min_failing = history.min_failing;
                     let max_passing = history.max_passing.unwrap();
 
                     // TODO: document as an invariant
@@ -149,11 +138,9 @@ macro_rules! unsigned_range_inclusive {
                     }
                     // If the test failed, update the upper bound
                     else {
-                        assert!(history
-                            .min_failing
-                            .map_or(true, |min_failing| shrinkable_input < min_failing));
+                        assert!(shrinkable_input < history.min_failing);
 
-                        history.min_failing = Some(shrinkable_input);
+                        history.min_failing = shrinkable_input;
                     }
                 }
 

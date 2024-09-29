@@ -38,6 +38,10 @@ where
         self.generator.new_history(failing_input)
     }
 
+    fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource {
+        self.generator.current_simplest_failing(history)
+    }
+
     fn update_history(
         &self,
         history: &mut Self::History,

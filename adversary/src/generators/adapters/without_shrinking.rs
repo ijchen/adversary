@@ -6,7 +6,7 @@ impl<G: InputGenerator> InputGenerator for WithoutShrinking<G> {
     type Input = G::Input;
     type InputSource = G::InputSource;
 
-    type History = ();
+    type History = G::InputSource;
 
     fn cardinality(&self) -> Option<usize> {
         self.0.cardinality()
@@ -28,8 +28,8 @@ impl<G: InputGenerator> InputGenerator for WithoutShrinking<G> {
         self.0.sample(rng)
     }
 
-    fn new_history(&self, _failing_input: Self::InputSource) -> Self::History {
-        ()
+    fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
+        failing_input
     }
 
     fn update_history(
@@ -42,6 +42,10 @@ impl<G: InputGenerator> InputGenerator for WithoutShrinking<G> {
 
     fn generate_observations(&self, _history: Self::History) -> Vec<crate::report::Observation> {
         vec![]
+    }
+
+    fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource {
+        history.clone()
     }
 
     fn next_input(

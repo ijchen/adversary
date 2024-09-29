@@ -152,6 +152,14 @@ impl<
         todo!()
     }
 
+    fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource {
+        (
+            self.0.current_simplest_failing(&history.inner_histories.0),
+            self.1.current_simplest_failing(&history.inner_histories.1),
+            self.2.current_simplest_failing(&history.inner_histories.2),
+        )
+    }
+
     fn update_history(
         &self,
         _history: &mut Self::History,

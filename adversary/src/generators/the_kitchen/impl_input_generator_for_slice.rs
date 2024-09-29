@@ -6,16 +6,16 @@ use crate::{input_generator::NextAttempt, InputGenerator};
 
 impl<'a, T> InputGenerator for &'a [T] {
     type Input = &'a T;
-    type InputSource = Self::Input;
+    type InputSource = usize;
 
-    type History = ();
+    type History = Self::InputSource;
 
     fn cardinality(&self) -> Option<usize> {
         Some(self.len())
     }
 
     fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
-        self.into_iter()
+        0..self.len()
     }
 
     fn adversarial_count(&self) -> Option<usize> {
@@ -27,11 +27,15 @@ impl<'a, T> InputGenerator for &'a [T] {
     }
 
     fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
-        crate::rand::seq::SliceRandom::choose(*self, rng).unwrap()
+        rng.gen_range(0..self.len())
     }
 
-    fn new_history(&self, _failing_input: Self::InputSource) -> Self::History {
-        ()
+    fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
+        failing_input
+    }
+
+    fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource {
+        *history
     }
 
     fn update_history(
@@ -40,6 +44,7 @@ impl<'a, T> InputGenerator for &'a [T] {
         _shrinkable_input: Self::InputSource,
         _test_passed: bool,
     ) {
+        // TODO: implement for real
     }
 
     fn generate_observations(&self, _history: Self::History) -> Vec<crate::report::Observation> {
@@ -55,22 +60,22 @@ impl<'a, T> InputGenerator for &'a [T] {
     }
 
     fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
-        input_source
+        &self[input_source]
     }
 }
 
 impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
     type Input = &'a T;
-    type InputSource = Self::Input;
+    type InputSource = usize;
 
-    type History = ();
+    type History = Self::InputSource;
 
     fn cardinality(&self) -> Option<usize> {
         Some(N)
     }
 
     fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
-        self.into_iter()
+        0..N
     }
 
     fn adversarial_count(&self) -> Option<usize> {
@@ -82,11 +87,15 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
     }
 
     fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
-        crate::rand::seq::SliceRandom::choose(self.as_slice(), rng).unwrap()
+        rng.gen_range(0..N)
     }
 
-    fn new_history(&self, _failing_input: Self::InputSource) -> Self::History {
-        ()
+    fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
+        failing_input
+    }
+
+    fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource {
+        *history
     }
 
     fn update_history(
@@ -95,6 +104,7 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
         _shrinkable_input: Self::InputSource,
         _test_passed: bool,
     ) {
+        // TODO: implement for real
     }
 
     fn generate_observations(&self, _history: Self::History) -> Vec<crate::report::Observation> {
@@ -110,7 +120,7 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
     }
 
     fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
-        input_source
+        &self[input_source]
     }
 }
 

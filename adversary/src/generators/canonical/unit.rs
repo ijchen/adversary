@@ -4,7 +4,7 @@ struct CanonicalUnitGenerator;
 
 impl InputGenerator for CanonicalUnitGenerator {
     type Input = ();
-    type InputSource = Self::Input;
+    type InputSource = ();
 
     type History = ();
 
@@ -29,6 +29,10 @@ impl InputGenerator for CanonicalUnitGenerator {
     }
 
     fn new_history(&self, _failing_input: Self::InputSource) -> Self::History {
+        ()
+    }
+
+    fn current_simplest_failing(&self, _history: &Self::History) -> Self::InputSource {
         ()
     }
 

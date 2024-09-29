@@ -34,6 +34,10 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
         ()
     }
 
+    fn current_simplest_failing(&self, _history: &Self::History) -> Self::InputSource {
+        ()
+    }
+
     fn next_input(
         &self,
         _rng: &mut impl rand::Rng,
