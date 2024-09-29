@@ -138,8 +138,8 @@ impl InputGenerator for ChanceGen {
         NextAttempt::Done
     }
 
-    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
-        *input_source
+    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
+        input_source
     }
 }
 

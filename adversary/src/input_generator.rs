@@ -118,5 +118,5 @@ pub trait InputGenerator {
 
     // TODO: docs
     // TODO: should this take an `InputSource` or an `&InputSource`?
-    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input;
+    fn create_input(&self, input_source: Self::InputSource) -> Self::Input;
 }

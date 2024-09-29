@@ -55,7 +55,7 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
         vec![]
     }
 
-    fn create_input(&self, _input_source: &Self::InputSource) -> Self::Input {
+    fn create_input(&self, _input_source: Self::InputSource) -> Self::Input {
         (self.0)()
     }
 }
@@ -85,18 +85,18 @@ mod tests {
         assert_eq!(strategy.cardinality(), Some(1));
         assert!(strategy
             .exhaustive()
-            .map(|input_source| strategy.create_input(&input_source))
+            .map(|input_source| strategy.create_input(input_source))
             .eq([35]));
 
         assert_eq!(strategy.adversarial_count(), Some(1));
         assert!(strategy
             .adversarial()
-            .map(|input_source| strategy.create_input(&input_source))
+            .map(|input_source| strategy.create_input(input_source))
             .eq([35]));
 
         let mut rng = crate::rand::thread_rng();
         for _ in 0..100 {
-            assert_eq!(strategy.create_input(&strategy.sample(&mut rng)), 35);
+            assert_eq!(strategy.create_input(strategy.sample(&mut rng)), 35);
         }
 
         let history = strategy.new_history();
@@ -116,19 +116,19 @@ mod tests {
         assert_eq!(strategy.cardinality(), Some(1));
         assert!(strategy
             .exhaustive()
-            .map(|input_source| strategy.create_input(&input_source))
+            .map(|input_source| strategy.create_input(input_source))
             .eq([NotClone("hi")]));
 
         assert_eq!(strategy.adversarial_count(), Some(1));
         assert!(strategy
             .adversarial()
-            .map(|input_source| strategy.create_input(&input_source))
+            .map(|input_source| strategy.create_input(input_source))
             .eq([NotClone("hi")]));
 
         let mut rng = crate::rand::thread_rng();
         for _ in 0..100 {
             assert_eq!(
-                strategy.create_input(&strategy.sample(&mut rng)),
+                strategy.create_input(strategy.sample(&mut rng)),
                 NotClone("hi")
             );
         }

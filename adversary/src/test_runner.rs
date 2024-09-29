@@ -13,26 +13,26 @@ struct FailingInputReport<T, I> {
     pub passing_runs: u64,
 }
 
-fn find_failing_input<T, I>(
+fn find_failing_input<T, I: Clone>(
     test: &impl Fn(T) -> bool,
     generator: &mut impl InputGenerator<Input = T, InputSource = I>,
     rng: &mut impl Rng,
 ) -> Option<FailingInputReport<T, I>> {
     // #[inline]
-    // fn helper<T, I>(
+    // fn helper<T, I: Clone>(
     //     test: &impl Fn(T) -> bool,
     //     generator: &mut impl InputGenerator<Input = T, InputSource = I>,
-    //     inputs: impl Iterator<Item = InputWithShrinkable<T, I>>,
+    //     inputs: impl Iterator<Item = I>,
     // ) -> Option<FailingInputReport<T, I>> {
     //     // TODO: maybe make this all functional and appease the lambda bros
     //     let mut passing_runs: u64 = 0;
-    //     for InputWithShrinkable(input, shrinkable_input) in inputs {
-    //         let test_passed = test(input);
+    //     for input_source in inputs {
+    //         let test_passed = test(generator.create_input(input_source.clone()));
 
     //         if !test_passed {
     //             return Some(FailingInputReport {
-    //                 failing_input: generator.create_input(&shrinkable_input),
-    //                 failing_shrinkable_input: shrinkable_input,
+    //                 failing_input: generator.create_input(input_source.clone()),
+    //                 failing_input_source: input_source,
     //                 passing_runs,
     //             });
     //         }
@@ -82,11 +82,11 @@ fn find_failing_input<T, I>(
     {
         let mut passing_runs: u64 = 0;
         for input_source in generator.exhaustive() {
-            let test_passed = test(generator.create_input(&input_source));
+            let test_passed = test(generator.create_input(input_source.clone()));
 
             if !test_passed {
                 return Some(FailingInputReport {
-                    failing_input: generator.create_input(&input_source),
+                    failing_input: generator.create_input(input_source.clone()),
                     failing_input_source: input_source,
                     passing_runs,
                 });
@@ -109,11 +109,11 @@ fn find_failing_input<T, I>(
             .chain(std::iter::repeat_with(|| generator.sample(rng)))
             .take(MAX_RUNS)
         {
-            let test_passed = test(generator.create_input(&input_source));
+            let test_passed = test(generator.create_input(input_source.clone()));
 
             if !test_passed {
                 return Some(FailingInputReport {
-                    failing_input: generator.create_input(&input_source),
+                    failing_input: generator.create_input(input_source.clone()),
                     failing_input_source: input_source,
                     passing_runs,
                 });
@@ -129,11 +129,11 @@ fn find_failing_input<T, I>(
     } else {
         let mut passing_runs: u64 = 0;
         for input_source in std::iter::repeat_with(|| generator.sample(rng)).take(MAX_RUNS) {
-            let test_passed = test(generator.create_input(&input_source));
+            let test_passed = test(generator.create_input(input_source.clone()));
 
             if !test_passed {
                 return Some(FailingInputReport {
-                    failing_input: generator.create_input(&input_source),
+                    failing_input: generator.create_input(input_source.clone()),
                     failing_input_source: input_source,
                     passing_runs,
                 });
@@ -149,7 +149,7 @@ fn find_failing_input<T, I>(
     }
 }
 
-fn shrink_and_generate_report<T, I>(
+fn shrink_and_generate_report<T, I: Clone>(
     test: &impl Fn(T) -> bool,
     generator: &impl InputGenerator<Input = T, InputSource = I>,
     rng: &mut impl Rng,
@@ -177,10 +177,10 @@ fn shrink_and_generate_report<T, I>(
             NextAttempt::ShrinkAttempt(input_source) => (input_source, false),
         };
 
-        let test_passed = test(generator.create_input(&input_source));
+        let test_passed = test(generator.create_input(input_source.clone()));
 
         let shrink_step = ShrinkStep::new(
-            generator.create_input(&input_source),
+            generator.create_input(input_source.clone()),
             info_gathering,
             test_passed,
         );

@@ -76,8 +76,8 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
         NextAttempt::Done
     }
 
-    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
-        self[*input_source].clone()
+    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
+        self[input_source].clone()
     }
 }
 

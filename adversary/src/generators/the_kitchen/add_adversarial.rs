@@ -64,7 +64,7 @@ where
         self.generator.next_input(rng, history)
     }
 
-    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
+    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
         self.generator.create_input(input_source)
     }
 }

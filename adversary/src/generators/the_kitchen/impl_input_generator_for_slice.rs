@@ -54,7 +54,7 @@ impl<'a, T> InputGenerator for &'a [T] {
         NextAttempt::Done
     }
 
-    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
+    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
         input_source
     }
 }
@@ -109,7 +109,7 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
         NextAttempt::Done
     }
 
-    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
+    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
         input_source
     }
 }

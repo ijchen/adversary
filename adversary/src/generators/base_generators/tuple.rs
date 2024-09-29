@@ -165,11 +165,11 @@ impl<
         todo!()
     }
 
-    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
+    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
         (
-            self.0.create_input(&input_source.0),
-            self.1.create_input(&input_source.1),
-            self.2.create_input(&input_source.2),
+            self.0.create_input(input_source.0),
+            self.1.create_input(input_source.1),
+            self.2.create_input(input_source.2),
         )
     }
 }

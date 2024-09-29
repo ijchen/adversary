@@ -160,8 +160,8 @@ macro_rules! unsigned_range_inclusive {
                     vec![]
                 }
 
-                fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
-                    *input_source
+                fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
+                    input_source
                 }
             }
         )+

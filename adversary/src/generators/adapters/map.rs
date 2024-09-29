@@ -57,7 +57,7 @@ impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
         self.inner_generator.generate_observations(history)
     }
 
-    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
+    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
         (self.f)(self.inner_generator.create_input(input_source))
     }
 }

@@ -52,7 +52,7 @@ impl InputGenerator for CanonicalUnitGenerator {
         NextAttempt::Done
     }
 
-    fn create_input(&self, _input_source: &Self::InputSource) -> Self::Input {
+    fn create_input(&self, _input_source: Self::InputSource) -> Self::Input {
         ()
     }
 }

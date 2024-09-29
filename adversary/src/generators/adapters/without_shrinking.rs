@@ -52,7 +52,7 @@ impl<G: InputGenerator> InputGenerator for WithoutShrinking<G> {
         NextAttempt::Done
     }
 
-    fn create_input(&self, input_source: &Self::InputSource) -> Self::Input {
+    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
         self.0.create_input(input_source)
     }
 }
