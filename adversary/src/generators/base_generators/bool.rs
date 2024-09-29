@@ -69,8 +69,12 @@ impl InputGenerator for ChanceGen {
         rng.gen_bool(self.chance_of_true)
     }
 
-    fn new_history(&self) -> Self::History {
-        Default::default()
+    fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
+        let mut history = Self::History::default();
+
+        self.update_history(&mut history, failing_input, false);
+
+        history
     }
 
     fn update_history(

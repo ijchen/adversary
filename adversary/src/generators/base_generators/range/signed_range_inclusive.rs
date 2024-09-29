@@ -71,13 +71,17 @@ macro_rules! signed_range_inclusive {
                     rng.gen_range(self.clone())
                 }
 
-                fn new_history(&self) -> Self::History {
+                fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
                     assert!(!self.is_empty());
 
-                    SignedRangeHistory {
+                    let mut history = SignedRangeHistory {
                         min_abs_failing: None,
                         max_abs_passing: None,
-                    }
+                    };
+
+                    self.update_history(&mut history, failing_input, false);
+
+                    history
                 }
 
                 fn next_input(

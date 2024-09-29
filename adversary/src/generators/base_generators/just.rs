@@ -30,7 +30,7 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
         ()
     }
 
-    fn new_history(&self) -> Self::History {
+    fn new_history(&self, _failing_input: Self::InputSource) -> Self::History {
         ()
     }
 
@@ -62,7 +62,7 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
 
 /// An [`InputGenerator`] that always produces clones of the same value and
 /// never simplifies.
-pub fn just<T: Clone>(value: T) -> impl InputGenerator<Input = T> {
+pub fn just<T: Clone>(value: T) -> impl InputGenerator<Input = T, InputSource = ()> {
     // TODO(ichen): write unit tests to ensure the compiler optimizes this
     // closure away
     JustWith(move || value.clone())
@@ -70,7 +70,7 @@ pub fn just<T: Clone>(value: T) -> impl InputGenerator<Input = T> {
 
 /// An [`InputGenerator`] that computes a value from the provided closure and
 /// never simplifies.
-pub fn just_with<T>(f: impl Fn() -> T) -> impl InputGenerator<Input = T> {
+pub fn just_with<T>(f: impl Fn() -> T) -> impl InputGenerator<Input = T, InputSource = ()> {
     JustWith(f)
 }
 
@@ -99,7 +99,7 @@ mod tests {
             assert_eq!(strategy.create_input(strategy.sample(&mut rng)), 35);
         }
 
-        let history = strategy.new_history();
+        let history = strategy.new_history(());
         assert!(matches!(
             strategy.next_input(&mut rng, &history),
             NextAttempt::Done
@@ -133,7 +133,7 @@ mod tests {
             );
         }
 
-        let history = strategy.new_history();
+        let history = strategy.new_history(());
         assert!(matches!(
             strategy.next_input(&mut rng, &history),
             NextAttempt::Done

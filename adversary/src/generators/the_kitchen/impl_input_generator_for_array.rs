@@ -40,7 +40,7 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
         rng.gen_range(0..self.len())
     }
 
-    fn new_history(&self) -> Self::History {
+    fn new_history(&self, _failing_input: Self::InputSource) -> Self::History {
         assert!(!self.is_empty());
 
         // TODO(ichen): implement for real

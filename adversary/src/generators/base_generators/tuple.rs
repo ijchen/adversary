@@ -133,12 +133,12 @@ impl<
         (self.0.sample(rng), self.1.sample(rng), self.2.sample(rng))
     }
 
-    fn new_history(&self) -> Self::History {
+    fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
         TupleHist3 {
             inner_histories: (
-                self.0.new_history(),
-                self.1.new_history(),
-                self.2.new_history(),
+                self.0.new_history(failing_input.0),
+                self.1.new_history(failing_input.1),
+                self.2.new_history(failing_input.2),
             ),
             phase: TupleHist3Phase::ElementWiseFirstPass { curr_index: 0 },
         }

@@ -34,8 +34,8 @@ where
         self.generator.sample(rng)
     }
 
-    fn new_history(&self) -> Self::History {
-        self.generator.new_history()
+    fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
+        self.generator.new_history(failing_input)
     }
 
     fn update_history(

@@ -155,13 +155,7 @@ fn shrink_and_generate_report<T, I: Clone>(
     rng: &mut impl Rng,
     failing_input_report: FailingInputReport<T, I>,
 ) -> Report<T> {
-    let mut history = generator.new_history();
-
-    generator.update_history(
-        &mut history,
-        failing_input_report.failing_input_source,
-        false,
-    );
+    let mut history = generator.new_history(failing_input_report.failing_input_source);
 
     let mut shrink_steps = vec![ShrinkStep::new(
         failing_input_report.failing_input,

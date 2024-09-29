@@ -28,7 +28,7 @@ impl InputGenerator for CanonicalUnitGenerator {
         ()
     }
 
-    fn new_history(&self) -> Self::History {
+    fn new_history(&self, _failing_input: Self::InputSource) -> Self::History {
         ()
     }
 

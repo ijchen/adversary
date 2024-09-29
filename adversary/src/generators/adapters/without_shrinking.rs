@@ -28,7 +28,7 @@ impl<G: InputGenerator> InputGenerator for WithoutShrinking<G> {
         self.0.sample(rng)
     }
 
-    fn new_history(&self) -> Self::History {
+    fn new_history(&self, _failing_input: Self::InputSource) -> Self::History {
         ()
     }
 

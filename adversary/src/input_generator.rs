@@ -92,11 +92,13 @@ pub trait InputGenerator {
     /// [`Input`]: NewInputGenerator::Input
     fn sample(&self, rng: &mut (impl Rng + ?Sized)) -> Self::InputSource;
 
-    /// Returns a new, "blank slate" [`History`], ready to be used for the
-    /// shrinking process.
+    /// Returns a new [`History`], ready to be used for the shrinking process.
+    ///
+    /// The `failing_input` argument should be the initial failing input to be
+    /// shrunk.
     ///
     /// [`History`]: NewInputGenerator::History
-    fn new_history(&self) -> Self::History;
+    fn new_history(&self, failing_input: Self::InputSource) -> Self::History;
 
     /// TODO
     fn next_input(

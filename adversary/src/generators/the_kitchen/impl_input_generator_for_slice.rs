@@ -30,7 +30,7 @@ impl<'a, T> InputGenerator for &'a [T] {
         crate::rand::seq::SliceRandom::choose(*self, rng).unwrap()
     }
 
-    fn new_history(&self) -> Self::History {
+    fn new_history(&self, _failing_input: Self::InputSource) -> Self::History {
         ()
     }
 
@@ -85,7 +85,7 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
         crate::rand::seq::SliceRandom::choose(self.as_slice(), rng).unwrap()
     }
 
-    fn new_history(&self) -> Self::History {
+    fn new_history(&self, _failing_input: Self::InputSource) -> Self::History {
         ()
     }
 

@@ -70,13 +70,17 @@ macro_rules! unsigned_range_inclusive {
                     rng.gen_range(self.clone())
                 }
 
-                fn new_history(&self) -> Self::History {
+                fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
                     assert!(!self.is_empty());
 
-                    UnsignedRangeHistory {
+                    let mut history = UnsignedRangeHistory {
                         min_failing: None,
                         max_passing: None,
-                    }
+                    };
+
+                    self.update_history(&mut history, failing_input, false);
+
+                    history
                 }
 
                 fn next_input(

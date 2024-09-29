@@ -31,8 +31,8 @@ impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
         self.inner_generator.sample(rng)
     }
 
-    fn new_history(&self) -> Self::History {
-        self.inner_generator.new_history()
+    fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
+        self.inner_generator.new_history(failing_input)
     }
 
     fn next_input(
