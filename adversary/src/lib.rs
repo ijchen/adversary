@@ -8,6 +8,9 @@ mod test_runner;
 
 #[cfg(feature = "macros")]
 pub use adversary_macros::adv_test;
+
+// TODO(ichen): I don't really want to re-export this whole crate - we only need
+// rand::Rng for InputGenerator. Instead, have our own Rng trait.
 pub use rand;
 
 pub use generators::{any, bool, just, just_with, Canonical};

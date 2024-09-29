@@ -65,6 +65,21 @@ impl<
     }
 }
 
+#[allow(unused)] // TODO: WIP
+pub struct TupleHist3<A, B, C> {
+    inner_histories: (A, B, C),
+    phase: TupleHist3Phase,
+}
+
+#[allow(unused)] // TODO: WIP
+enum TupleHist3Phase {
+    ElementWiseFirstPass { curr_index: u8 },
+    AllTogetherFirstPass,
+    AllPairs { first_index: u8, second_index: u8 },
+    ElementWiseSecondPass { curr_index: u8 },
+    AllTogetherSecondPass,
+}
+
 impl<
         A,
         B,
@@ -78,7 +93,7 @@ impl<
 
     type InputSource = (GenA::InputSource, GenB::InputSource, GenC::InputSource);
 
-    type History = (GenA::History, GenB::History, GenC::History);
+    type History = TupleHist3<GenA::History, GenB::History, GenC::History>;
 
     fn cardinality(&self) -> Option<usize> {
         Some(
@@ -119,11 +134,14 @@ impl<
     }
 
     fn new_history(&self) -> Self::History {
-        (
-            self.0.new_history(),
-            self.1.new_history(),
-            self.2.new_history(),
-        )
+        TupleHist3 {
+            inner_histories: (
+                self.0.new_history(),
+                self.1.new_history(),
+                self.2.new_history(),
+            ),
+            phase: TupleHist3Phase::ElementWiseFirstPass { curr_index: 0 },
+        }
     }
 
     fn next_input(
@@ -136,16 +154,11 @@ impl<
 
     fn update_history(
         &self,
-        history: &mut Self::History,
-        shrinkable_input: Self::InputSource,
-        test_passed: bool,
+        _history: &mut Self::History,
+        _shrinkable_input: Self::InputSource,
+        _test_passed: bool,
     ) {
-        self.0
-            .update_history(&mut history.0, shrinkable_input.0, test_passed);
-        self.1
-            .update_history(&mut history.1, shrinkable_input.1, test_passed);
-        self.2
-            .update_history(&mut history.2, shrinkable_input.2, test_passed);
+        todo!()
     }
 
     fn generate_observations(&self, _history: Self::History) -> Vec<crate::report::Observation> {
