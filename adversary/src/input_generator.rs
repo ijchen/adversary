@@ -15,7 +15,7 @@ pub trait InputGenerator {
     // TODO(ichen): default this to Self::Input when associated type defaults
     // are stabilized (https://github.com/rust-lang/rust/issues/29661)
     // TODO: explain this
-    type InputSource;
+    type InputSource: Clone;
 
     /// A type that stores shrinking history with the necessary information to
     /// determine the next value to try during shrinking, when to stop
