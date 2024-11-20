@@ -4,7 +4,7 @@ mod input_generator_ext;
 mod into_input_generator;
 pub mod prelude;
 mod report;
-mod test_runner;
+mod test_runners;
 
 #[cfg(feature = "macros")]
 pub use adversary_macros::adv_test;
@@ -19,7 +19,7 @@ pub use input_generator_ext::InputGeneratorExt;
 pub use into_input_generator::IntoInputGenerator;
 // TODO: don't publicly re-export Plaintext
 pub use report::{Plaintext, Report, ShrinkStep};
-pub use test_runner::{run_test, run_test_panics};
+pub use test_runners::{run_test, run_test_panics};
 
 #[cfg(test)]
 mod tests {
@@ -75,9 +75,27 @@ mod tests {
     fn test_2() {
         let report = run_test_panics(|v: bool| assert!(!v), any(), &mut crate::rand::thread_rng())
             .unwrap_err();
+
         assert_eq!(
-            report.panic_message,
-            Some("assertion failed: !v".to_string())
+            report
+                .panic_info
+                .as_ref()
+                .unwrap()
+                .message
+                .as_ref()
+                .unwrap(),
+            "assertion failed: !v"
+        );
+        assert_eq!(
+            report
+                .panic_info
+                .as_ref()
+                .unwrap()
+                .location
+                .as_ref()
+                .unwrap()
+                .file,
+            file!()
         );
 
         let report = run_test_panics(
@@ -86,9 +104,27 @@ mod tests {
             &mut crate::rand::thread_rng(),
         )
         .unwrap_err();
+
         assert_eq!(
-            report.panic_message,
-            Some("My custom panic (at the disco) message [false]".to_string())
+            report
+                .panic_info
+                .as_ref()
+                .unwrap()
+                .message
+                .as_ref()
+                .unwrap(),
+            "My custom panic (at the disco) message [false]"
+        );
+        assert_eq!(
+            report
+                .panic_info
+                .as_ref()
+                .unwrap()
+                .location
+                .as_ref()
+                .unwrap()
+                .file,
+            file!()
         );
     }
 }
