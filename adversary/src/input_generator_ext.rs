@@ -8,13 +8,14 @@ pub trait InputGeneratorExt: InputGenerator + Sized {
     fn adv_map<U, F: Fn(Self::Input) -> U>(
         self,
         map_function: F,
-    ) -> impl InputGenerator<Input = U, InputSource = Self::InputSource, History = Self::History>
-    {
+    ) -> impl InputGenerator<Input = U, InputSource = Self::InputSource> {
         Map::new(self, map_function)
     }
 
     // TODO: docs
-    fn adv_without_shrinking(self) -> impl InputGenerator<Input = Self::Input> {
+    fn adv_without_shrinking(
+        self,
+    ) -> impl InputGenerator<Input = Self::Input, InputSource = Self::InputSource> {
         WithoutShrinking::new(self)
     }
 }

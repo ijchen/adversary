@@ -5,6 +5,8 @@ Procedural macros for the adversary crate.
 Adversary macros is still in development, and has a number of incomplete or
 missing features:
 - [ ] Make to-do list
+- [ ] Ensure the macro output is a lint-friendly as possible
+- [ ] Consider whether it is desirable to allow nullary #\[adv_test\] tests
 
 # License
 

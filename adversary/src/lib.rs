@@ -4,6 +4,7 @@ mod input_generator_ext;
 mod into_input_generator;
 pub mod prelude;
 mod report;
+mod shrinker;
 mod test_runners;
 
 #[cfg(feature = "macros")]
@@ -14,7 +15,7 @@ pub use adversary_macros::adv_test;
 pub use rand;
 
 pub use generators::{any, bool, just, just_with, Canonical};
-pub use input_generator::{InputGenerator, NextAttempt};
+pub use input_generator::InputGenerator;
 pub use input_generator_ext::InputGeneratorExt;
 pub use into_input_generator::IntoInputGenerator;
 // TODO: don't publicly re-export Plaintext
@@ -57,14 +58,17 @@ mod tests {
 
         let report = run_test(|v: bool| v, any(), &mut crate::rand::thread_rng()).unwrap_err();
         assert_eq!(report.passing_runs, 0);
-        assert_eq!(report.shrink_steps, vec![ShrinkStep::new(true, true, true)]);
+        assert_eq!(
+            report.shrink_steps,
+            vec![ShrinkStep::new(false, false, false)]
+        );
         assert_eq!(report.simplest_failing_input, false);
 
         let report = run_test(|_: bool| false, any(), &mut crate::rand::thread_rng()).unwrap_err();
         assert_eq!(report.passing_runs, 0);
         assert_eq!(
             report.shrink_steps,
-            vec![ShrinkStep::new(true, true, false)]
+            vec![ShrinkStep::new(false, false, false)]
         );
         assert_eq!(report.simplest_failing_input, false);
 

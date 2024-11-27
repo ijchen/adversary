@@ -1,4 +1,6 @@
-use crate::{input_generator::NextAttempt, InputGenerator};
+use std::marker::PhantomData;
+
+use crate::{report::Observation, shrinker::Shrinker, InputGenerator};
 
 #[repr(transparent)]
 struct JustWith<F>(F);
@@ -7,8 +9,6 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
     type Input = T;
 
     type InputSource = ();
-
-    type History = ();
 
     fn cardinality(&self) -> Option<usize> {
         Some(1)
@@ -30,33 +30,11 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
         ()
     }
 
-    fn new_history(&self, _failing_input: Self::InputSource) -> Self::History {
-        ()
-    }
-
-    fn current_simplest_failing(&self, _history: &Self::History) -> Self::InputSource {
-        ()
-    }
-
-    fn next_input(
+    fn new_shrinker(
         &self,
-        _rng: &mut impl rand::Rng,
-        _history: &Self::History,
-    ) -> NextAttempt<Self::InputSource> {
-        NextAttempt::Done
-    }
-
-    fn update_history(
-        &self,
-        _history: &mut Self::History,
-        _shrinkable_input: Self::InputSource,
-        _test_passed: bool,
-    ) {
-        ()
-    }
-
-    fn generate_observations(&self, _history: Self::History) -> Vec<crate::report::Observation> {
-        vec![]
+        (): Self::InputSource,
+    ) -> impl Shrinker<InputSource = Self::InputSource> {
+        JustShrinker(PhantomData)
     }
 
     fn create_input(&self, _input_source: Self::InputSource) -> Self::Input {
@@ -64,8 +42,24 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
     }
 }
 
+struct JustShrinker<T>(PhantomData<T>);
+
+impl<T: Clone> Shrinker for JustShrinker<T> {
+    type InputSource = T;
+
+    fn current_attempt(&self) -> Option<Self::InputSource> {
+        None
+    }
+
+    fn update(&mut self, _current_attempt_passed: bool) {}
+
+    fn into_observations(self) -> Vec<Observation> {
+        Vec::new()
+    }
+}
+
 /// An [`InputGenerator`] that always produces clones of the same value and
-/// never simplifies.
+/// never shrinks.
 pub fn just<T: Clone>(value: T) -> impl InputGenerator<Input = T, InputSource = ()> {
     // TODO(ichen): write unit tests to ensure the compiler optimizes this
     // closure away
@@ -73,14 +67,14 @@ pub fn just<T: Clone>(value: T) -> impl InputGenerator<Input = T, InputSource = 
 }
 
 /// An [`InputGenerator`] that computes a value from the provided closure and
-/// never simplifies.
+/// never shrinks.
 pub fn just_with<T>(f: impl Fn() -> T) -> impl InputGenerator<Input = T, InputSource = ()> {
     JustWith(f)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::prelude::*;
+    use crate::{prelude::*, shrinker::Shrinker};
 
     #[test]
     fn just_does_just_things() {
@@ -103,11 +97,8 @@ mod tests {
             assert_eq!(strategy.create_input(strategy.sample(&mut rng)), 35);
         }
 
-        let history = strategy.new_history(());
-        assert!(matches!(
-            strategy.next_input(&mut rng, &history),
-            NextAttempt::Done
-        ));
+        let shrinker = strategy.new_shrinker(());
+        assert!(shrinker.current_attempt().is_none());
     }
 
     #[test]
@@ -137,10 +128,7 @@ mod tests {
             );
         }
 
-        let history = strategy.new_history(());
-        assert!(matches!(
-            strategy.next_input(&mut rng, &history),
-            NextAttempt::Done
-        ));
+        let shrinker = strategy.new_shrinker(());
+        assert!(shrinker.current_attempt().is_none());
     }
 }

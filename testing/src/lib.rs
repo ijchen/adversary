@@ -13,8 +13,8 @@ mod tests {
         assert!(a || !a);
     }
 
-    #[adv_test]
-    fn bar(a: bool, _b: (), c: bool) {
-        assert!(a || c || true);
-    }
+    // #[adv_test]
+    // fn bar(a: bool, _b: (), c: bool) {
+    //     assert!(a || c || true);
+    // }
 }

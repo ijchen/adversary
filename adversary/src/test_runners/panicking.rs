@@ -2,6 +2,7 @@ use std::{
     any::Any,
     cell::OnceCell,
     panic::{RefUnwindSafe, UnwindSafe},
+    sync::mpsc::TrySendError,
 };
 
 use crate::{
@@ -40,7 +41,11 @@ pub fn run_test_panics<T: UnwindSafe>(
     let old_panic_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |panic_hook_info| {
         let panic_location = panic_hook_info.location().map(PanicLocation::from);
-        tx.send(panic_location).unwrap_or(());
+        // TODO: this will happen as soon as we try to do shrinking. I don't
+        // think it's as simple as just making it compile though - the panic
+        // handler being a global resource is really kinda screwing us here, and
+        // I think trying to overwrite it at all is a bad idea.
+        tx.try_send(panic_location).unwrap();
     }));
 
     let test_result = run_test(

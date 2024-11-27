@@ -1,4 +1,4 @@
-use crate::{input_generator::NextAttempt, report::Observation, InputGenerator};
+use crate::{report::Observation, shrinker::Shrinker, InputGenerator};
 
 /// Okay so hear me out - what if we implemented [`InputGenerator`] for arrays?
 ///
@@ -7,8 +7,6 @@ use crate::{input_generator::NextAttempt, report::Observation, InputGenerator};
 impl<T: Clone, const N: usize> InputGenerator for [T; N] {
     type Input = T;
     type InputSource = usize;
-
-    type History = Self::InputSource;
 
     fn cardinality(&self) -> Option<usize> {
         assert!(!self.is_empty());
@@ -40,43 +38,16 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
         rng.gen_range(0..self.len())
     }
 
-    fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
-        assert!(!self.is_empty());
-
-        failing_input
-    }
-
-    fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource {
-        *history
-    }
-
-    fn update_history(
+    fn new_shrinker(
         &self,
-        _history: &mut Self::History,
-        _shrinkable_input: Self::InputSource,
-        _test_passed: bool,
-    ) {
+        failing_input: Self::InputSource,
+    ) -> impl Shrinker<InputSource = Self::InputSource> {
         assert!(!self.is_empty());
 
-        // TODO(ichen): implement for real
-    }
-
-    fn generate_observations(&self, _history: Self::History) -> Vec<Observation> {
-        assert!(!self.is_empty());
-
-        // TODO(ichen): implement for real
-        vec![]
-    }
-
-    fn next_input(
-        &self,
-        _rng: &mut impl crate::rand::Rng,
-        _history: &Self::History,
-    ) -> NextAttempt<Self::InputSource> {
-        assert!(!self.is_empty());
-
-        // TODO(ichen): implement for real
-        NextAttempt::Done
+        ArrayShrinker {
+            next_index_to_try: 0,
+            lowest_known_failing_index: failing_input,
+        }
     }
 
     fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
@@ -84,9 +55,36 @@ impl<T: Clone, const N: usize> InputGenerator for [T; N] {
     }
 }
 
+// TODO: combine with SliceShrinker
+pub struct ArrayShrinker {
+    next_index_to_try: usize,
+    lowest_known_failing_index: usize,
+}
+
+impl Shrinker for ArrayShrinker {
+    type InputSource = usize;
+
+    fn current_attempt(&self) -> Option<Self::InputSource> {
+        (self.next_index_to_try < self.lowest_known_failing_index).then_some(self.next_index_to_try)
+    }
+
+    fn update(&mut self, current_attempt_passed: bool) {
+        if !current_attempt_passed {
+            self.lowest_known_failing_index = self.next_index_to_try;
+        } else {
+            self.next_index_to_try += 1;
+        }
+    }
+
+    fn into_observations(self) -> Vec<Observation> {
+        // TODO: consider providing some more useful observations
+        Vec::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::run_test;
+    use crate::{run_test, ShrinkStep};
 
     #[test]
     fn test_array() {
@@ -97,7 +95,16 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(report.passing_runs, 5);
-        assert_eq!(report.shrink_steps, vec![]);
+        assert_eq!(
+            report.shrink_steps,
+            vec![
+                ShrinkStep::new(0, false, true),
+                ShrinkStep::new(1, false, true),
+                ShrinkStep::new(2, false, true),
+                ShrinkStep::new(3, false, true),
+                ShrinkStep::new(4, false, true),
+            ]
+        );
         assert_eq!(report.simplest_failing_input, 5);
     }
 }

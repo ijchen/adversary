@@ -1,14 +1,11 @@
-use crate::{input_generator::NextAttempt, InputGenerator};
+use crate::{report::Observation, shrinker::Shrinker, InputGenerator};
 
 /// Okay so hear me out - what if we implemented [`InputGenerator`] for slices?
 ///
 /// TODO: consider long-term API/orphan rules/specialization consequences
-
 impl<'a, T> InputGenerator for &'a [T] {
     type Input = &'a T;
     type InputSource = usize;
-
-    type History = Self::InputSource;
 
     fn cardinality(&self) -> Option<usize> {
         Some(self.len())
@@ -30,33 +27,14 @@ impl<'a, T> InputGenerator for &'a [T] {
         rng.gen_range(0..self.len())
     }
 
-    fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
-        failing_input
-    }
-
-    fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource {
-        *history
-    }
-
-    fn update_history(
+    fn new_shrinker(
         &self,
-        _history: &mut Self::History,
-        _shrinkable_input: Self::InputSource,
-        _test_passed: bool,
-    ) {
-        // TODO: implement for real
-    }
-
-    fn generate_observations(&self, _history: Self::History) -> Vec<crate::report::Observation> {
-        vec![]
-    }
-
-    fn next_input(
-        &self,
-        _rng: &mut impl crate::rand::Rng,
-        _history: &Self::History,
-    ) -> NextAttempt<Self::InputSource> {
-        NextAttempt::Done
+        failing_input: Self::InputSource,
+    ) -> impl Shrinker<InputSource = Self::InputSource> {
+        SliceShrinker {
+            next_index_to_try: 0,
+            lowest_known_failing_index: failing_input,
+        }
     }
 
     fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
@@ -64,11 +42,11 @@ impl<'a, T> InputGenerator for &'a [T] {
     }
 }
 
+// TODO: can we make this be IntoInputGenerator instead? (prob not, conflicting
+// if libstd ever implemented InputGenerator this type)
 impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
     type Input = &'a T;
     type InputSource = usize;
-
-    type History = Self::InputSource;
 
     fn cardinality(&self) -> Option<usize> {
         Some(N)
@@ -90,33 +68,14 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
         rng.gen_range(0..N)
     }
 
-    fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
-        failing_input
-    }
-
-    fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource {
-        *history
-    }
-
-    fn update_history(
+    fn new_shrinker(
         &self,
-        _history: &mut Self::History,
-        _shrinkable_input: Self::InputSource,
-        _test_passed: bool,
-    ) {
-        // TODO: implement for real
-    }
-
-    fn generate_observations(&self, _history: Self::History) -> Vec<crate::report::Observation> {
-        vec![]
-    }
-
-    fn next_input(
-        &self,
-        _rng: &mut impl crate::rand::Rng,
-        _history: &Self::History,
-    ) -> NextAttempt<Self::InputSource> {
-        NextAttempt::Done
+        failing_input: Self::InputSource,
+    ) -> impl Shrinker<InputSource = Self::InputSource> {
+        SliceShrinker {
+            next_index_to_try: 0,
+            lowest_known_failing_index: failing_input,
+        }
     }
 
     fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
@@ -124,9 +83,35 @@ impl<'a, T: 'a, const N: usize> InputGenerator for &'a [T; N] {
     }
 }
 
+pub struct SliceShrinker {
+    next_index_to_try: usize,
+    lowest_known_failing_index: usize,
+}
+
+impl Shrinker for SliceShrinker {
+    type InputSource = usize;
+
+    fn current_attempt(&self) -> Option<Self::InputSource> {
+        (self.next_index_to_try < self.lowest_known_failing_index).then_some(self.next_index_to_try)
+    }
+
+    fn update(&mut self, current_attempt_passed: bool) {
+        if !current_attempt_passed {
+            self.lowest_known_failing_index = self.next_index_to_try;
+        } else {
+            self.next_index_to_try += 1;
+        }
+    }
+
+    fn into_observations(self) -> Vec<Observation> {
+        // TODO: consider providing some more useful observations
+        Vec::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::run_test;
+    use crate::{run_test, ShrinkStep};
 
     #[test]
     fn test_slice() {
@@ -137,7 +122,16 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(report.passing_runs, 5);
-        assert_eq!(report.shrink_steps, vec![]);
+        assert_eq!(
+            report.shrink_steps,
+            vec![
+                ShrinkStep::new(&0, false, true),
+                ShrinkStep::new(&1, false, true),
+                ShrinkStep::new(&2, false, true),
+                ShrinkStep::new(&3, false, true),
+                ShrinkStep::new(&4, false, true),
+            ]
+        );
         assert_eq!(report.simplest_failing_input, &5);
     }
 
@@ -150,7 +144,16 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(report.passing_runs, 5);
-        assert_eq!(report.shrink_steps, vec![]);
+        assert_eq!(
+            report.shrink_steps,
+            vec![
+                ShrinkStep::new(&0, false, true),
+                ShrinkStep::new(&1, false, true),
+                ShrinkStep::new(&2, false, true),
+                ShrinkStep::new(&3, false, true),
+                ShrinkStep::new(&4, false, true),
+            ]
+        );
         assert_eq!(report.simplest_failing_input, &5);
     }
 }

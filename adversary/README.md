@@ -4,7 +4,7 @@ Adversarial property-based testing for Rust.
 
 Adversary is still in development, and has a number of incomplete or missing
 features:
-- [ ] Make to-do list
+- [ ] Flesh out this to-do list
 - [ ] Create base generators
   - [ ] Canonical
     - [x] [unit](https://doc.rust-lang.org/std/primitive.unit.html)
@@ -42,9 +42,9 @@ features:
     - [x] just(T)
     - [x] just_with(impl Fn() -> T)
   - [ ] Numerical ranges
-    - [x] All range types (inclusive/exclusive, bounded/unbounded)
-    - [x] Unsigned integers
+    - [ ] Unsigned integers
     - [ ] Signed integers
+    - [ ] All range types (inclusive/exclusive, bounded/unbounded)
     - [ ] Floating point numbers
   - [ ] String regexes
   - [x] Bool with probability
@@ -54,6 +54,9 @@ features:
   - [ ] Result<T, E> from probability, shrink direction (Ok or Err), and
   both Inputgenerator<Input = T> and InputGenerator<Input = E>
   - [ ] Random T from a &[T] (just picks a value from the slice)
+- [ ] Implement "informational" shrink attempts (values to be tested which are
+more complicated than the simplest known failing case, but which would still be
+useful for providing a more useful or comprehensive shrinking report)
 
 # License
 

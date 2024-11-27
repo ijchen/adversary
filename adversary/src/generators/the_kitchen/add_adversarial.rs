@@ -1,74 +1,74 @@
-use crate::{input_generator::NextAttempt, InputGenerator};
+// use crate::{input_generator::NextAttempt, InputGenerator};
 
-struct AddAdversarial<G: InputGenerator> {
-    generator: G,
-    adversarial: Box<[G::InputSource]>,
-}
+// struct AddAdversarial<G: InputGenerator> {
+//     generator: G,
+//     adversarial: Box<[G::InputSource]>,
+// }
 
-impl<G: InputGenerator> InputGenerator for AddAdversarial<G>
-where
-    G::InputSource: Clone,
-{
-    type Input = G::Input;
-    type InputSource = G::InputSource;
+// impl<G: InputGenerator> InputGenerator for AddAdversarial<G>
+// where
+//     G::InputSource: Clone,
+// {
+//     type Input = G::Input;
+//     type InputSource = G::InputSource;
 
-    type History = G::History;
+//     type Shrinker = G::Shrinker;
 
-    fn cardinality(&self) -> Option<usize> {
-        self.generator.cardinality()
-    }
+//     fn cardinality(&self) -> Option<usize> {
+//         self.generator.cardinality()
+//     }
 
-    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
-        self.generator.exhaustive()
-    }
+//     fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+//         self.generator.exhaustive()
+//     }
 
-    fn adversarial_count(&self) -> Option<usize> {
-        self.generator
-            .adversarial_count()?
-            .checked_add(self.adversarial.len())
-    }
+//     fn adversarial_count(&self) -> Option<usize> {
+//         self.generator
+//             .adversarial_count()?
+//             .checked_add(self.adversarial.len())
+//     }
 
-    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
-        self.generator
-            .adversarial()
-            .chain(self.adversarial.iter().cloned())
-    }
+//     fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+//         self.generator
+//             .adversarial()
+//             .chain(self.adversarial.iter().cloned())
+//     }
 
-    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
-        self.generator.sample(rng)
-    }
+//     fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+//         self.generator.sample(rng)
+//     }
 
-    fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
-        self.generator.new_history(failing_input)
-    }
+//     fn new_shrinker(&self, failing_input: Self::InputSource) -> Self::Shrinker {
+//         self.generator.new_shrinker(failing_input)
+//     }
 
-    fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource {
-        self.generator.current_simplest_failing(history)
-    }
+//     fn current_simplest_failing(&self, history: &Self::Shrinker) -> Self::InputSource {
+//         self.generator.current_simplest_failing(history)
+//     }
 
-    fn update_history(
-        &self,
-        history: &mut Self::History,
-        shrinkable_input: Self::InputSource,
-        test_passed: bool,
-    ) {
-        self.generator
-            .update_history(history, shrinkable_input, test_passed)
-    }
+//     fn update_history(
+//         &self,
+//         history: &mut Self::Shrinker,
+//         shrinkable_input: Self::InputSource,
+//         test_passed: bool,
+//     ) {
+//         self.generator
+//             .update_history(history, shrinkable_input, test_passed)
+//     }
 
-    fn generate_observations(&self, history: Self::History) -> Vec<crate::report::Observation> {
-        self.generator.generate_observations(history)
-    }
+//     fn generate_observations(&self, history: Self::Shrinker) -> Vec<Observation> {
+//         self.generator.generate_observations(history)
+//     }
 
-    fn next_input(
-        &self,
-        rng: &mut impl rand::Rng,
-        history: &Self::History,
-    ) -> NextAttempt<Self::InputSource> {
-        self.generator.next_input(rng, history)
-    }
+//     fn next_input(
+//         &self,
+//         rng: &mut impl rand::Rng,
+//         history: &Self::Shrinker,
+//     ) -> NextAttempt<Self::InputSource> {
+//         self.generator.next_input(rng, history)
+//     }
 
-    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
-        self.generator.create_input(input_source)
-    }
-}
+//     fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
+//         self.generator.create_input(input_source)
+//     }
+// }
