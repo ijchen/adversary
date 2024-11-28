@@ -58,18 +58,12 @@ mod tests {
 
         let report = run_test(|v: bool| v, any(), &mut crate::rand::thread_rng()).unwrap_err();
         assert_eq!(report.passing_runs, 0);
-        assert_eq!(
-            report.shrink_steps,
-            vec![ShrinkStep::new(false, false, false)]
-        );
+        assert_eq!(report.shrink_steps, vec![]);
         assert_eq!(report.simplest_failing_input, false);
 
         let report = run_test(|_: bool| false, any(), &mut crate::rand::thread_rng()).unwrap_err();
         assert_eq!(report.passing_runs, 0);
-        assert_eq!(
-            report.shrink_steps,
-            vec![ShrinkStep::new(false, false, false)]
-        );
+        assert_eq!(report.shrink_steps, vec![]);
         assert_eq!(report.simplest_failing_input, false);
 
         run_test(|_: bool| true, any(), &mut crate::rand::thread_rng()).unwrap();

@@ -63,47 +63,21 @@ impl InputGenerator for ChanceGen {
         rng.gen_bool(self.chance_of_true)
     }
 
-    // fn generate_observations(&self, history: Self::Shrinker) -> Vec<Observation> {
-    //     let mut observations = Vec::new();
-
-    //     if history.f == ObservedOutcomes::Both {
-    //         observations.push(Observation::new(
-    //             "false was observed both passing and failing - possible non-deterministic behavior",
-    //             Importance::MaybeRelevant,
-    //         ));
-    //     }
-
-    //     if history.t == ObservedOutcomes::Both {
-    //         observations.push(Observation::new(
-    //             "true was observed both passing and failing - possible non-deterministic behavior",
-    //             Importance::MaybeRelevant,
-    //         ));
-    //     }
-
-    //     if history.t.has_failed() && history.f.has_failed() {
-    //         observations.push(Observation::new(
-    //             "both true and false were observed as failing - this value probably doesn't matter",
-    //             Importance::MaybeRelevant,
-    //         ));
-    //     }
-
-    //     observations
-    // }
-
     fn new_shrinker(
         &self,
         failing_input: Self::InputSource,
     ) -> impl Shrinker<InputSource = Self::InputSource> {
-        let shrinker = BoolShrinker {
+        let mut shrinker = BoolShrinker {
             shrink_to: self.shrink_to,
             t: Default::default(),
             f: Default::default(),
         };
 
         // TODO: why does this not require `shrinker` is `mut`?
+        // UPDATE: THANK YOU RUST I WOULD NOT HAVE CAUGHT THAT FOR A WHILE
         match failing_input {
-            true => shrinker.t,
-            false => shrinker.f,
+            true => &mut shrinker.t,
+            false => &mut shrinker.f,
         }
         .observe_outcome(false);
 
