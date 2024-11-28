@@ -73,8 +73,6 @@ impl InputGenerator for ChanceGen {
             f: Default::default(),
         };
 
-        // TODO: why does this not require `shrinker` is `mut`?
-        // UPDATE: THANK YOU RUST I WOULD NOT HAVE CAUGHT THAT FOR A WHILE
         match failing_input {
             true => &mut shrinker.t,
             false => &mut shrinker.f,
