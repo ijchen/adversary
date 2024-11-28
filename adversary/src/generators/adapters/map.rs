@@ -52,17 +52,15 @@ impl<U, G: InputGenerator, F: Fn(G::Input) -> U> Map<G, F> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{run_test, ShrinkStep};
+    use crate::{run_test, InputGeneratorExt, IntoInputGenerator, ShrinkStep};
 
     #[test]
     fn test_map_does_the_map_thing() {
         let report = run_test(
             |n| n.len() == 1,
-            Map::new(
-                [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].as_slice(),
-                |t| t.to_string(),
-            ),
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+                .into_input_generator()
+                .adv_map(|t| t.to_string()),
             &mut crate::rand::thread_rng(),
         )
         .unwrap_err();

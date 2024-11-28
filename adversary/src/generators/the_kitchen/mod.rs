@@ -10,6 +10,4 @@
 #![allow(dead_code)]
 
 mod add_adversarial;
-mod impl_input_generator_for_array;
-mod impl_input_generator_for_slice;
 mod replace_adversarial;
