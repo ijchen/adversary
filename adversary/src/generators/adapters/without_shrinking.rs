@@ -1,9 +1,6 @@
-use std::marker::PhantomData;
-
-use crate::{report::Observation, shrinker::Shrinker, InputGenerator};
+use crate::{shrinker::Shrinker, shrinkers::NeverShrink, InputGenerator};
 
 pub struct WithoutShrinking<G>(G);
-pub struct WithoutShrinkingShrinker<T>(PhantomData<T>); // lol
 
 impl<G: InputGenerator> InputGenerator for WithoutShrinking<G> {
     type Input = G::Input;
@@ -33,25 +30,11 @@ impl<G: InputGenerator> InputGenerator for WithoutShrinking<G> {
         &self,
         _failing_input: Self::InputSource,
     ) -> impl Shrinker<InputSource = Self::InputSource> {
-        WithoutShrinkingShrinker(PhantomData)
+        NeverShrink::new()
     }
 
     fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
         self.0.create_input(input_source)
-    }
-}
-
-impl<T: Clone> Shrinker for WithoutShrinkingShrinker<T> {
-    type InputSource = T;
-
-    fn current_attempt(&self) -> Option<Self::InputSource> {
-        None
-    }
-
-    fn update(&mut self, _current_attempt_passed: bool) {}
-
-    fn into_observations(self) -> Vec<Observation> {
-        Vec::new()
     }
 }
 

@@ -1,175 +1,117 @@
-// use std::{collections::HashSet, ops::RangeInclusive};
+use std::ops::RangeInclusive;
 
-// use crate::{input_generator::NextAttempt, InputGenerator};
+use crate::{shrinker::Shrinker, shrinkers::NeverShrink, InputGenerator, IntoInputGenerator};
 
-// // TODO(ichen): I'd really like this struct to be private - I don't want to make
-// // any API promises about it.
-// pub struct SignedRangeHistory<T> {
-//     min_abs_failing: T,
-//     max_abs_passing: Option<T>,
-// }
+use super::RangeInclusiveGen;
 
-// macro_rules! signed_range_inclusive {
-//     ($($t: ty),+$(,)?) => {
-//         $(
-//             impl InputGenerator for RangeInclusive<$t> {
-//                 type Input = $t;
+macro_rules! signed_range_inclusive {
+    ($($i:ty = $u:ty ),+$(,)?) => {$(
+        const _: () = assert!(size_of::<$i>() == size_of::<$u>());
 
-//                 type InputSource = Self::Input;
+        impl IntoInputGenerator<$i> for RangeInclusive<$i> {
+            fn into_input_generator(self) -> impl InputGenerator<Input = $i> {
+                let min = *self.start();
+                let max = *self.end();
+                assert!(min <= max);
 
-//                 type History = SignedRangeHistory<$t>;
+                RangeInclusiveGen { min, max }
+            }
+        }
 
-//                 fn cardinality(&self) -> Option<usize> {
-//                     assert!(!self.is_empty());
+        impl InputGenerator for RangeInclusiveGen<$i> {
+            type Input = $i;
 
-//                     // TODO(ichen): I haven't fully thought through if overflow
-//                     // can cause issues here (especially when coming from other
-//                     // Range types)
-//                     usize::try_from(self.end().abs_diff(*self.start()))
-//                         .ok()
-//                         .and_then(|n| n.checked_add(1))
-//                 }
+            type InputSource = Self::Input;
 
-//                 fn exhaustive(
-//                     &self,
-//                 ) -> impl Iterator<Item = Self::InputSource> {
-//                     assert!(!self.is_empty());
+            fn cardinality(&self) -> Option<usize> {
+                // This uses some pretty sexy two's complement modular
+                // arithmetic tricks to avoid overflow issues
+                // Sanity check: https://play.rust-lang.org/?version=stable&mode=release&edition=2021&gist=f5e25ab4f97e57206163f8ece48d8aa6
+                let difference = <$u>::wrapping_sub(self.max as $u, self.min as $u);
+                usize::try_from(difference).ok().and_then(|cardinality| cardinality.checked_add(1))
+            }
 
-//                     self.clone()
-//                 }
+            fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+                self.min..=self.max
+            }
 
-//                 fn adversarial_count(&self) -> Option<usize> {
-//                     assert!(!self.is_empty());
+            fn adversarial_count(&self) -> Option<usize> {
+                // TODO: at some point, write a version of this that doesn't
+                // need to call `adversarial` by using smart math and knowledge
+                Some(self.adversarial().count())
+            }
 
-//                     // TODO(ichen): will eventually want to implement this
-//                     // without actually calling .adversarial()
-//                     Some(self.adversarial().count())
-//                 }
+            // For signed ints, adversarial values are:
+            // - Range start and end
+            // - Range start + 1 and end - 1
+            // - The middle two or three numbers, whichever is symmetrical
+            // - -1, 0, 1
+            //
+            // TODO: at some point, consider an optimized version of this that
+            // doesn't allocate and uses smart math
+            fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+                let cardinality = self.max - self.min;
+                match cardinality {
+                    0..=7 => (self.min..=self.max).collect(),
+                    cardinality => {
+                        let mut nums = Vec::with_capacity(10);
 
-//                 fn adversarial(
-//                     &self,
-//                 ) -> impl Iterator<Item = Self::InputSource> {
-//                     // TODO(ichen): see if we can make this const evaluatable
-//                     // (assuming the compiler knows the range bounds at compile
-//                     // time). If not, at least optimize it to be as fast as we
-//                     // can get it... this HashSet stuff is almost certainly
-//                     // going to be very slow
+                        nums.push(self.min);
+                        nums.push(self.max);
+                        nums.push(self.min + 1);
+                        nums.push(self.max - 1);
 
-//                     assert!(!self.is_empty());
+                        nums.push(self.min + cardinality / 2 - 1);
+                        nums.push(self.min + cardinality / 2);
+                        if cardinality % 2 == 1 {
+                            nums.push(self.min + cardinality / 2 + 1);
+                        }
 
-//                     HashSet::from([*self.start(), self.start() + 1, -1, 0, 1, self.end() - 1, *self.end()])
-//                         .into_iter()
-//                         .filter(|n| self.contains(n))
-//                 }
+                        if !nums.contains(&-1) {
+                            nums.push(-1)
+                        }
+                        if !nums.contains(&0) {
+                            nums.push(0)
+                        }
+                        if !nums.contains(&1) {
+                            nums.push(1)
+                        }
 
-//                 fn sample(
-//                     &self,
-//                     rng: &mut (impl rand::Rng + ?Sized),
-//                 ) -> Self::InputSource {
-//                     assert!(!self.is_empty());
+                        nums
+                    }
+                }
+                .into_iter()
+            }
 
-//                     rng.gen_range(self.clone())
-//                 }
+            fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+                rng.gen_range(self.min..=self.max)
+            }
 
-//                 fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
-//                     assert!(!self.is_empty());
+            // TODO(ichen): implement signed integer shrinking
+            fn new_shrinker(
+                &self,
+                _failing_input: Self::InputSource,
+            ) -> impl Shrinker<InputSource = Self::InputSource> {
+                NeverShrink::new()
+            }
 
-//                     SignedRangeHistory {
-//                         min_abs_failing: failing_input,
-//                         max_abs_passing: None,
-//                     }
-//                 }
+            fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
+                input_source
+            }
+        }
+    )+};
+}
 
-//                 fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource {
-//                     history.min_abs_failing
-//                 }
+signed_range_inclusive! {
+    i8 = u8,
+    i16 = u16,
+    i32 = u32,
+    i64 = u64,
+    i128 = u128,
+    isize = usize,
+}
 
-//                 fn next_input(
-//                     &self,
-//                     _rng: &mut impl rand::Rng,
-//                     history: &Self::History,
-//                 ) -> NextAttempt<Self::InputSource> {
-//                     assert!(!self.is_empty());
-
-//                     let min_abs_possible = if self.contains(&0) {
-//                         0
-//                     } else if self.start().unsigned_abs() < self.end().unsigned_abs() {
-//                         *self.start()
-//                     } else {
-//                         *self.end()
-//                     };
-
-//                     // If we already know the minimum (abs) value is failing,
-//                     // we're done shrinking
-//                     if history.min_abs_failing == min_abs_possible {
-//                         return NextAttempt::Done;
-//                     }
-
-//                     // If we don't have a lower bound, try the minimum value
-//                     if history.max_abs_passing.is_none() {
-//                         return NextAttempt::ShrinkAttempt(min_abs_possible);
-//                     }
-
-//                     // We have a minimum and maximum
-//                     let min_failing = history.min_abs_failing;
-//                     let max_passing = history.max_abs_passing.unwrap();
-
-//                     // TODO: document as an invariant
-//                     assert!(max_passing.unsigned_abs() < min_failing.unsigned_abs());
-
-//                     // If there's nothing between the upper and lower bounds,
-//                     // we're done searching.
-//                     if max_passing.unsigned_abs() + 1 == min_failing.unsigned_abs() {
-//                         return NextAttempt::Done;
-//                     }
-
-//                     // If we're not done, try the midpoint of our upper and
-//                     // lower bounds
-//                     let next_attempt = (min_failing - max_passing) / 2 + max_passing;
-//                     NextAttempt::ShrinkAttempt(next_attempt)
-//                 }
-
-//                 fn update_history(
-//                     &self,
-//                     history: &mut Self::History,
-//                     shrinkable_input: Self::InputSource,
-//                     test_passed: bool,
-//                 ) {
-//                     assert!(!self.is_empty());
-
-//                     // If the test passed, update the lower bound
-//                     if test_passed {
-//                         assert!(history
-//                             .max_abs_passing
-//                             .map_or(true, |max_passing| shrinkable_input.unsigned_abs() > max_passing.unsigned_abs()));
-
-//                         history.max_abs_passing = Some(shrinkable_input);
-//                     }
-//                     // If the test failed, update the upper bound
-//                     else {
-//                         assert!(shrinkable_input.unsigned_abs() < history.min_abs_failing.unsigned_abs());
-
-//                         history.min_abs_failing = shrinkable_input;
-//                     }
-//                 }
-
-//                 fn generate_observations(&self, _history: Self::History) -> Vec<Observation> {
-//                     assert!(!self.is_empty());
-
-//                     // TODO: be helpful
-//                     vec![]
-//                 }
-
-//                 fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
-//                     input_source
-//                 }
-//             }
-//         )+
-//     };
-// }
-
-// signed_range_inclusive! { i8, i16, i32, i64, i128, isize }
-
+// TODO(ichen): comment tests back in when shrinking is implemented
 // #[cfg(test)]
 // mod tests {
 //     use crate::prelude::*;

@@ -5,6 +5,7 @@ mod into_input_generator;
 pub mod prelude;
 mod report;
 mod shrinker;
+pub mod shrinkers;
 mod test_runners;
 
 #[cfg(feature = "macros")]

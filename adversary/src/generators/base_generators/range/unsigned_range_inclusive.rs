@@ -2,11 +2,7 @@ use std::ops::RangeInclusive;
 
 use crate::{report::Observation, shrinker::Shrinker, InputGenerator, IntoInputGenerator};
 
-// Representation invariant: min <= max
-struct RangeInclusiveGen<T> {
-    min: T,
-    max: T,
-}
+use super::RangeInclusiveGen;
 
 macro_rules! unsigned_range_inclusive {
     ($($t: ty),+$(,)?) => {$(
@@ -26,8 +22,8 @@ macro_rules! unsigned_range_inclusive {
             type InputSource = Self::Input;
 
             fn cardinality(&self) -> Option<usize> {
-                // For unsigned ints where `min <= max`, `max - min` can't overflow.
-                usize::try_from(self.max - self.min).ok()
+                // For unsigned ints where min <= max, max - min can't overflow
+                usize::try_from(self.max - self.min).ok().and_then(|cardinality| cardinality.checked_add(1))
             }
 
             fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
@@ -35,8 +31,8 @@ macro_rules! unsigned_range_inclusive {
             }
 
             fn adversarial_count(&self) -> Option<usize> {
-                // TODO: at some point, write a version of this that doesn't need to
-                // call `adversarial` by using smart math and knowledge
+                // TODO: at some point, write a version of this that doesn't
+                // need to call `adversarial` by using smart math and knowledge
                 Some(self.adversarial().count())
             }
 
@@ -46,8 +42,8 @@ macro_rules! unsigned_range_inclusive {
             // - The middle two or three numbers, whichever is symmetrical
             // - 0, 1
             //
-            // TODO: at some point, consider an optimized version of this that doesn't
-            // allocate and uses smart math
+            // TODO: at some point, consider an optimized version of this that
+            // doesn't allocate and uses smart math
             fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
                 let cardinality = self.max - self.min;
                 match cardinality {
@@ -87,7 +83,7 @@ macro_rules! unsigned_range_inclusive {
                 &self,
                 failing_input: Self::InputSource,
             ) -> impl Shrinker<InputSource = Self::InputSource> {
-                RangeInclusiveShrinker {
+                RangeInclusiveShrinkerUnsigned {
                     min: self.min,
                     max: failing_input,
                 }
@@ -98,11 +94,11 @@ macro_rules! unsigned_range_inclusive {
             }
         }
 
-        // TODO(ichen): Shrink smarter than *just* a binary search - should first try
-        // the min right away, and also may want to not always rule out every value less
-        // than any we've seen pass - most tests won't be split into a passing bottom
-        // half and failing top half.
-        impl Shrinker for RangeInclusiveShrinker<$t> {
+        // TODO(ichen): Shrink smarter than *just* a binary search - should
+        // first try the min right away, and also may want to not always rule
+        // out every value less than any we've seen pass - most tests won't be
+        // split into a passing bottom half and failing top half.
+        impl Shrinker for RangeInclusiveShrinkerUnsigned<$t> {
             type InputSource = $t;
 
             fn current_attempt(&self) -> Option<Self::InputSource> {
@@ -127,7 +123,7 @@ macro_rules! unsigned_range_inclusive {
 
 unsigned_range_inclusive! { u8, u16, u32, u64, u128, usize }
 
-struct RangeInclusiveShrinker<T> {
+struct RangeInclusiveShrinkerUnsigned<T> {
     min: T,
     max: T,
 }

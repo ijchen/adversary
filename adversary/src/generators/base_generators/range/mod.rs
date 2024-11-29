@@ -18,3 +18,9 @@
 mod other;
 mod signed_range_inclusive;
 mod unsigned_range_inclusive;
+
+// Representation invariant: min <= max
+struct RangeInclusiveGen<T> {
+    min: T,
+    max: T,
+}
