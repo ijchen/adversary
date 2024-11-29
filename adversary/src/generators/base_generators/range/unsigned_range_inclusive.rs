@@ -1,206 +1,177 @@
-// use std::{collections::HashSet, ops::RangeInclusive};
+use std::ops::RangeInclusive;
 
-// use crate::{input_generator::NextAttempt, InputGenerator};
+use crate::{report::Observation, shrinker::Shrinker, InputGenerator, IntoInputGenerator};
 
-// // TODO(ichen): I'd really like this struct to be private - I don't want to make
-// // any API promises about it.
-// pub struct UnsignedRangeHistory<T> {
-//     min_failing: T,
-//     max_passing: Option<T>,
-// }
+// Representation invariant: min <= max
+struct RangeInclusiveGen<T> {
+    min: T,
+    max: T,
+}
 
-// macro_rules! unsigned_range_inclusive {
-//     ($($t: ty),+$(,)?) => {
-//         $(
-//             impl InputGenerator for RangeInclusive<$t> {
-//                 type Input = $t;
+macro_rules! unsigned_range_inclusive {
+    ($($t: ty),+$(,)?) => {$(
+        impl IntoInputGenerator<$t> for RangeInclusive<$t> {
+            fn into_input_generator(self) -> impl InputGenerator<Input = $t> {
+                let min = *self.start();
+                let max = *self.end();
+                assert!(min <= max);
 
-//                 type InputSource = Self::Input;
+                RangeInclusiveGen { min, max }
+            }
+        }
 
-//                 type History = UnsignedRangeHistory<$t>;
+        impl InputGenerator for RangeInclusiveGen<$t> {
+            type Input = $t;
 
-//                 fn cardinality(&self) -> Option<usize> {
-//                     assert!(!self.is_empty());
+            type InputSource = Self::Input;
 
-//                     // TODO(ichen): I haven't fully thought through if overflow
-//                     // can cause issues here (especially when coming from other
-//                     // Range types)
-//                     usize::try_from(self.end() - self.start())
-//                         .ok()
-//                         .and_then(|n| n.checked_add(1))
-//                 }
+            fn cardinality(&self) -> Option<usize> {
+                // For unsigned ints where `min <= max`, `max - min` can't overflow.
+                usize::try_from(self.max - self.min).ok()
+            }
 
-//                 fn exhaustive(
-//                     &self,
-//                 ) -> impl Iterator<Item = Self::InputSource> {
-//                     assert!(!self.is_empty());
+            fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+                self.min..=self.max
+            }
 
-//                     self.clone()
-//                 }
+            fn adversarial_count(&self) -> Option<usize> {
+                // TODO: at some point, write a version of this that doesn't need to
+                // call `adversarial` by using smart math and knowledge
+                Some(self.adversarial().count())
+            }
 
-//                 fn adversarial_count(&self) -> Option<usize> {
-//                     assert!(!self.is_empty());
+            // For unsigned ints, adversarial values are:
+            // - Range start and end
+            // - Range start + 1 and end - 1
+            // - The middle two or three numbers, whichever is symmetrical
+            // - 0, 1
+            //
+            // TODO: at some point, consider an optimized version of this that doesn't
+            // allocate and uses smart math
+            fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+                let cardinality = self.max - self.min;
+                match cardinality {
+                    0..=7 => (self.min..=self.max).collect(),
+                    cardinality => {
+                        let mut nums = Vec::with_capacity(9);
 
-//                     // TODO(ichen): will eventually want to implement this
-//                     // without actually calling .adversarial()
-//                     Some(self.adversarial().count())
-//                 }
+                        nums.push(self.min);
+                        nums.push(self.max);
+                        nums.push(self.min + 1);
+                        nums.push(self.max - 1);
 
-//                 fn adversarial(
-//                     &self,
-//                 ) -> impl Iterator<Item = Self::InputSource> {
-//                     // TODO(ichen): see if we can make this const evaluatable
-//                     // (assuming the compiler knows the range bounds at compile
-//                     // time). If not, at least optimize it to be as fast as we
-//                     // can get it... this HashSet stuff is almost certainly
-//                     // going to be very slow
+                        nums.push(self.min + cardinality / 2 - 1);
+                        nums.push(self.min + cardinality / 2);
+                        if cardinality % 2 == 1 {
+                            nums.push(self.min + cardinality / 2 + 1);
+                        }
 
-//                     assert!(!self.is_empty());
+                        if !nums.contains(&0) {
+                            nums.push(0)
+                        }
+                        if !nums.contains(&1) {
+                            nums.push(1)
+                        }
 
-//                     HashSet::from([*self.start(), self.start() + 1, self.end() - 1, *self.end()])
-//                         .into_iter()
-//                 }
+                        nums
+                    }
+                }
+                .into_iter()
+            }
 
-//                 fn sample(
-//                     &self,
-//                     rng: &mut (impl rand::Rng + ?Sized),
-//                 ) -> Self::InputSource {
-//                     assert!(!self.is_empty());
+            fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+                rng.gen_range(self.min..=self.max)
+            }
 
-//                     rng.gen_range(self.clone())
-//                 }
+            fn new_shrinker(
+                &self,
+                failing_input: Self::InputSource,
+            ) -> impl Shrinker<InputSource = Self::InputSource> {
+                RangeInclusiveShrinker {
+                    min: self.min,
+                    max: failing_input,
+                }
+            }
 
-//                 fn new_history(&self, failing_input: Self::InputSource) -> Self::History {
-//                     assert!(!self.is_empty());
+            fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
+                input_source
+            }
+        }
 
-//                     UnsignedRangeHistory {
-//                         min_failing: failing_input,
-//                         max_passing: None,
-//                     }
-//                 }
+        // TODO(ichen): Shrink smarter than *just* a binary search - should first try
+        // the min right away, and also may want to not always rule out every value less
+        // than any we've seen pass - most tests won't be split into a passing bottom
+        // half and failing top half.
+        impl Shrinker for RangeInclusiveShrinker<$t> {
+            type InputSource = $t;
 
-//                 fn current_simplest_failing(&self, history: &Self::History) -> Self::InputSource {
-//                     history.min_failing
-//                 }
+            fn current_attempt(&self) -> Option<Self::InputSource> {
+                (self.min != self.max).then_some((self.max - self.min) / 2 + self.min)
+            }
 
-//                 fn next_input(
-//                     &self,
-//                     _rng: &mut impl rand::Rng,
-//                     history: &Self::History,
-//                 ) -> NextAttempt<Self::InputSource> {
-//                     assert!(!self.is_empty());
+            fn update(&mut self, current_attempt_passed: bool) {
+                if current_attempt_passed {
+                    self.min = self.current_attempt().unwrap() + 1;
+                } else {
+                    self.max = self.current_attempt().unwrap();
+                }
+            }
 
-//                     // If we already know the minimum value is failing, we're
-//                     // done shrinking
-//                     if history.min_failing == *self.start() {
-//                         return NextAttempt::Done;
-//                     }
+            fn into_observations(self) -> Vec<Observation> {
+                // TODO(ichen): useful observations
+                Vec::new()
+            }
+        }
+    )+};
+}
 
-//                     // If we don't have a lower bound, try the minimum value
-//                     if history.max_passing.is_none() {
-//                         return NextAttempt::ShrinkAttempt(*self.start());
-//                     }
+unsigned_range_inclusive! { u8, u16, u32, u64, u128, usize }
 
-//                     // We have a minimum and maximum
-//                     let min_failing = history.min_failing;
-//                     let max_passing = history.max_passing.unwrap();
+struct RangeInclusiveShrinker<T> {
+    min: T,
+    max: T,
+}
 
-//                     // TODO: document as an invariant
-//                     assert!(max_passing < min_failing);
+#[cfg(test)]
+mod tests {
+    use crate::prelude::*;
 
-//                     // If there's nothing between the upper and lower bounds,
-//                     // we're done searching.
-//                     if max_passing + 1 == min_failing {
-//                         return NextAttempt::Done;
-//                     }
+    #[test]
+    fn test_shrinks_to_min() {
+        assert_eq!(
+            run_test(|_| false, 0..=6u8, &mut crate::rand::thread_rng())
+                .unwrap_err()
+                .simplest_failing_input,
+            0
+        );
 
-//                     // If we're not done, try the midpoint of our upper and
-//                     // lower bounds
-//                     let next_attempt = (min_failing - max_passing) / 2 + max_passing;
-//                     NextAttempt::ShrinkAttempt(next_attempt)
-//                 }
+        assert_eq!(
+            run_test(|n| n < 123, 45..=1000u32, &mut crate::rand::thread_rng())
+                .unwrap_err()
+                .simplest_failing_input,
+            123
+        );
 
-//                 fn update_history(
-//                     &self,
-//                     history: &mut Self::History,
-//                     shrinkable_input: Self::InputSource,
-//                     test_passed: bool,
-//                 ) {
-//                     assert!(!self.is_empty());
+        assert_eq!(
+            run_test(
+                |n| n < 643,
+                45..=2000000u128,
+                &mut crate::rand::thread_rng()
+            )
+            .unwrap_err()
+            .simplest_failing_input,
+            643
+        );
 
-//                     // If the test passed, update the lower bound
-//                     if test_passed {
-//                         assert!(history
-//                             .max_passing
-//                             .map_or(true, |max_passing| shrinkable_input > max_passing));
-
-//                         history.max_passing = Some(shrinkable_input);
-//                     }
-//                     // If the test failed, update the upper bound
-//                     else {
-//                         assert!(shrinkable_input < history.min_failing);
-
-//                         history.min_failing = shrinkable_input;
-//                     }
-//                 }
-
-//                 fn generate_observations(&self, _history: Self::History) -> Vec<Observation> {
-//                     assert!(!self.is_empty());
-
-//                     // TODO: be helpful
-//                     vec![]
-//                 }
-
-//                 fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
-//                     input_source
-//                 }
-//             }
-//         )+
-//     };
-// }
-
-// unsigned_range_inclusive! { u8, u16, u32, u64, u128, usize }
-
-// #[cfg(test)]
-// mod tests {
-//     use crate::prelude::*;
-
-//     #[test]
-//     fn test_shrinks_to_min() {
-//         assert_eq!(
-//             run_test(|_| false, 0..=6u8, &mut crate::rand::thread_rng())
-//                 .unwrap_err()
-//                 .simplest_failing_input,
-//             0
-//         );
-
-//         assert_eq!(
-//             run_test(|n| n < 123, 45..=1000u32, &mut crate::rand::thread_rng())
-//                 .unwrap_err()
-//                 .simplest_failing_input,
-//             123
-//         );
-
-//         assert_eq!(
-//             run_test(
-//                 |n| n < 643,
-//                 45..=2000000u128,
-//                 &mut crate::rand::thread_rng()
-//             )
-//             .unwrap_err()
-//             .simplest_failing_input,
-//             643
-//         );
-
-//         assert_eq!(
-//             run_test(
-//                 |n| n < 1234,
-//                 532..=u128::MAX,
-//                 &mut crate::rand::thread_rng()
-//             )
-//             .unwrap_err()
-//             .simplest_failing_input,
-//             1234
-//         );
-//     }
-// }
+        assert_eq!(
+            run_test(
+                |n| n < 1234,
+                532..=u128::MAX,
+                &mut crate::rand::thread_rng()
+            )
+            .unwrap_err()
+            .simplest_failing_input,
+            1234
+        );
+    }
+}
