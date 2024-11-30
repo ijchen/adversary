@@ -76,8 +76,8 @@ pub trait InputGenerator {
     /// shrunk.
     ///
     /// [`Shrinker`]: InputGenerator::Shrinker
-    fn new_shrinker(
-        &self,
+    fn new_shrinker<'a>(
+        &'a self,
         failing_input: Self::InputSource,
     ) -> impl Shrinker<InputSource = Self::InputSource>;
 
@@ -85,3 +85,77 @@ pub trait InputGenerator {
     // TODO: should this take an `InputSource` or an `&InputSource`?
     fn create_input(&self, input_source: Self::InputSource) -> Self::Input;
 }
+
+// struct Foo;
+
+// impl InputGenerator for Foo {
+//     type Input = ();
+
+//     type InputSource = ();
+
+//     fn cardinality(&self) -> Option<usize> {
+//         Some(0)
+//     }
+
+//     fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+//         std::iter::empty()
+//     }
+
+//     fn adversarial_count(&self) -> Option<usize> {
+//         Some(0)
+//     }
+
+//     fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+//         std::iter::empty()
+//     }
+
+//     fn sample(&self, _rng: &mut (impl Rng + ?Sized)) -> Self::InputSource {
+//         ()
+//     }
+
+//     fn new_shrinker(
+//         &self,
+//         failing_input: Self::InputSource,
+//     ) -> impl Shrinker<InputSource = Self::InputSource> {
+//         FooShrinker::new(self)
+//     }
+
+//     fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
+//         todo!()
+//     }
+// }
+
+// struct FooShrinker<'a> {
+//     shrinker: &'a Foo,
+// }
+
+// impl<'a> FooShrinker<'a> {
+//     pub fn new(shrinker: &'a Foo) -> Self {
+//         Self { shrinker }
+//     }
+// }
+
+// impl<'a> Shrinker for FooShrinker<'a> {
+//     type InputSource = <Foo as InputGenerator>::InputSource;
+
+//     fn current_attempt(&self) -> Option<Self::InputSource> {
+//         None
+//     }
+
+//     fn update(&mut self, _current_attempt_passed: bool) {
+//         panic!()
+//     }
+
+//     fn into_observations(self) -> Vec<crate::report::Observation> {
+//         Vec::new()
+//     }
+// }
+
+// fn test() {
+//     let foo = Foo;
+
+//     let shrinker = foo.new_shrinker(());
+
+//     drop(foo);
+//     drop(shrinker);
+// }

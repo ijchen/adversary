@@ -1,0 +1,66 @@
+use paste::paste;
+
+fn cartesian_product_2<
+    A: Iterator,
+    B: Iterator,
+    AMaker: Copy + Fn() -> A,
+    BMaker: Copy + Fn() -> B,
+>(
+    a_maker: AMaker,
+    b_maker: BMaker,
+) -> impl Iterator<Item = (A::Item, B::Item)>
+where
+    A::Item: Clone,
+    B::Item: Clone,
+{
+    a_maker().flat_map(move |a| b_maker().map(move |b| (a.clone(), b)))
+}
+
+// lmao
+macro_rules! cartesian_product {
+    ($(
+        $n:literal $prev:literal { $first:ident , $($rest:ident),+$(,)? }
+    ),*$(,)?) => {
+        paste! {$(
+            // TODO: can we make it so you don't have to pass in $prev, or even
+            // better you don't have to pass in $n and it just counts $rest + 1?
+            const _: () = assert!($n - 1 == $prev);
+
+            #[allow(unused)] // TODO: remove allow once we're using these
+            pub fn [<cartesian_product_ $n>]<
+                [<$first>]: Iterator,
+                $([<$rest>]: Iterator,)+
+                [<$first Maker>]: Copy + Fn() -> [<$first>],
+                $([<$rest Maker>]: Copy + Fn() -> [<$rest>],)+
+            >(
+                [<$first:lower _maker>]: [<$first Maker>],
+                $([<$rest:lower _maker>]: [<$rest Maker>],)+
+            ) -> impl Iterator<Item = ([<$first>]::Item, $([<$rest>]::Item,)+)>
+            where
+                [<$first>]::Item: Clone,
+                $([<$rest>]::Item: Clone,)+
+            {
+                [<$first:lower _maker>]().flat_map(move |[<$first:lower>]| {
+                    [<cartesian_product_ $prev>]($([<$rest:lower _maker>]),+).map(move |($([<$rest:lower>]),+)| {
+                        ([<$first:lower>].clone(), $([<$rest:lower>]),+)
+                    })
+                })
+            }
+        )*}
+    };
+}
+
+// I would go past 12 but it started really slowing down compile times like very
+// noticably... see if it's workaround-able but probably not
+cartesian_product! {
+    3 2 { A, B, C },
+    4 3 { A, B, C, D },
+    5 4 { A, B, C, D, E },
+    6 5 { A, B, C, D, E, F },
+    7 6 { A, B, C, D, E, F, G },
+    8 7 { A, B, C, D, E, F, G, H },
+    9 8 { A, B, C, D, E, F, G, H, I },
+    10 9 { A, B, C, D, E, F, G, H, I, J },
+    11 10 { A, B, C, D, E, F, G, H, I, J, K },
+    12 11 { A, B, C, D, E, F, G, H, I, J, K, L },
+}

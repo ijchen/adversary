@@ -18,17 +18,22 @@ macro_rules! signed_range_inclusive {
             }
         }
 
+        impl RangeInclusiveGen<$i> {
+            fn cardinality_infallible(&self) -> $u {
+                // This uses some pretty sexy two's complement modular
+                // arithmetic tricks to avoid overflow issues
+                // Sanity check: https://play.rust-lang.org/?version=stable&mode=release&edition=2021&gist=f5e25ab4f97e57206163f8ece48d8aa6
+                <$u>::wrapping_sub(self.max as $u, self.min as $u)
+            }
+        }
+
         impl InputGenerator for RangeInclusiveGen<$i> {
             type Input = $i;
 
             type InputSource = Self::Input;
 
             fn cardinality(&self) -> Option<usize> {
-                // This uses some pretty sexy two's complement modular
-                // arithmetic tricks to avoid overflow issues
-                // Sanity check: https://play.rust-lang.org/?version=stable&mode=release&edition=2021&gist=f5e25ab4f97e57206163f8ece48d8aa6
-                let difference = <$u>::wrapping_sub(self.max as $u, self.min as $u);
-                usize::try_from(difference).ok().and_then(|cardinality| cardinality.checked_add(1))
+                usize::try_from(self.cardinality_infallible()).ok().and_then(|cardinality| cardinality.checked_add(1))
             }
 
             fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
@@ -50,10 +55,12 @@ macro_rules! signed_range_inclusive {
             // TODO: at some point, consider an optimized version of this that
             // doesn't allocate and uses smart math
             fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
-                let cardinality = self.max - self.min;
-                match cardinality {
+                match self.cardinality_infallible() {
                     0..=7 => (self.min..=self.max).collect(),
                     cardinality => {
+                        // Infallible - `uN::MAX / 2 <= iN::MAX` is always true
+                        let half_cardinality = <$i>::try_from(cardinality / 2).unwrap();
+
                         let mut nums = Vec::with_capacity(10);
 
                         nums.push(self.min);
@@ -61,10 +68,10 @@ macro_rules! signed_range_inclusive {
                         nums.push(self.min + 1);
                         nums.push(self.max - 1);
 
-                        nums.push(self.min + cardinality / 2 - 1);
-                        nums.push(self.min + cardinality / 2);
+                        nums.push(self.min + half_cardinality - 1);
+                        nums.push(self.min + half_cardinality);
                         if cardinality % 2 == 1 {
-                            nums.push(self.min + cardinality / 2 + 1);
+                            nums.push(self.min + half_cardinality + 1);
                         }
 
                         if !nums.contains(&-1) {
