@@ -1,6 +1,16 @@
 use crate::InputGenerator;
 
-pub struct Map<G, F> {
+pub fn map<G: InputGenerator, U>(
+    inner_generator: G,
+    map_function: impl Fn(G::Input) -> U,
+) -> impl InputGenerator<Input = U, InputSource = G::InputSource> {
+    Map {
+        inner_generator,
+        f: map_function,
+    }
+}
+
+struct Map<G, F> {
     inner_generator: G,
     f: F,
 }
@@ -38,15 +48,6 @@ impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
 
     fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
         (self.f)(self.inner_generator.create_input(input_source))
-    }
-}
-
-impl<U, G: InputGenerator, F: Fn(G::Input) -> U> Map<G, F> {
-    pub fn new(inner_generator: G, map_function: F) -> Self {
-        Self {
-            inner_generator,
-            f: map_function,
-        }
     }
 }
 

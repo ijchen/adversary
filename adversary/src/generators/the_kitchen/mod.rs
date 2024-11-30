@@ -8,6 +8,3 @@
 // TODO(ichen): for now, a lot of this is unused. Will want to either delete or
 // make official things from this module eventually.
 #![allow(dead_code)]
-
-mod add_adversarial;
-mod replace_adversarial;
