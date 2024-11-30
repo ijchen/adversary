@@ -11,6 +11,9 @@ edition = "2021"
 include = ["/src/", "/Cargo.toml", "/README.md", "/LICENSE-*"]
 publish = false
 
+[lints]
+workspace = true
+
 [dependencies]
 rand = "0.8.5"
 adversary-macros = { version = "0.1.0", path = "../adversary-macros", optional = true }
