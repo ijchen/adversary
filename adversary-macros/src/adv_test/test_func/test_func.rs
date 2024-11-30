@@ -11,6 +11,7 @@ use super::TestFuncOutput;
 #[derive(Debug)]
 /// A `syn::ItemFn`, with certain properties verified:
 /// - The function is not const, async, unsafe, or extern
+/// - The function has at least one argument
 /// - The function does not include any receiver (`self`) arguments
 /// - The function is not generic and has no where clause
 /// - The function does not include a variadic argument
@@ -91,6 +92,18 @@ impl TestFunc {
             return Err(syn::Error::new(
                 where_clause.span(),
                 "adversary test functions cannot have a `where` clause",
+            ));
+        }
+
+        // Ensure the function has at least one argument
+        if item_fn.sig.inputs.is_empty() {
+            // TODO(ichen): I'd really like to add some kind of note or info
+            // informing the developer that they could just use a normal rust
+            // #[test] - needs `#![feature(proc_macro_diagnostics)]`
+            // TODO(ichen): look into https://docs.rs/proc-macro2-diagnostics/latest/proc_macro2_diagnostics/
+            return Err(syn::Error::new(
+                item_fn.sig.paren_token.span.span(),
+                "adversary test functions must have at least one argument",
             ));
         }
 
