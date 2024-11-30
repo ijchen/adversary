@@ -1,4 +1,152 @@
-// TODO: this file
+use crate::{shrinker::Shrinker, InputGenerator, IntoInputGenerator};
+
+impl<
+        A,
+        B,
+        C,
+        IntoGenA: IntoInputGenerator<A>,
+        IntoGenB: IntoInputGenerator<B>,
+        IntoGenC: IntoInputGenerator<C>,
+    > IntoInputGenerator<(A, B, C)> for (IntoGenA, IntoGenB, IntoGenC)
+{
+    fn into_input_generator(self) -> impl InputGenerator<Input = (A, B, C)> {
+        TupleGen3(
+            self.0.into_input_generator(),
+            self.1.into_input_generator(),
+            self.2.into_input_generator(),
+        )
+    }
+}
+
+fn cartesian_product_2<
+    A: Iterator,
+    B: Iterator,
+    AMaker: Copy + Fn() -> A,
+    BMaker: Copy + Fn() -> B,
+>(
+    a_maker: AMaker,
+    b_maker: BMaker,
+) -> impl Iterator<Item = (A::Item, B::Item)>
+where
+    A::Item: Clone,
+    B::Item: Clone,
+{
+    a_maker().flat_map(move |a| b_maker().map(move |b| (a.clone(), b)))
+}
+
+fn cartesian_product_3<
+    A: Iterator,
+    B: Iterator,
+    C: Iterator,
+    AMaker: Copy + Fn() -> A,
+    BMaker: Copy + Fn() -> B,
+    CMaker: Copy + Fn() -> C,
+>(
+    a_maker: AMaker,
+    b_maker: BMaker,
+    c_maker: CMaker,
+) -> impl Iterator<Item = (A::Item, B::Item, C::Item)>
+where
+    A::Item: Clone,
+    B::Item: Clone,
+    C::Item: Clone,
+{
+    a_maker().flat_map(move |a| {
+        cartesian_product_2(b_maker, c_maker).map(move |(b, c)| (a.clone(), b, c))
+    })
+}
+
+// Continuation:
+// fn cartesian_product_4<
+//     A: Iterator,
+//     B: Iterator,
+//     C: Iterator,
+//     D: Iterator,
+//     AMaker: Copy + Fn() -> A,
+//     BMaker: Copy + Fn() -> B,
+//     CMaker: Copy + Fn() -> C,
+//     DMaker: Copy + Fn() -> D,
+// >(
+//     a_maker: AMaker,
+//     b_maker: BMaker,
+//     c_maker: CMaker,
+//     d_maker: DMaker,
+// ) -> impl Iterator<Item = (A::Item, B::Item, C::Item, D::Item)>
+// where
+//     A::Item: Clone,
+//     B::Item: Clone,
+//     C::Item: Clone,
+//     D::Item: Clone,
+// {
+//     a_maker().flat_map(move |a| {
+//         cartesian_product_3(b_maker, c_maker, d_maker).map(move |(b, c, d)| (a.clone(), b, c, d))
+//     })
+// }
+
+struct TupleGen3<GenA, GenB, GenC>(GenA, GenB, GenC);
+
+impl<GenA: InputGenerator, GenB: InputGenerator, GenC: InputGenerator> InputGenerator
+    for TupleGen3<GenA, GenB, GenC>
+{
+    type Input = (GenA::Input, GenB::Input, GenC::Input);
+
+    type InputSource = (GenA::InputSource, GenB::InputSource, GenC::InputSource);
+
+    fn cardinality(&self) -> Option<usize> {
+        Some(
+            0usize
+                .checked_add(self.0.cardinality()?)?
+                .checked_add(self.1.cardinality()?)?
+                .checked_add(self.2.cardinality()?)?,
+        )
+    }
+
+    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+        cartesian_product_3(
+            || self.0.exhaustive(),
+            || self.1.exhaustive(),
+            || self.2.exhaustive(),
+        )
+    }
+
+    fn adversarial_count(&self) -> Option<usize> {
+        Some(
+            0usize
+                .checked_add(self.0.adversarial_count()?)?
+                .checked_add(self.1.adversarial_count()?)?
+                .checked_add(self.2.adversarial_count()?)?,
+        )
+    }
+
+    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+        cartesian_product_3(
+            || self.0.adversarial(),
+            || self.1.adversarial(),
+            || self.2.adversarial(),
+        )
+    }
+
+    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+        (self.0.sample(rng), self.1.sample(rng), self.2.sample(rng))
+    }
+
+    // TODO: tuple shrinking
+    fn new_shrinker(
+        &self,
+        _failing_input: Self::InputSource,
+    ) -> impl Shrinker<InputSource = Self::InputSource> {
+        crate::shrinkers::NeverShrink::new()
+    }
+
+    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
+        (
+            self.0.create_input(input_source.0),
+            self.1.create_input(input_source.1),
+            self.2.create_input(input_source.2),
+        )
+    }
+}
+
 // use crate::{InputGenerator, IntoInputGenerator};
 
 // fn cartesian_product_2<
@@ -38,9 +186,7 @@
 //         .map(|(a, (b, c))| (a, b, c))
 // }
 
-// #[non_exhaustive]
-// #[doc(hidden)]
-// pub struct TupleGen<A, B, C>(A, B, C);
+// struct TupleGen<A, B, C>(A, B, C);
 
 // impl<
 //         A,
