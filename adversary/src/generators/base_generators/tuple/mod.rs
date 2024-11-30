@@ -33,6 +33,10 @@ impl<GenA: InputGenerator, GenB: InputGenerator, GenC: InputGenerator> InputGene
 
     type InputSource = (GenA::InputSource, GenB::InputSource, GenC::InputSource);
 
+    #[expect(
+        clippy::needless_question_mark,
+        reason = "this code will eventually be the output of a macro - this pattern is easier w/ repetitions"
+    )]
     fn cardinality(&self) -> Option<usize> {
         Some(
             1usize
@@ -50,6 +54,10 @@ impl<GenA: InputGenerator, GenB: InputGenerator, GenC: InputGenerator> InputGene
         )
     }
 
+    #[expect(
+        clippy::needless_question_mark,
+        reason = "this code will eventually be the output of a macro - this pattern is easier w/ repetitions"
+    )]
     fn adversarial_count(&self) -> Option<usize> {
         Some(
             1usize

@@ -26,6 +26,8 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
         std::iter::once(())
     }
 
+    // Literally returning a unit value - made explicit for clarity
+    #[allow(clippy::unused_unit)]
     fn sample(&self, _rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
         ()
     }

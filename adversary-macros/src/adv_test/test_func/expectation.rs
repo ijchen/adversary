@@ -4,7 +4,7 @@ use syn::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TestFuncOutput {
+pub enum Expectation {
     /// The test is expected to run without panicking.
     ///
     /// The test will pass if it runs without panicking, or fail if it panics.
@@ -16,7 +16,7 @@ pub enum TestFuncOutput {
     ///     assert_eq!(2 + 2, 4);
     /// }
     /// ```
-    ShouldNotPanic,
+    DoesNotPanic,
 
     /// The test is expected to panic.
     ///
@@ -30,7 +30,7 @@ pub enum TestFuncOutput {
     ///     "oops".parse::<f32>().unwrap();
     /// }
     /// ```
-    ShouldPanic,
+    Panics,
 
     /// The test is expected to panic with a specific message (more precisely,
     /// the panic message is expected to contain some substring).
@@ -43,7 +43,7 @@ pub enum TestFuncOutput {
     ///     panic!("message that contains foobar in it");
     /// }
     /// ```
-    ShouldPanicWithMessage {
+    PanicsWithMessage {
         /// The expected panic message substring. Any panic message that
         /// contains `expected_substring` as a substring will be considered a
         /// match, and the test will pass.
@@ -62,7 +62,7 @@ pub enum TestFuncOutput {
     ///     2 + 2 == 4
     /// }
     /// ```
-    ShouldReturnTrue,
+    ReturnsTrue,
 
     /// The test is expected to return the [`Ok(())`] variant of a
     /// [`Result<(), _>`].
@@ -76,13 +76,13 @@ pub enum TestFuncOutput {
     /// fn example() -> Result<(), String> {
     ///     Ok(())
     /// }
-    ShouldReturnOk {
+    ReturnsOk {
         /// The error type `E` in the returned [`Result<(), E>`].
         err_ty: Type,
     },
 }
 
-impl TestFuncOutput {
+impl Expectation {
     pub fn parse(
         return_type: ReturnType,
         attrs: Vec<Attribute>,
@@ -122,9 +122,9 @@ impl TestFuncOutput {
         }
         let should_panic = should_panics.into_iter().next();
         let this = match (return_type, should_panic) {
-            (ReturnType::Default, None) => Self::ShouldNotPanic,
+            (ReturnType::Default, None) => Self::DoesNotPanic,
             (ReturnType::Default, Some(should_panic)) => match should_panic.meta {
-                Meta::Path(_) => Self::ShouldPanic,
+                Meta::Path(_) => Self::Panics,
                 Meta::List(list) => {
                     // Catch weird usage like #[should_panic { expected = "?" }]
                     if !matches!(list.delimiter, MacroDelimiter::Paren(_)) {
@@ -163,11 +163,11 @@ impl TestFuncOutput {
                         return invalid_meta_item_arg_error;
                     };
 
-                    Self::ShouldPanicWithMessage {
+                    Self::PanicsWithMessage {
                         expected_substring: parse_expected_message(name_value.value)?,
                     }
                 }
-                Meta::NameValue(meta) => Self::ShouldPanicWithMessage {
+                Meta::NameValue(meta) => Self::PanicsWithMessage {
                     expected_substring: parse_expected_message(meta.value)?,
                 },
             },
@@ -184,7 +184,7 @@ impl TestFuncOutput {
                         }
 
                         if ty.path.get_ident().is_some_and(|ty| ty == "bool") {
-                            Self::ShouldReturnTrue
+                            Self::ReturnsTrue
                         } else if ty.path.leading_colon.is_none()
                             && ty.path.segments.len() == 1
                             && ty.path.segments.iter().next().unwrap().ident == "Result"
@@ -216,7 +216,7 @@ impl TestFuncOutput {
                                         return invalid_form_error;
                                     };
 
-                                    Self::ShouldReturnOk { err_ty }
+                                    Self::ReturnsOk { err_ty }
                                 }
                                 _ => return invalid_form_error,
                             }

@@ -12,6 +12,7 @@ overflow-checks = true  # True is the default value, but make it clear we care
 
 [workspace.lints.clippy]
 module_inception = "allow" # I don't mind this pattern
+# allow_attributes = "warn" # TODO
 
 [workspace.lints.rust]
 unsafe_code = "forbid" # This can be revisited, but for now we don't need unsafe

@@ -33,7 +33,7 @@ pub fn run_test_panics<T: UnwindSafe>(
     test: impl Fn(T) + RefUnwindSafe,
     generator: impl IntoInputGenerator<T>,
     rng: &mut impl Rng,
-) -> Result<(), Report<T>> {
+) -> Result<(), Box<Report<T>>> {
     enum PanicHookStatus {
         NotReplaced,
         Replaced {
@@ -44,14 +44,14 @@ pub fn run_test_panics<T: UnwindSafe>(
     thread_local! {
         /// Whether or not this thread is currently running an adversary panic
         /// based test.
-        static THREAD_PANIC_TESTING: Cell<bool> = Cell::new(false);
+        static THREAD_PANIC_TESTING: Cell<bool> = const { Cell::new(false) };
 
         // NOTE(ichen): these thread-locals allow us to smuggle out the panic
         // location and message from the panic hook and catch_unwind closure,
         // respectively, without concurrent threads potentially clobbering each
         // other's data.
-        static PANIC_LOCATION: RefCell<Option<PanicLocation>> = RefCell::new(None);
-        static PANIC_MESSAGE: RefCell<Option<String>> = RefCell::new(None);
+        static PANIC_LOCATION: RefCell<Option<PanicLocation>> = const { RefCell::new(None) };
+        static PANIC_MESSAGE: RefCell<Option<String>> = const { RefCell::new(None) };
     }
 
     /// Whether or not the panic hook is currently replaced, and if so how many
@@ -157,13 +157,13 @@ pub fn run_test_panics<T: UnwindSafe>(
 
     // Extract out the panic message and location from our thread-locals, and
     // insert them into the report.
-    let test_result = test_result.map_err(|report| Report {
-        panic_info: Some(PanicInfo {
-            message: PANIC_MESSAGE.take(),
-            location: PANIC_LOCATION.take(),
-        }),
-        ..report
-    });
-
-    test_result
+    test_result.map_err(|report| {
+        Box::new(Report {
+            panic_info: Some(PanicInfo {
+                message: PANIC_MESSAGE.take(),
+                location: PANIC_LOCATION.take(),
+            }),
+            ..*report
+        })
+    })
 }

@@ -76,8 +76,8 @@ pub trait InputGenerator {
     /// shrunk.
     ///
     /// [`Shrinker`]: InputGenerator::Shrinker
-    fn new_shrinker<'a>(
-        &'a self,
+    fn new_shrinker(
+        &self,
         failing_input: Self::InputSource,
     ) -> impl Shrinker<InputSource = Self::InputSource>;
 

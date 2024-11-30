@@ -135,7 +135,7 @@ pub fn run_test<T>(
     test: impl Fn(T) -> bool,
     generator: impl IntoInputGenerator<T>,
     rng: &mut impl Rng,
-) -> Result<(), Report<T>> {
+) -> Result<(), Box<Report<T>>> {
     let mut generator = generator.into_input_generator();
 
     // Find a failing input
@@ -144,9 +144,9 @@ pub fn run_test<T>(
     };
 
     // Shrink the failing input and generate a report
-    Err(shrink_and_generate_report(
+    Err(Box::new(shrink_and_generate_report(
         &test,
         &generator,
         failing_input_report,
-    ))
+    )))
 }

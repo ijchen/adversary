@@ -6,7 +6,7 @@ use syn::{
     Attribute, Block, FnArg, Ident, ItemFn, PatType, Token, Visibility,
 };
 
-use super::TestFuncOutput;
+use super::Expectation;
 
 #[derive(Debug)]
 /// A `syn::ItemFn`, with certain properties verified:
@@ -27,7 +27,7 @@ pub struct TestFunc {
     pub ident: Ident,
     pub paren_token: syn::token::Paren,
     pub inputs: Punctuated<PatType, Token![,]>,
-    pub output: TestFuncOutput,
+    pub output: Expectation,
     pub block: Box<Block>,
 }
 
@@ -132,7 +132,7 @@ impl TestFunc {
             ));
         }
 
-        let (output, attrs) = TestFuncOutput::parse(item_fn.sig.output, item_fn.attrs)?;
+        let (output, attrs) = Expectation::parse(item_fn.sig.output, item_fn.attrs)?;
 
         Ok(Self {
             attrs,
@@ -161,11 +161,11 @@ impl TestFunc {
         let paren_token = quote_spanned! { paren_token.span.span() => () };
 
         let inner_ret = match &output {
-            TestFuncOutput::ShouldNotPanic
-            | TestFuncOutput::ShouldPanic
-            | TestFuncOutput::ShouldPanicWithMessage { .. } => quote! {},
-            TestFuncOutput::ShouldReturnTrue => quote! { -> bool },
-            TestFuncOutput::ShouldReturnOk { err_ty } => {
+            Expectation::DoesNotPanic
+            | Expectation::Panics
+            | Expectation::PanicsWithMessage { .. } => quote! {},
+            Expectation::ReturnsTrue => quote! { -> bool },
+            Expectation::ReturnsOk { err_ty } => {
                 quote! { -> ::std::result::Result<(), #err_ty> }
             }
         };
@@ -179,29 +179,29 @@ impl TestFunc {
         let test_name = ident.to_string();
 
         let test_run = match &output {
-            TestFuncOutput::ShouldNotPanic => quote! {
+            Expectation::DoesNotPanic => quote! {
                 ::adversary::run_test_panics(
                     |(#(#value_idents),*)| inner_test(#(#value_idents),*),
                     generator,
                     &mut rng,
                 )
             },
-            TestFuncOutput::ShouldPanic => {
+            Expectation::Panics => {
                 return quote! { compile_error!("adversary tests that should panic are not yet implemented"); }
             }
-            TestFuncOutput::ShouldPanicWithMessage {
+            Expectation::PanicsWithMessage {
                 expected_substring: _,
             } => {
                 return quote! { compile_error!("adversary tests that should panic with a message are not yet implemented"); }
             }
-            TestFuncOutput::ShouldReturnTrue => quote! {
+            Expectation::ReturnsTrue => quote! {
                 ::adversary::run_test(
                     |(#(#value_idents),*)| inner_test(#(#value_idents),*),
                     generator,
                     &mut rng,
                 )
             },
-            TestFuncOutput::ShouldReturnOk { err_ty: _ } => {
+            Expectation::ReturnsOk { err_ty: _ } => {
                 // NOTE(ichen): should use the specialization hack to turn the
                 // error type into a string - first Display, then Debug, then a
                 // default message for types which don't impl either.
