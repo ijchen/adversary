@@ -12,7 +12,7 @@ features:
     - [x] integers
     - [ ] floats
     - [ ] [char](https://doc.rust-lang.org/std/primitive.char.html)
-    - [ ] [tuple](https://doc.rust-lang.org/std/primitive.tuple.html)
+    - [x] [tuple](https://doc.rust-lang.org/std/primitive.tuple.html)
     - [ ] [array](https://doc.rust-lang.org/std/primitive.array.html)
     - [ ] [String](https://doc.rust-lang.org/std/string/struct.String.html)
     - [ ] [Vec](https://doc.rust-lang.org/std/vec/struct.Vec.html)
@@ -38,6 +38,7 @@ features:
     - [ ] [Instant](https://doc.rust-lang.org/std/time/struct.Instant.html) (maybe?)
     - [ ] TODO: more libstd types
     - [ ] TODO: popular crate types
+  - [x] Tuples (up to arity 12)
   - [x] A single T value with no shrinking
     - [x] just(T)
     - [x] just_with(impl Fn() -> T)
