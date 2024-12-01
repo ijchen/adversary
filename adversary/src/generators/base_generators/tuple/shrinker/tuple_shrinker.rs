@@ -140,13 +140,13 @@ macro_rules! tuple_shrinker {
 
 tuple_shrinker! {
     3 { A B C }
-    // 4 { A B C D }
-    // 5 { A B C D E }
-    // 6 { A B C D E F }
-    // 7 { A B C D E F G }
-    // 8 { A B C D E F G H }
-    // 9 { A B C D E F G H I }
-    // 10 { A B C D E F G H I J }
-    // 11 { A B C D E F G H I J K }
-    // 12 { A B C D E F G H I J K L }
+    4 { A B C D }
+    5 { A B C D E }
+    6 { A B C D E F }
+    7 { A B C D E F G }
+    8 { A B C D E F G H }
+    9 { A B C D E F G H I }
+    10 { A B C D E F G H I J }
+    11 { A B C D E F G H I J K }
+    12 { A B C D E F G H I J K L }
 }

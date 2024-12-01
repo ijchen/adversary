@@ -1,8 +1,3 @@
-#![expect(
-    dead_code,
-    reason = "this code is unused until all tuple shrinking is implemented"
-)]
-
 use crate::{shrinker::Shrinker, InputGenerator};
 
 macro_rules! elementwise {

@@ -53,10 +53,6 @@ macro_rules! cartesian_product {
     )*}};
 }
 
-#[expect(
-    dead_code,
-    reason = "not all `cartesian_product`s are used yet - should be once tuple shrinking is fully implemented"
-)]
 mod mod_for_lint_attribute {
     use super::*;
 
