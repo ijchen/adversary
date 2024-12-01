@@ -1,8 +1,6 @@
 mod cartesian_product;
 mod shrinker;
 
-use paste::paste;
-
 use crate::{shrinker::Shrinker, InputGenerator, IntoInputGenerator};
 
 macro_rules! impl_tuple_into_input_generator {
@@ -11,7 +9,7 @@ macro_rules! impl_tuple_into_input_generator {
             @letters: $($letter:ident)+
             @indices: $($index:tt)+
         }
-    )*) => {paste!{$(
+    )*) => {paste::paste!{$(
         // NOTE(ichen): Implementations for tuples of arity 0, 1, and 2 should
         // be manual - this macro's implementation will overcomplicate in
         // meaningful ways.
@@ -88,5 +86,37 @@ impl_tuple_into_input_generator! {
     // 4 {
     //     @letters: A B C D
     //     @indices: 0 1 2 3
+    // }
+    // 5 {
+    //     @letters: A B C D E
+    //     @indices: 0 1 2 3 4
+    // }
+    // 6 {
+    //     @letters: A B C D E F
+    //     @indices: 0 1 2 3 4 5
+    // }
+    // 7 {
+    //     @letters: A B C D E F G
+    //     @indices: 0 1 2 3 4 5 6
+    // }
+    // 8 {
+    //     @letters: A B C D E F G H
+    //     @indices: 0 1 2 3 4 5 6 7
+    // }
+    // 9 {
+    //     @letters: A B C D E F G H I
+    //     @indices: 0 1 2 3 4 5 6 7 8
+    // }
+    // 10 {
+    //     @letters: A B C D E F G H I J
+    //     @indices: 0 1 2 3 4 5 6 7 8 9
+    // }
+    // 11 {
+    //     @letters: A B C D E F G H I J K
+    //     @indices: 0 1 2 3 4 5 6 7 8 9 10
+    // }
+    // 12 {
+    //     @letters: A B C D E F G H I J K L
+    //     @indices: 0 1 2 3 4 5 6 7 8 9 10 11
     // }
 }
