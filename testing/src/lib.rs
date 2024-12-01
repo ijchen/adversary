@@ -14,7 +14,7 @@ mod tests {
     }
 
     #[adv_test]
-    fn bar(a: bool, _b: (), c: bool) {
+    fn bar(a: bool, _b: (), c: bool, _d: u8, _e: (bool, u8, (i128, (), ()), u32)) {
         assert!(a || c || true);
     }
 }
