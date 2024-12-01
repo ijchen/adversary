@@ -1,4 +1,5 @@
 mod bool;
+mod ints;
 mod unit;
 
 use crate::InputGenerator;
