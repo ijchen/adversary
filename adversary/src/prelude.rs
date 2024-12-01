@@ -1,5 +1,5 @@
 pub use crate::{
-    self as adv, any, just, just_with, run_test, run_test_panics, InputGenerator,
+    self as adv, any, just, just_with, report::Report, run_test, run_test_panics, InputGenerator,
     InputGeneratorExt, IntoInputGenerator,
 };
 

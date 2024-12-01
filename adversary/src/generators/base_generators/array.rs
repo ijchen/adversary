@@ -77,7 +77,7 @@ impl Shrinker for ArrayShrinker {
 
 #[cfg(test)]
 mod tests {
-    use crate::{run_test, ShrinkStep};
+    use crate::{report::ShrinkStep, run_test};
 
     #[test]
     fn test_array() {

@@ -7,10 +7,9 @@ use std::{
 
 use crate::{
     rand::Rng,
-    report::{PanicInfo, PanicLocation},
+    report::{PanicInfo, PanicLocation, Report},
+    IntoInputGenerator,
 };
-
-use crate::{IntoInputGenerator, Report};
 
 use super::run_test;
 

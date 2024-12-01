@@ -242,7 +242,7 @@ impl TestFunc {
                 };
                 report.test_name = ::std::option::Option::Some(#test_name.to_string());
 
-                eprintln!("{}", report.render::<::adversary::Plaintext>());
+                eprintln!("{}", report.render::<::adversary::report::renderer::Plaintext>());
 
                 ::std::process::ExitCode::FAILURE
             }

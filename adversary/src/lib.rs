@@ -3,7 +3,7 @@ mod input_generator;
 mod input_generator_ext;
 mod into_input_generator;
 pub mod prelude;
-mod report;
+pub mod report;
 mod shrinker;
 pub mod shrinkers;
 mod test_runners;
@@ -19,12 +19,12 @@ pub use generators::{any, bool, just, just_with, Canonical};
 pub use input_generator::InputGenerator;
 pub use input_generator_ext::InputGeneratorExt;
 pub use into_input_generator::IntoInputGenerator;
-// TODO: don't publicly re-export Plaintext
-pub use report::{Plaintext, Report, ShrinkStep};
 pub use test_runners::{run_test, run_test_panics};
 
 #[cfg(test)]
 mod tests {
+    use report::ShrinkStep;
+
     use super::*;
 
     #[test]

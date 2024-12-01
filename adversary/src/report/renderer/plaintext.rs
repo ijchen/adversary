@@ -1,101 +1,14 @@
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PanicLocation {
-    pub file: String,
-    pub line: u32,
-    pub col: u32,
-}
+use crate::report::Report;
 
-impl std::fmt::Display for PanicLocation {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let PanicLocation { file, line, col } = self;
-
-        write!(f, "{file}:{line}:{col}")
-    }
-}
-
-impl From<&std::panic::Location<'_>> for PanicLocation {
-    fn from(value: &std::panic::Location<'_>) -> Self {
-        Self {
-            file: value.file().to_string(),
-            line: value.line(),
-            col: value.column(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PanicInfo {
-    pub message: Option<String>,
-    pub location: Option<PanicLocation>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Report<T> {
-    pub test_name: Option<String>,
-    pub panic_info: Option<PanicInfo>,
-    pub passing_runs: u64,
-    pub observations: Vec<Observation>,
-    // First elem is original failing input, last elem is the step right before
-    // the simplest failing input
-    pub shrink_steps: Vec<ShrinkStep<T>>,
-    pub simplest_failing_input: T,
-}
-
-// TODO: split this into its own submodule
-pub trait RenderReport {
-    fn render<T>(report: &Report<T>) -> String;
-}
+use super::ReportRenderer;
 
 pub struct Plaintext;
-impl RenderReport for Plaintext {
-    fn render<T>(_report: &Report<T>) -> String {
+impl ReportRenderer for Plaintext {
+    type Output = String;
+
+    fn render<T>(_report: &Report<T>) -> Self::Output {
         // TODO: do this for real
         "your test failed lol".to_string()
-    }
-}
-
-impl<T> Report<T> {
-    pub fn render<R: RenderReport>(&self) -> String {
-        R::render(self)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Observation {
-    pub contents: String,
-    pub importance: Importance,
-}
-
-impl Observation {
-    pub fn new(contents: impl Into<String>, importance: Importance) -> Self {
-        Self {
-            contents: contents.into(),
-            importance,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Importance {
-    Important,           // Always displayed to the user
-    MaybeRelevant,       // Sometimes displayed to the user
-    ProbablyUnimportant, // Never displayed to the user
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ShrinkStep<T> {
-    pub value: T,
-    pub just_informational: bool,
-    pub test_passed: bool,
-}
-
-impl<T> ShrinkStep<T> {
-    pub fn new(value: T, just_informational: bool, test_passed: bool) -> Self {
-        Self {
-            value,
-            just_informational,
-            test_passed,
-        }
     }
 }
 

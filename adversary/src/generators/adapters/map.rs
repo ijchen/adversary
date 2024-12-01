@@ -53,7 +53,7 @@ impl<U, G: InputGenerator, F: Fn(G::Input) -> U> InputGenerator for Map<G, F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{run_test, InputGeneratorExt, IntoInputGenerator, ShrinkStep};
+    use crate::{report::ShrinkStep, run_test, InputGeneratorExt, IntoInputGenerator};
 
     #[test]
     fn test_map_does_the_map_thing() {

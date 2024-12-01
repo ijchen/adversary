@@ -2,7 +2,7 @@ use crate::rand::Rng;
 
 use crate::shrinker::Shrinker as _;
 use crate::IntoInputGenerator;
-use crate::{report::ShrinkStep, InputGenerator, Report};
+use crate::{report::Report, report::ShrinkStep, InputGenerator};
 
 struct FailingInputReport<T, I> {
     pub failing_input: T,
