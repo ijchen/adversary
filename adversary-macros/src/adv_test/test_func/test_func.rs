@@ -12,6 +12,7 @@ use super::Expectation;
 /// A `syn::ItemFn`, with certain properties verified:
 /// - The function is not const, async, unsafe, or extern
 /// - The function has at least one argument
+/// - The function has no more than twelve arguments
 /// - The function does not include any receiver (`self`) arguments
 /// - The function is not generic and has no where clause
 /// - The function does not include a variadic argument
@@ -104,6 +105,20 @@ impl TestFunc {
             return Err(syn::Error::new(
                 item_fn.sig.paren_token.span.span(),
                 "adversary test functions must have at least one argument",
+            ));
+        }
+
+        // Ensure the function has no more than twelve arguments
+        if item_fn.sig.inputs.len() > 12 {
+            return Err(syn::Error::new(
+                // TODO(ichen): this should really be item_fn.sig.inputs.span(),
+                // but that currently only includes the first token in the
+                // signature's inputs. Probably an issue with syn/proc_macro's
+                // Span, I think this is getting fixed at some point. For now,
+                // I'm just using the parenthesis around the inputs, which works
+                // as expected.
+                item_fn.sig.paren_token.span.span(),
+                "adversary test functions must have no more than twelve arguments",
             ));
         }
 
