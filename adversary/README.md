@@ -9,7 +9,7 @@ features:
   - [ ] Canonical
     - [x] [unit](https://doc.rust-lang.org/std/primitive.unit.html)
     - [x] [bool](https://doc.rust-lang.org/std/primitive.bool.html)
-    - [ ] integers
+    - [x] integers
     - [ ] floats
     - [ ] [char](https://doc.rust-lang.org/std/primitive.char.html)
     - [ ] [tuple](https://doc.rust-lang.org/std/primitive.tuple.html)
