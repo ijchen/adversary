@@ -1,5 +1,6 @@
 mod cartesian_product;
 mod shrinker;
+mod unary;
 
 use crate::{shrinker::Shrinker, InputGenerator, IntoInputGenerator};
 

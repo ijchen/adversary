@@ -11,8 +11,8 @@ macro_rules! canonical_tuples {
 }
 
 canonical_tuples! {
-    // TODO(ichen): uncomment after implementing unary and binary tuple gens
-    // (A,),
+    (A,),
+    // TODO(ichen): uncomment after implementing binary tuple generator
     // (A, B),
     (A, B, C),
     (A, B, C, D),
