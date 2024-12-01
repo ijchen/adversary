@@ -6,8 +6,8 @@ use crate::{shrinker::Shrinker, InputGenerator, IntoInputGenerator};
 macro_rules! impl_tuple_into_input_generator {
     ($(
         $n:literal {
-            @letters: $($letter:ident)+
-            @indices: $($index:tt)+
+            @ letters : $($letter:ident)+
+            @ indices : $($index:literal)+
         }
     )*) => {paste::paste!{$(
         // NOTE(ichen): Implementations for tuples of arity 0, 1, and 2 should

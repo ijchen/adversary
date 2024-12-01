@@ -135,7 +135,6 @@ macro_rules! tuple_shrinker {
                 Vec::new()
             }
         }
-
     )*}};
 }
 
