@@ -1,8 +1,10 @@
 mod all_together;
-mod element_wise;
+mod elementwise;
+mod pairwise;
 
 use all_together::AllTogether3;
-use element_wise::ElementWise3;
+use elementwise::Elementwise3;
+use pairwise::Pairwise3;
 
 use crate::{report::Observation, shrinker::Shrinker, InputGenerator};
 
@@ -13,10 +15,10 @@ pub struct TupleShrinker3<'gens, GenA: InputGenerator, GenB: InputGenerator, Gen
 }
 
 enum Phase3<'gens, GenA: InputGenerator, GenB: InputGenerator, GenC: InputGenerator> {
-    ElementWiseFirstPass(ElementWise3<'gens, GenA, GenB, GenC>),
+    ElementWiseFirstPass(Elementwise3<'gens, GenA, GenB, GenC>),
     AllTogetherFirstPass(AllTogether3<'gens, GenA, GenB, GenC>),
-    Pairwise,
-    ElementWiseSecondPass(ElementWise3<'gens, GenA, GenB, GenC>),
+    Pairwise(Pairwise3<'gens, GenA, GenB, GenC>),
+    ElementWiseSecondPass(Elementwise3<'gens, GenA, GenB, GenC>),
     AllTogetherSecondPass(AllTogether3<'gens, GenA, GenB, GenC>),
     Done,
 }
@@ -29,7 +31,7 @@ impl<'gens, GenA: InputGenerator, GenB: InputGenerator, GenC: InputGenerator>
         current_values: (GenA::InputSource, GenB::InputSource, GenC::InputSource),
     ) -> Self {
         let phase =
-            Phase3::ElementWiseFirstPass(ElementWise3::new(generators, current_values.clone()));
+            Phase3::ElementWiseFirstPass(Elementwise3::new(generators, current_values.clone()));
 
         let mut this = Self {
             generators,
@@ -56,17 +58,19 @@ impl<'gens, GenA: InputGenerator, GenB: InputGenerator, GenC: InputGenerator>
         // If AllTogetherFirstPass is done, progress to Pairwise
         if let Phase3::AllTogetherFirstPass(phase) = &self.phase {
             if phase.is_done() {
-                self.phase = Phase3::Pairwise;
+                self.phase =
+                    Phase3::Pairwise(Pairwise3::new(self.generators, self.current_values.clone()));
             }
         }
 
         // If Pairwise is done, progress to ElementWiseSecondPass
-        // TODO(ichen): until this phase is implemented, always progress
-        if let Phase3::Pairwise = &self.phase {
-            self.phase = Phase3::ElementWiseSecondPass(ElementWise3::new(
-                self.generators,
-                self.current_values.clone(),
-            ));
+        if let Phase3::Pairwise(phase) = &self.phase {
+            if phase.is_done() {
+                self.phase = Phase3::ElementWiseSecondPass(Elementwise3::new(
+                    self.generators,
+                    self.current_values.clone(),
+                ));
+            }
         }
 
         // If ElementWiseSecondPass is done, progress to AllTogetherSecondPass
@@ -97,7 +101,7 @@ impl<'gens, GenA: InputGenerator, GenB: InputGenerator, GenC: InputGenerator> Sh
         match &self.phase {
             Phase3::ElementWiseFirstPass(phase) => phase.current_attempt(),
             Phase3::AllTogetherFirstPass(phase) => phase.current_attempt(),
-            Phase3::Pairwise => todo!(),
+            Phase3::Pairwise(phase) => phase.current_attempt(),
             Phase3::ElementWiseSecondPass(phase) => phase.current_attempt(),
             Phase3::AllTogetherSecondPass(phase) => phase.current_attempt(),
             Phase3::Done => None,
@@ -114,12 +118,12 @@ impl<'gens, GenA: InputGenerator, GenB: InputGenerator, GenC: InputGenerator> Sh
                 phase.update(self.generators, current_attempt_passed)
             }
             Phase3::AllTogetherFirstPass(phase) => phase.update(current_attempt_passed),
-            Phase3::Pairwise => todo!(),
+            Phase3::Pairwise(phase) => phase.update(self.generators, current_attempt_passed),
             Phase3::ElementWiseSecondPass(phase) => {
                 phase.update(self.generators, current_attempt_passed)
             }
             Phase3::AllTogetherSecondPass(phase) => phase.update(current_attempt_passed),
-            Phase3::Done => todo!(),
+            Phase3::Done => { /* Nothing to do here */ }
         }
     }
 

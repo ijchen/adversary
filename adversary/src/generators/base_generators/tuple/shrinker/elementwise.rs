@@ -1,6 +1,6 @@
 use crate::{shrinker::Shrinker, InputGenerator};
 
-pub struct ElementWise3<'gens, GenA: InputGenerator, GenB: InputGenerator, GenC: InputGenerator> {
+pub struct Elementwise3<'gens, GenA: InputGenerator, GenB: InputGenerator, GenC: InputGenerator> {
     current_values: (GenA::InputSource, GenB::InputSource, GenC::InputSource),
     step: Step3<'gens, GenA, GenB, GenC>,
 }
@@ -13,7 +13,7 @@ enum Step3<'gens, GenA: InputGenerator, GenB: InputGenerator, GenC: InputGenerat
 }
 
 impl<'gens, GenA: InputGenerator, GenB: InputGenerator, GenC: InputGenerator>
-    ElementWise3<'gens, GenA, GenB, GenC>
+    Elementwise3<'gens, GenA, GenB, GenC>
 {
     pub fn new(
         generators: (&'gens GenA, &'gens GenB, &'gens GenC),
