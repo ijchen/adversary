@@ -18,10 +18,10 @@ macro_rules! tuple_shrinker {
         }
 
         enum [<Phase $n>]<'gens, $([<Gen $letter>]: InputGenerator),+> {
-            ElementWiseFirstPass([<Elementwise $n>]<'gens, $([<Gen $letter>]),+>),
+            ElementwiseFirstPass([<Elementwise $n>]<'gens, $([<Gen $letter>]),+>),
             AllTogetherFirstPass([<AllTogether $n>]<'gens, $([<Gen $letter>]),+>),
             Pairwise([<Pairwise $n>]<'gens, $([<Gen $letter>]),+>),
-            ElementWiseSecondPass([<Elementwise $n>]<'gens, $([<Gen $letter>]),+>),
+            ElementwiseSecondPass([<Elementwise $n>]<'gens, $([<Gen $letter>]),+>),
             AllTogetherSecondPass([<AllTogether $n>]<'gens, $([<Gen $letter>]),+>),
             Done,
         }
@@ -34,7 +34,7 @@ macro_rules! tuple_shrinker {
                 current_values: ($([<Gen $letter>]::InputSource),+),
             ) -> Self {
                 let phase =
-                    [<Phase $n>]::ElementWiseFirstPass([<Elementwise $n>]::new(generators, current_values.clone()));
+                    [<Phase $n>]::ElementwiseFirstPass([<Elementwise $n>]::new(generators, current_values.clone()));
 
                 let mut this = Self {
                     generators,
@@ -48,8 +48,8 @@ macro_rules! tuple_shrinker {
             }
 
             pub fn progress_if_necessary(&mut self) {
-                // If ElementWiseFirstPass is done, progress to AllTogetherFirstPass
-                if let [<Phase $n>]::ElementWiseFirstPass(phase) = &self.phase {
+                // If ElementwiseFirstPass is done, progress to AllTogetherFirstPass
+                if let [<Phase $n>]::ElementwiseFirstPass(phase) = &self.phase {
                     if phase.is_done() {
                         self.phase = [<Phase $n>]::AllTogetherFirstPass([<AllTogether $n>]::new(
                             self.generators,
@@ -66,18 +66,18 @@ macro_rules! tuple_shrinker {
                     }
                 }
 
-                // If Pairwise is done, progress to ElementWiseSecondPass
+                // If Pairwise is done, progress to ElementwiseSecondPass
                 if let [<Phase $n>]::Pairwise(phase) = &self.phase {
                     if phase.is_done() {
-                        self.phase = [<Phase $n>]::ElementWiseSecondPass([<Elementwise $n>]::new(
+                        self.phase = [<Phase $n>]::ElementwiseSecondPass([<Elementwise $n>]::new(
                             self.generators,
                             self.current_values.clone(),
                         ));
                     }
                 }
 
-                // If ElementWiseSecondPass is done, progress to AllTogetherSecondPass
-                if let [<Phase $n>]::ElementWiseSecondPass(phase) = &self.phase {
+                // If ElementwiseSecondPass is done, progress to AllTogetherSecondPass
+                if let [<Phase $n>]::ElementwiseSecondPass(phase) = &self.phase {
                     if phase.is_done() {
                         self.phase = [<Phase $n>]::AllTogetherSecondPass([<AllTogether $n>]::new(
                             self.generators,
@@ -102,10 +102,10 @@ macro_rules! tuple_shrinker {
 
             fn current_attempt(&self) -> Option<Self::InputSource> {
                 match &self.phase {
-                    [<Phase $n>]::ElementWiseFirstPass(phase) => phase.current_attempt(),
+                    [<Phase $n>]::ElementwiseFirstPass(phase) => phase.current_attempt(),
                     [<Phase $n>]::AllTogetherFirstPass(phase) => phase.current_attempt(),
                     [<Phase $n>]::Pairwise(phase) => phase.current_attempt(),
-                    [<Phase $n>]::ElementWiseSecondPass(phase) => phase.current_attempt(),
+                    [<Phase $n>]::ElementwiseSecondPass(phase) => phase.current_attempt(),
                     [<Phase $n>]::AllTogetherSecondPass(phase) => phase.current_attempt(),
                     [<Phase $n>]::Done => None,
                 }
@@ -117,12 +117,12 @@ macro_rules! tuple_shrinker {
                 }
 
                 match &mut self.phase {
-                    [<Phase $n>]::ElementWiseFirstPass(phase) => {
+                    [<Phase $n>]::ElementwiseFirstPass(phase) => {
                         phase.update(self.generators, current_attempt_passed)
                     }
                     [<Phase $n>]::AllTogetherFirstPass(phase) => phase.update(current_attempt_passed),
                     [<Phase $n>]::Pairwise(phase) => phase.update(self.generators, current_attempt_passed),
-                    [<Phase $n>]::ElementWiseSecondPass(phase) => {
+                    [<Phase $n>]::ElementwiseSecondPass(phase) => {
                         phase.update(self.generators, current_attempt_passed)
                     }
                     [<Phase $n>]::AllTogetherSecondPass(phase) => phase.update(current_attempt_passed),

@@ -1,4 +1,4 @@
-fn cartesian_product_2<
+pub fn cartesian_product_2<
     A: Iterator,
     B: Iterator,
     AMaker: Copy + Fn() -> A,

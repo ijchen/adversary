@@ -1,8 +1,12 @@
+mod binary;
 mod cartesian_product;
+mod pair;
 mod shrinker;
 mod unary;
 
 use crate::{shrinker::Shrinker, InputGenerator, IntoInputGenerator};
+
+pub use pair::Pair;
 
 macro_rules! impl_tuple_into_input_generator {
     ($(

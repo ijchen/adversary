@@ -50,7 +50,7 @@ macro_rules! elementwise {
 
             pub fn progress_if_necessary(&mut self, generators: ($(&'gens [<Gen $letter>]),+)) {
                 $(
-                    // If the Xth shrinker is done, progress to (X+1)th
+                    // If the Xth shrinker is done, progress to the (X+1)th
                     if let [<Step $n>]::$shrinking_from(shrinker) = &mut self.step {
                         if shrinker.current_attempt().is_none() {
                             self.step = [<Step $n>]::$shrinking_to(Box::new(
@@ -94,7 +94,7 @@ macro_rules! elementwise {
             ) {
                 match &mut self.step {
                     $([<Step $n>]::[<Shrinking $letter>](shrinker) => shrinker.update(current_attempt_passed),)+
-                    [<Step $n>]::Done => panic!(concat!("`ElementWise", $n, "::update` called while in `Step::Done`")),
+                    [<Step $n>]::Done => panic!(concat!("`Elementwise", $n, "::update` called while in `Step::Done`")),
                 }
 
                 self.progress_if_necessary(generators);

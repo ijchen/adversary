@@ -12,8 +12,7 @@ macro_rules! canonical_tuples {
 
 canonical_tuples! {
     (A,),
-    // TODO(ichen): uncomment after implementing binary tuple generator
-    // (A, B),
+    (A, B),
     (A, B, C),
     (A, B, C, D),
     (A, B, C, D, E),
