@@ -5,48 +5,187 @@ use super::ReportRenderer;
 use std::fmt::Write as _;
 
 macro_rules! writeln_string {
-    ($string:ident, $($rest:tt)*) => {{
+    ($string:ident$(, $($rest:tt)*)?) => {{
         let _: &mut String = $string;
-        writeln!($string, $($rest)*).expect("writing to a String cannot fail")
+        writeln!($string$(, $($rest)*)?).expect("writing to a String cannot fail")
     }}
 }
 
-#[expect(unused, reason = "will be used soon")]
 macro_rules! write_string {
-    ($string:ident, $($rest:tt)*) => {{
+    ($string:ident$(, $($rest:tt)*)?) => {{
         let _: &mut String = $string;
-        write!($string, $($rest)*).expect("writing to a String cannot fail")
+        write!($string$(, $($rest)*)?).expect("writing to a String cannot fail")
     }}
+}
+
+// Converts a number of passing runs to a comma-separated string representing
+// the number of *total* runs (passing runs + 1)
+//
+// Ex: 3982551 -> "3,982,552 runs"
+// Ex: 0 -> "1 run"
+// Ex: u64::MAX - 1 -> "18,446,744,073,709,551,615 runs"
+// Ex: u64::MAX -> "over 18,446,744,073,709,551,615 runs"
+fn format_run_count(passing_runs: u64) -> String {
+    // TODO: Locale considerations (https://crates.io/crates/num-format)
+    fn thousands_separate(n: u64) -> String {
+        // From https://stackoverflow.com/a/67834588
+        n.to_string()
+            .as_bytes()
+            .rchunks(3)
+            .rev()
+            .map(std::str::from_utf8)
+            .collect::<Result<Vec<&str>, _>>()
+            .unwrap()
+            .join(",")
+    }
+
+    let runs_maybe_singular = if passing_runs.checked_add(1).is_some_and(|runs| runs == 1) {
+        "run"
+    } else {
+        "runs"
+    };
+
+    match passing_runs.checked_add(1) {
+        None => format!(
+            "over {} {runs_maybe_singular}",
+            thousands_separate(passing_runs)
+        ),
+        Some(total_runs) => format!("{} {runs_maybe_singular}", thousands_separate(total_runs)),
+    }
+}
+
+// Outputs this section:
+// Test 'my_test_name' failed after 3,982,552 runs. The simplest failing input found was:
+// [0, 0, 3]
+fn failure_summary<T>(output: &mut String, report: &Report<T>, converter: impl Fn(&T) -> String) {
+    write_string!(output, "Test ");
+
+    if let Some(test_name) = &report.test_name {
+        write_string!(output, "{} ", test_name);
+    }
+
+    let formatted_run_count = format_run_count(report.passing_runs);
+    writeln_string!(
+        output,
+        "failed after {formatted_run_count}. The simplest failing input found was:",
+    );
+
+    writeln_string!(output, "{}", converter(&report.simplest_failing_input));
+}
+
+// Outputs the details section
+fn details<T>(output: &mut String, report: &Report<T>, converter: impl Fn(&T) -> String) {
+    writeln_string!(output, "# Details");
+
+    // Test: my_test_name
+    if let Some(test_name) = &report.test_name {
+        writeln_string!(output, "Test: {test_name}");
+    }
+
+    if let Some(panic_info) = &report.panic_info {
+        // Panic message: "Some optional string here, newlines and non-printables escaped"
+        if let Some(panic_message) = &panic_info.message {
+            let escaped_panic_message = panic_message; // TODO: escape
+            writeln_string!(output, "Panic message: {escaped_panic_message}");
+        }
+
+        // Panic location: src/something/whatever/foo.rs:100:24
+        if let Some(panic_location) = &panic_info.location {
+            writeln_string!(
+                output,
+                "Panic location: {}:{}:{}",
+                panic_location.file,
+                panic_location.line,
+                panic_location.col
+            );
+        }
+    }
+
+    // Attempts taken to fail: 3,982,552
+    let formatted_run_count = format_run_count(report.passing_runs);
+    writeln_string!(output, "Attempts taken to fail: {formatted_run_count}");
+
+    // Simplest failing input: [0, 0, 3]
+    // TODO: consider trimming if line exceeds certain length
+    writeln_string!(
+        output,
+        "Simplest failing input: {}",
+        converter(&report.simplest_failing_input)
+    );
+
+    // Original failing input: [948752093874, 94357209348671097, 437685812673...
+    // TODO: consider trimming if line exceeds certain length
+    // TODO: consider different formatting (or even omitting) if steps is empty
+    writeln_string!(
+        output,
+        "Original failing input: {}",
+        converter(
+            report
+                .shrink_steps
+                .first()
+                .map(|shrink_step| &shrink_step.value)
+                .unwrap_or(&report.simplest_failing_input)
+        )
+    );
+    // TODO: observations, ex:
+    // Observations:
+    // - The vector length was reduced to 3, but lengths under 3 started passing
+    // - The value at index 0 probably doesn't matter - it was instantly reduced to the simplest value
+    // - The value at index 1 probably doesn't matter - it was instantly reduced to the simplest value
+    // - The value at index 2 was reduced to 3, but values under 3 started passing
+    // - A second pass over the vector was unable to shrink any elements further.
+    // - The test seems to fail consistently - 1,000 runs all failed
+
+    // Full shrinking steps:
+    // - FAIL: ...
+    // - PASS: ...
+    // - Fail: ...
+    // ...
+    if !report.shrink_steps.is_empty() {
+        writeln_string!(output, "Full shrinking steps:");
+
+        for step in &report.shrink_steps {
+            let passfail = if step.test_passed { "PASS" } else { "FAIL" };
+            // TODO: consider trimming if line exceeds certain length
+            let value = converter(&report.simplest_failing_input);
+            writeln_string!(output, "- {passfail}: {value}");
+        }
+    }
 }
 
 pub struct Plaintext;
 impl ReportRenderer for Plaintext {
     type Output = String;
-    type ConvertedT = String;
+    type Converted = String;
 
-    fn render<T>(_report: &Report<T>, _convert: impl Fn(&T) -> Self::ConvertedT) -> Self::Output {
-        let mut rendered_owned = String::new();
-        let rendered = &mut rendered_owned;
+    fn render<T>(report: &Report<T>, converter: impl Fn(&T) -> Self::Converted) -> Self::Output {
+        let mut rendered_report = String::new();
+        let output = &mut rendered_report;
 
-        writeln_string!(rendered, "your test failed lol");
+        failure_summary(output, report, &converter);
+        writeln_string!(output);
 
-        rendered_owned
+        details(output, report, &converter);
+
+        assert_eq!(rendered_report.pop(), Some('\n'));
+
+        rendered_report
     }
 }
 
 /*
 EXAMPLE REPORT
-Can also be output in various formats, like HTML, markdown, text, etc.
+(Can also be output in various formats, like HTML, markdown, text, etc.)
 
-Test failed!
-
+--------------------------------------------------------------------------------
 Test 'my_test_name' failed after 3,982,552 runs. The simplest failing input found was:
 [0, 0, 3]
 
 # Details
 Test: my_test_name
 Panic message: "Some optional string here, newlines and non-printables escaped"
-Number of passing attempts before failure: 3,982,552
+Panic location: src/something/whatever/foo.rs:100:24
+Attempts taken to fail: 3,982,552
 Simplest failing input: [0, 0, 3]
 Original failing input: [948752093874, 94357209348671097, 43768581267384, 293...
 Observations:
@@ -57,10 +196,10 @@ Observations:
 - A second pass over the vector was unable to shrink any elements further.
 - The test seems to fail consistently - 1,000 runs all failed
 Full shrinking steps:
-- FAIL: [948752093874, 94357209348671097, 43768581267384, 2939157349818, 8176518...
+- FAIL: [948752093874, 94357209348671097, 43768581267384, 2939157349818, 8176...
 - PASS: []
-- FAIL: [948752093874, 94357209348671097, 43768581267384, 2939157349818, 8176518...
-- FAIL: [948752093874, 94357209348671097, 43768581267384, 2939157349818, 8176518...
+- FAIL: [948752093874, 94357209348671097, 43768581267384, 2939157349818, 8176...
+- FAIL: [948752093874, 94357209348671097, 43768581267384, 2939157349818, 8176...
 - FAIL: [948752093874, 94357209348671097, 43768581267384, 2939157349818]
 - PASS: [948752093874, 94357209348671097]
 - FAIL: [948752093874, 94357209348671097, 43768581267384]
@@ -113,4 +252,5 @@ Full shrinking steps:
 - FAIL: [0, 0, 4]
 - PASS: [0, 0, 2]
 - FAIL: [0, 0, 3]
+--------------------------------------------------------------------------------
 */

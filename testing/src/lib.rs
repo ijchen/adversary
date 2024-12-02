@@ -27,4 +27,25 @@ mod tests {
 
         add(add(a, b), c) == add(a, add(b, c))
     }
+
+    // #[derive(Clone)]
+    // struct Foo;
+    // impl adv::Canonical for Foo {
+    //     fn canonical() -> impl InputGenerator<Input = Self> + Send + Sync + Unpin {
+    //         just(Foo)
+    //     }
+    // }
+
+    // #[adv_test]
+    // fn my_cool_test1(_: i32, _: bool) -> bool {
+    //     false
+    // }
+    // #[adv_test]
+    // fn my_cool_test2(_: i32) -> bool {
+    //     false
+    // }
+    // #[adv_test]
+    // fn my_cool_test3(_: Foo) -> bool {
+    //     false
+    // }
 }

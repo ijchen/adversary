@@ -4,10 +4,9 @@ use super::Report;
 
 pub use plaintext::Plaintext;
 
-// TODO: split this into its own submodule
 pub trait ReportRenderer {
     type Output;
-    type ConvertedT;
+    type Converted;
 
-    fn render<T>(report: &Report<T>, convert: impl Fn(&T) -> Self::ConvertedT) -> Self::Output;
+    fn render<T>(report: &Report<T>, converter: impl Fn(&T) -> Self::Converted) -> Self::Output;
 }
