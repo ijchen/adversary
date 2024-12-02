@@ -2,13 +2,35 @@ use crate::report::Report;
 
 use super::ReportRenderer;
 
+use std::fmt::Write as _;
+
+macro_rules! writeln_string {
+    ($string:ident, $($rest:tt)*) => {{
+        let _: &mut String = $string;
+        writeln!($string, $($rest)*).expect("writing to a String cannot fail")
+    }}
+}
+
+#[expect(unused, reason = "will be used soon")]
+macro_rules! write_string {
+    ($string:ident, $($rest:tt)*) => {{
+        let _: &mut String = $string;
+        write!($string, $($rest)*).expect("writing to a String cannot fail")
+    }}
+}
+
 pub struct Plaintext;
 impl ReportRenderer for Plaintext {
     type Output = String;
+    type ConvertedT = String;
 
-    fn render<T>(_report: &Report<T>) -> Self::Output {
-        // TODO: do this for real
-        "your test failed lol".to_string()
+    fn render<T>(_report: &Report<T>, _convert: impl Fn(&T) -> Self::ConvertedT) -> Self::Output {
+        let mut rendered_owned = String::new();
+        let rendered = &mut rendered_owned;
+
+        writeln_string!(rendered, "your test failed lol");
+
+        rendered_owned
     }
 }
 

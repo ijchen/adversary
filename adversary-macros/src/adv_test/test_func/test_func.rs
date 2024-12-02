@@ -185,7 +185,8 @@ impl TestFunc {
             }
         };
 
-        let arg_types = inputs.iter().map(|arg| &arg.ty);
+        // TODO: not do this weird ownership cheat
+        let arg_types = inputs.iter().map(|arg| &arg.ty).collect::<Vec<_>>();
 
         let value_idents: Vec<Ident> = (0..inputs.len())
             .map(|n| format_ident!("arg_{n}"))
@@ -242,7 +243,46 @@ impl TestFunc {
                 };
                 report.test_name = ::std::option::Option::Some(#test_name.to_string());
 
-                eprintln!("{}", report.render::<::adversary::report::renderer::Plaintext>());
+                // NOTE(ichen): Uses a cute specialization hack to convert the
+                // generic `T` value into a `String` - through `Display` if
+                // possible, then `Debug` if possible, and finally falling back
+                // to a default message for types which don't implement either.
+                //
+                // See:
+                // https://lukaskalbertodt.github.io/2019/12/05/generalized-autoref-based-specialization.html
+                //
+                // TODO(ichen): convert each argument independently, want:
+                // `(ids: Vec<u8>, thing: NotDebug, other: String)`
+                // ...to become...
+                // ids: [2, 6, 32, 51]
+                // thing: <user_crate::module::NotDebug> (output from type_name)
+                // other: Hello, world!
+                // ...instead of...
+                // <(std::vec::Vec<u8>, user_crate::module::NotDebug, std::string::String)>
+                //
+                // TODO(ichen): figure out why specifying this type is necessary
+                //                    vvvvvvvvvvvvvvvvvvvvv
+                let converter = |value: &(#(#arg_types),*)| {
+                    struct Wrap<'a, T>(&'a T);
+
+                    trait ViaDisplay { fn stringify(&self) -> String; }
+                    impl<'a, T: ::std::fmt::Display> ViaDisplay for &&Wrap<'a, T> {
+                        fn stringify(&self) -> String { ::std::format!("{}", self.0) }
+                    }
+
+                    trait ViaDebug { fn stringify(&self) -> String; }
+                    impl<'a, T: ::std::fmt::Debug> ViaDebug for &Wrap<'a, T> {
+                        fn stringify(&self) -> String { ::std::format!("{:?}", self.0) }
+                    }
+
+                    trait Fallback { fn stringify(&self) -> String; }
+                    impl<'a, T> Fallback for Wrap<'a, T> {
+                        fn stringify(&self) -> String { ::std::format!("<{}>", ::std::any::type_name::<T>()) }
+                    }
+
+                    (&&&Wrap(value)).stringify()
+                };
+                ::std::eprintln!("{}", report.render::<::adversary::report::renderer::Plaintext>(converter));
 
                 ::std::process::ExitCode::FAILURE
             }

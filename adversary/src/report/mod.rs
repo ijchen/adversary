@@ -22,7 +22,7 @@ pub struct Report<T> {
 }
 
 impl<T> Report<T> {
-    pub fn render<R: ReportRenderer>(&self) -> R::Output {
-        R::render(self)
+    pub fn render<R: ReportRenderer>(&self, converter: impl Fn(&T) -> R::ConvertedT) -> R::Output {
+        R::render(self, converter)
     }
 }
