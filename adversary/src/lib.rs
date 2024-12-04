@@ -4,6 +4,7 @@ mod input_generator_ext;
 mod into_input_generator;
 pub mod prelude;
 pub mod report;
+mod self_test_helpers;
 mod shrinker;
 pub mod shrinkers;
 mod test_runners;
