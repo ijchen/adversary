@@ -4,6 +4,7 @@ macro_rules! elementwise {
     ($(
         $n:literal {
             @ letters : $($letter:ident)+
+            @ indices : $($index:literal)+
             @ progress_if_necessary_helper :
                 $( ( $shrinking_from:ident $shrinking_to:ident $shrinking_count:literal ) )+
                 $shrinking_last:ident
@@ -93,7 +94,15 @@ macro_rules! elementwise {
                 current_attempt_passed: bool,
             ) {
                 match &mut self.step {
-                    $([<Step $n>]::[<Shrinking $letter>](shrinker) => shrinker.update(current_attempt_passed),)+
+                    $([<Step $n>]::[<Shrinking $letter>](shrinker) => {
+                        if !current_attempt_passed {
+                            self.current_values.$index = shrinker
+                                .current_attempt()
+                                .expect(concat!("`Elementwise", $n, "::update` called, but `Elementwise", $n, "::current_attempt` returned `None`"));
+                        }
+
+                        shrinker.update(current_attempt_passed)
+                    })+
                     [<Step $n>]::Done => panic!(concat!("`Elementwise", $n, "::update` called while in `Step::Done`")),
                 }
 
@@ -106,6 +115,7 @@ macro_rules! elementwise {
 elementwise! {
     3 {
         @letters: A B C
+        @indices: 0 1 2
         @progress_if_necessary_helper:
             (ShrinkingA ShrinkingB 1)
             (ShrinkingB ShrinkingC 2)
@@ -117,6 +127,7 @@ elementwise! {
     }
     4 {
         @letters: A B C D
+        @indices: 0 1 2 3
         @progress_if_necessary_helper:
             (ShrinkingA ShrinkingB 1)
             (ShrinkingB ShrinkingC 2)
@@ -130,6 +141,7 @@ elementwise! {
     }
     5 {
         @letters: A B C D E
+        @indices: 0 1 2 3 4
         @progress_if_necessary_helper:
             (ShrinkingA ShrinkingB 1)
             (ShrinkingB ShrinkingC 2)
@@ -145,6 +157,7 @@ elementwise! {
     }
     6 {
         @letters: A B C D E F
+        @indices: 0 1 2 3 4 5
         @progress_if_necessary_helper:
             (ShrinkingA ShrinkingB 1)
             (ShrinkingB ShrinkingC 2)
@@ -162,6 +175,7 @@ elementwise! {
     }
     7 {
         @letters: A B C D E F G
+        @indices: 0 1 2 3 4 5 6
         @progress_if_necessary_helper:
             (ShrinkingA ShrinkingB 1)
             (ShrinkingB ShrinkingC 2)
@@ -181,6 +195,7 @@ elementwise! {
     }
     8 {
         @letters: A B C D E F G H
+        @indices: 0 1 2 3 4 5 6 7
         @progress_if_necessary_helper:
             (ShrinkingA ShrinkingB 1)
             (ShrinkingB ShrinkingC 2)
@@ -202,6 +217,7 @@ elementwise! {
     }
     9 {
         @letters: A B C D E F G H I
+        @indices: 0 1 2 3 4 5 6 7 8
         @progress_if_necessary_helper:
             (ShrinkingA ShrinkingB 1)
             (ShrinkingB ShrinkingC 2)
@@ -225,6 +241,7 @@ elementwise! {
     }
     10 {
         @letters: A B C D E F G H I J
+        @indices: 0 1 2 3 4 5 6 7 8 9
         @progress_if_necessary_helper:
             (ShrinkingA ShrinkingB 1)
             (ShrinkingB ShrinkingC 2)
@@ -249,7 +266,8 @@ elementwise! {
             (0 1 2 3 4 5 6 7 8 #)
     }
     11 {
-        @letters: A B C D E F G H I J K
+        @letters: A B C D E F G H I J  K
+        @indices: 0 1 2 3 4 5 6 7 8 9 10
         @progress_if_necessary_helper:
             (ShrinkingA ShrinkingB 1)
             (ShrinkingB ShrinkingC 2)
@@ -276,7 +294,8 @@ elementwise! {
             (0 1 2 3 4 5 6 7 8 9 ##)
     }
     12 {
-        @letters: A B C D E F G H I J K L
+        @letters: A B C D E F G H I J  K  L
+        @indices: 0 1 2 3 4 5 6 7 8 9 10 11
         @progress_if_necessary_helper:
             (ShrinkingA ShrinkingB 1)
             (ShrinkingB ShrinkingC 2)
