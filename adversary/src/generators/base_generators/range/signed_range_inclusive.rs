@@ -52,6 +52,9 @@ macro_rules! signed_range_inclusive {
             // - The middle two or three numbers, whichever is symmetrical
             // - -1, 0, 1
             //
+            // Note that each potential value is only included if it actually
+            // falls within the range of allowed values.
+            //
             // TODO: at some point, consider an optimized version of this that
             // doesn't allocate and uses smart math
             fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {

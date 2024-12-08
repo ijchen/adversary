@@ -34,17 +34,23 @@ fn find_failing_input<T, I: Clone>(
                 });
             }
 
-            // TODO(ichen): maybe possibly consider handling overflow better
-            // than saturating (although, FWIW, at 50 billion inputs per second,
-            // it would take over 11 years to reach u64::MAX)
+            // NOTE(ichen): Saturating add because the documentation on `Report`
+            // indicates that:
+            // > [`u64::MAX`] indicates that the test failed [`usize::MAX`]
+            // > *or more* times.
+            // FWIW, at 50 billion inputs per second, it would take over 11
+            // years to reach u64::MAX
             passing_runs = passing_runs.saturating_add(1);
         }
 
         None
     }
 
-    // TODO: allow customizing this
+    // TODO: allow customizing these
     const MAX_RUNS: usize = 1_000_000;
+    const MIN_RANDOM_INPUTS: usize = MAX_RUNS / 5;
+
+    const { assert!(MIN_RANDOM_INPUTS <= MAX_RUNS) }
 
     // TODO(ichen): consider the cost of triple-monomorphization here, and
     // possible alternatives.
@@ -55,7 +61,7 @@ fn find_failing_input<T, I: Clone>(
         helper(&test, generator, generator.exhaustive())
     } else if generator
         .adversarial_count()
-        .is_some_and(|adversarial_count| adversarial_count <= MAX_RUNS)
+        .is_some_and(|adversarial_count| adversarial_count <= MAX_RUNS - MIN_RANDOM_INPUTS)
     {
         helper(
             &test,

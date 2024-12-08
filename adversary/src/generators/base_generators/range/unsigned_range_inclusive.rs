@@ -36,19 +36,22 @@ macro_rules! unsigned_range_inclusive {
                 Some(self.adversarial().count())
             }
 
-            // For unsigned ints, adversarial values are:
+            // For unsigned ints, the potential adversarial values are:
             // - Range start and end
             // - Range start + 1 and end - 1
             // - The middle two or three numbers, whichever is symmetrical
             // - 0, 1
             //
+            // Note that each potential value is only included if it actually
+            // falls within the range of allowed values.
+            //
             // TODO: at some point, consider an optimized version of this that
             // doesn't allocate and uses smart math
             fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
-                let cardinality = self.max - self.min;
-                match cardinality {
-                    0..=7 => (self.min..=self.max).collect(),
-                    cardinality => {
+                let cardinality_minus_one = self.max - self.min;
+                match cardinality_minus_one {
+                    0..=6 => (self.min..=self.max).collect(),
+                    cardinality_minus_one => {
                         let mut nums = Vec::with_capacity(9);
 
                         nums.push(self.min);
@@ -56,11 +59,11 @@ macro_rules! unsigned_range_inclusive {
                         nums.push(self.min + 1);
                         nums.push(self.max - 1);
 
-                        nums.push(self.min + cardinality / 2 - 1);
-                        nums.push(self.min + cardinality / 2);
-                        if cardinality % 2 == 1 {
-                            nums.push(self.min + cardinality / 2 + 1);
+                        if cardinality_minus_one % 2 == 0 {
+                            nums.push(self.min + cardinality_minus_one / 2 - 1);
                         }
+                        nums.push(self.min + cardinality_minus_one / 2);
+                        nums.push(self.min + cardinality_minus_one / 2 + 1);
 
                         if !nums.contains(&0) {
                             nums.push(0)
@@ -98,6 +101,30 @@ macro_rules! unsigned_range_inclusive {
         // first try the min right away, and also may want to not always rule
         // out every value less than any we've seen pass - most tests won't be
         // split into a passing bottom half and failing top half.
+        // Shrinking steps (`min` is the minimum value in the range, `k` is the
+        // current minimal known failing input): (TODO: not yet implemented)
+        // - Try `min` right away
+        //   - If `min` is found to be failing, shrinking ends immediately
+        //   - The goal behind this step is to waste no time trying larger
+        //     values if the minimal value will fail anyway
+        // - Binary search towards `min`
+        //   - The goal behind this step is to quickly reduce `k` as much as
+        //     possible
+        // - Try 12 equally-distributed values between `min` and `k - 100`
+        //   - If this step finds a new minimal failing value, we start back
+        //     from the binary search step
+        //   - If `k - 100 - (min + 1) < 12`, this step is skipped
+        //   - The goal behind this step is to sample many spread out points in
+        //     the remaining input space between `min` and `k`, with the hope
+        //     that we will catch any "pockets" of failing values that binary
+        //     search undershot
+        // - Try every number in the range `MAX(min + 1, k - 100)..=(k - 1)`
+        //   - If this step finds a new simplest failing value, we start back
+        //     from the binary search step
+        //   - The goal behind this step is to try a large run of consecutive
+        //     values just under `k`, with the hope that we will be able to
+        //     recognize and jump past any relatively small gaps of passing
+        //     inputs between `k` and simpler failing values
         impl Shrinker for RangeInclusiveShrinkerUnsigned<$t> {
             type InputSource = $t;
 
