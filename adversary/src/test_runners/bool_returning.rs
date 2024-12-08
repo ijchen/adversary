@@ -105,27 +105,12 @@ fn shrink_and_generate_report<T, I: Clone>(
         ));
     }
 
-    let ShrinkStep {
-        value: simplest_failing_input,
-        just_informational: simplest_failing_input_just_informational,
-        test_passed: simplest_failing_input_passed,
-    } = shrink_steps.remove(
-        shrink_steps
-            .iter()
-            .rposition(|step| !step.test_passed && !step.just_informational)
-            .expect(
-                "there should always be at least one failing non-informational step, element 0",
-            ),
-    );
-    debug_assert!(!simplest_failing_input_passed && !simplest_failing_input_just_informational);
-
     Report {
         test_name: None,
         panic_info: None,
         passing_runs: failing_input_report.passing_runs,
         observations: shrinker.into_observations(),
         shrink_steps,
-        simplest_failing_input,
     }
 }
 

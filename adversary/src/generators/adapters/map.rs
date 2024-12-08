@@ -69,6 +69,7 @@ mod tests {
         assert_eq!(
             report.shrink_steps,
             vec![
+                ShrinkStep::new("10".to_string(), false, false),
                 ShrinkStep::new("0".to_string(), false, true),
                 ShrinkStep::new("1".to_string(), false, true),
                 ShrinkStep::new("2".to_string(), false, true),
@@ -81,6 +82,6 @@ mod tests {
                 ShrinkStep::new("9".to_string(), false, true),
             ]
         );
-        assert_eq!(report.simplest_failing_input, "10");
+        assert_eq!(report.simplest_failing_input(), "10");
     }
 }

@@ -96,6 +96,7 @@ mod tests {
         assert_eq!(
             report.shrink_steps,
             vec![
+                ShrinkStep::new(&5, false, false),
                 ShrinkStep::new(&0, false, true),
                 ShrinkStep::new(&1, false, true),
                 ShrinkStep::new(&2, false, true),
@@ -103,7 +104,7 @@ mod tests {
                 ShrinkStep::new(&4, false, true),
             ]
         );
-        assert_eq!(report.simplest_failing_input, &5);
+        assert_eq!(report.simplest_failing_input(), &&5);
     }
 
     #[test]
@@ -118,6 +119,7 @@ mod tests {
         assert_eq!(
             report.shrink_steps,
             vec![
+                ShrinkStep::new(&5, false, false),
                 ShrinkStep::new(&0, false, true),
                 ShrinkStep::new(&1, false, true),
                 ShrinkStep::new(&2, false, true),
@@ -125,6 +127,6 @@ mod tests {
                 ShrinkStep::new(&4, false, true),
             ]
         );
-        assert_eq!(report.simplest_failing_input, &5);
+        assert_eq!(report.simplest_failing_input(), &&5);
     }
 }
