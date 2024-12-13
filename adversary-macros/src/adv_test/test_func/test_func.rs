@@ -21,7 +21,6 @@ use super::Expectation;
 ///   - [`bool`]
 ///   - [`Result<(), E>`] for any `E`
 pub struct TestFunc {
-    // pub item_fn: ItemFn,
     pub attrs: Vec<Attribute>,
     pub vis: Visibility,
     pub fn_token: Token![fn],
