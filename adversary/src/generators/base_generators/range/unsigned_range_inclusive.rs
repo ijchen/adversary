@@ -1,8 +1,8 @@
 use std::ops::RangeInclusive;
 
-use crate::{report::Observation, shrinker::Shrinker, InputGenerator, IntoInputGenerator};
+use crate::{shrinker::Shrinker, InputGenerator, IntoInputGenerator};
 
-use super::RangeInclusiveGen;
+use super::{shrinker::RangeInclusiveShrinkerUnsigned, RangeInclusiveGen};
 
 macro_rules! unsigned_range_inclusive {
     ($($t: ty),+$(,)?) => {$(
@@ -86,74 +86,17 @@ macro_rules! unsigned_range_inclusive {
                 &self,
                 failing_input: Self::InputSource,
             ) -> impl Shrinker<InputSource = Self::InputSource> {
-                RangeInclusiveShrinkerUnsigned {
-                    min: self.min,
-                    max: failing_input,
-                }
+                RangeInclusiveShrinkerUnsigned::<$t>::new(self.min, self.max, failing_input)
             }
 
             fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
                 input_source
             }
         }
-
-        // TODO(ichen): Shrink smarter than *just* a binary search - should
-        // first try the min right away, and also may want to not always rule
-        // out every value less than any we've seen pass - most tests won't be
-        // split into a passing bottom half and failing top half.
-        // Shrinking steps (`min` is the minimum value in the range, `k` is the
-        // current minimal known failing input): (TODO: not yet implemented)
-        // - Try `min` right away
-        //   - If `min` is found to be failing, shrinking ends immediately
-        //   - The goal behind this step is to waste no time trying larger
-        //     values if the minimal value will fail anyway
-        // - Binary search towards `min`
-        //   - The goal behind this step is to quickly reduce `k` as much as
-        //     possible
-        // - Try 12 equally-distributed values between `min` and `k - 100`
-        //   - If this step finds a new minimal failing value, we start back
-        //     from the binary search step
-        //   - If `k - 100 - (min + 1) < 12`, this step is skipped
-        //   - The goal behind this step is to sample many spread out points in
-        //     the remaining input space between `min` and `k`, with the hope
-        //     that we will catch any "pockets" of failing values that binary
-        //     search undershot
-        // - Try every number in the range `MAX(min + 1, k - 100)..=(k - 1)`
-        //   - If this step finds a new simplest failing value, we start back
-        //     from the binary search step
-        //   - The goal behind this step is to try a large run of consecutive
-        //     values just under `k`, with the hope that we will be able to
-        //     recognize and jump past any relatively small gaps of passing
-        //     inputs between `k` and simpler failing values
-        impl Shrinker for RangeInclusiveShrinkerUnsigned<$t> {
-            type InputSource = $t;
-
-            fn current_attempt(&self) -> Option<Self::InputSource> {
-                (self.min != self.max).then_some((self.max - self.min) / 2 + self.min)
-            }
-
-            fn update(&mut self, current_attempt_passed: bool) {
-                if current_attempt_passed {
-                    self.min = self.current_attempt().unwrap() + 1;
-                } else {
-                    self.max = self.current_attempt().unwrap();
-                }
-            }
-
-            fn into_observations(self) -> Vec<Observation> {
-                // TODO(ichen): useful observations
-                Vec::new()
-            }
-        }
     )+};
 }
 
 unsigned_range_inclusive! { u8, u16, u32, u64, u128, usize }
-
-struct RangeInclusiveShrinkerUnsigned<T> {
-    min: T,
-    max: T,
-}
 
 #[cfg(test)]
 mod tests {
@@ -195,6 +138,17 @@ mod tests {
             .unwrap_err()
             .simplest_failing_input(),
             &1234
+        );
+
+        assert_eq!(
+            run_test(
+                |n| n < 2500 || n % 71 != 0,
+                any::<u128>(),
+                &mut crate::rand::thread_rng()
+            )
+            .unwrap_err()
+            .simplest_failing_input(),
+            &((2500 as f64 / 71 as f64).ceil() as u128 * 71)
         );
     }
 }
