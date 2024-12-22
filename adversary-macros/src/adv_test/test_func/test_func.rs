@@ -178,16 +178,17 @@ impl TestFunc {
             Expectation::DoesNotPanic
             | Expectation::Panics
             | Expectation::PanicsWithMessage { .. } => quote! {},
-            Expectation::ReturnsTrue => quote! { -> bool },
+            Expectation::ReturnsTrue => quote! { -> ::std::primitive::bool },
             Expectation::ReturnsOk { err_ty } => {
                 quote! { -> ::std::result::Result<(), #err_ty> }
             }
         };
 
         // TODO: not do this weird ownership cheat
+        // From future me: what weird ownership cheat?? The `.collect()`?
         let arg_types = inputs.iter().map(|arg| &arg.ty).collect::<Vec<_>>();
 
-        let value_idents: Vec<Ident> = (0..inputs.len())
+        let arg_idents: Vec<Ident> = (0..inputs.len())
             .map(|n| format_ident!("arg_{n}"))
             .collect();
 
@@ -196,7 +197,7 @@ impl TestFunc {
         let test_run = match &output {
             Expectation::DoesNotPanic => quote! {
                 ::adversary::run_test_panics(
-                    |(#(#value_idents),*)| inner_test(#(#value_idents),*),
+                    |(#(#arg_idents),*)| inner_test(#(#arg_idents),*),
                     generator,
                     &mut rng,
                 )
@@ -211,7 +212,7 @@ impl TestFunc {
             }
             Expectation::ReturnsTrue => quote! {
                 ::adversary::run_test(
-                    |(#(#value_idents),*)| inner_test(#(#value_idents),*),
+                    |(#(#arg_idents),*)| inner_test(#(#arg_idents),*),
                     generator,
                     &mut rng,
                 )
