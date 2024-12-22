@@ -240,7 +240,7 @@ impl TestFunc {
                     ::std::result::Result::Ok(()) => return ::std::process::ExitCode::SUCCESS,
                     ::std::result::Result::Err(report) => report,
                 };
-                report.test_name = ::std::option::Option::Some(#test_name.to_string());
+                report.test_name = ::std::option::Option::Some(::std::string::String::from(#test_name));
 
                 // NOTE(ichen): Uses a cute specialization hack to convert the
                 // generic `T` value into a `String` - through `Display` if
@@ -264,19 +264,19 @@ impl TestFunc {
                 let converter = |value: &(#(#arg_types),*)| {
                     struct Wrap<'a, T>(&'a T);
 
-                    trait ViaDisplay { fn stringify(&self) -> String; }
+                    trait ViaDisplay { fn stringify(&self) -> ::std::string::String; }
                     impl<'a, T: ::std::fmt::Display> ViaDisplay for &&Wrap<'a, T> {
-                        fn stringify(&self) -> String { ::std::format!("{}", self.0) }
+                        fn stringify(&self) -> ::std::string::String { ::std::format!("{}", self.0) }
                     }
 
-                    trait ViaDebug { fn stringify(&self) -> String; }
+                    trait ViaDebug { fn stringify(&self) -> ::std::string::String; }
                     impl<'a, T: ::std::fmt::Debug> ViaDebug for &Wrap<'a, T> {
-                        fn stringify(&self) -> String { ::std::format!("{:?}", self.0) }
+                        fn stringify(&self) -> ::std::string::String { ::std::format!("{:?}", self.0) }
                     }
 
-                    trait Fallback { fn stringify(&self) -> String; }
+                    trait Fallback { fn stringify(&self) -> ::std::string::String; }
                     impl<'a, T> Fallback for Wrap<'a, T> {
-                        fn stringify(&self) -> String { ::std::format!("<{}>", ::std::any::type_name::<T>()) }
+                        fn stringify(&self) -> ::std::string::String { ::std::format!("<{}>", ::std::any::type_name::<T>()) }
                     }
 
                     (&&&Wrap(value)).stringify()
