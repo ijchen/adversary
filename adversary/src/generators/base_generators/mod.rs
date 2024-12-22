@@ -1,7 +1,7 @@
 mod array;
 pub mod bool;
+mod int_range;
 mod just;
-mod range;
 mod slice;
 mod tuple;
 

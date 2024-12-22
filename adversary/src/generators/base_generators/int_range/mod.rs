@@ -16,9 +16,8 @@
 // see what you're cooking up. Maybe some newtype enum dispatch thing?
 
 mod other;
-mod shrinker;
 mod signed_range_inclusive;
-mod unsigned_range_inclusive;
+mod unsigned;
 
 // Representation invariant: min <= max
 struct RangeInclusiveGen<T> {

@@ -2,7 +2,7 @@ use std::ops::RangeInclusive;
 
 use crate::{shrinker::Shrinker, InputGenerator, IntoInputGenerator};
 
-use super::{shrinker::RangeInclusiveShrinkerUnsigned, RangeInclusiveGen};
+use super::{super::RangeInclusiveGen, shrinker::RangeInclusiveShrinkerUnsigned};
 
 macro_rules! unsigned_range_inclusive {
     ($($t: ty),+$(,)?) => {$(
@@ -86,7 +86,7 @@ macro_rules! unsigned_range_inclusive {
                 &self,
                 failing_input: Self::InputSource,
             ) -> impl Shrinker<InputSource = Self::InputSource> {
-                RangeInclusiveShrinkerUnsigned::<$t>::new(self.min, self.max, failing_input)
+                RangeInclusiveShrinkerUnsigned::<$t>::new(self.min, failing_input)
             }
 
             fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
