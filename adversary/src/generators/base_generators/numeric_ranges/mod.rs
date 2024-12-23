@@ -1,3 +1,8 @@
+// TODO(ichen): Update this comment, the conflicting trait impl is the real
+// issue here - a blanket impl for any `T: RangeBounds` would mean anything
+// which does *or could possibly ever* implement `RangeBounds` would not be
+// allowed to have `IntoInputGenerator` implemented for it, directly or through
+// another impl.
 // NOTE(ichen): I don't think I can (efficiently) implement this generically for
 // any `T: std::ops::RangeBounds`. When we need to iterate over the range, the
 // concrete type of the iterator is different depending on what kind of `Bound`
@@ -15,12 +20,15 @@
 // in a zero-cost way that avoids trait conflict issues, I'd absolutely love to
 // see what you're cooking up. Maybe some newtype enum dispatch thing?
 
-mod other;
 mod signed_range_inclusive;
-mod unsigned;
+mod unsigned_int;
 
+/// A shared struct across all numeric range types for input generation.
 // Representation invariant: min <= max
 struct RangeInclusiveGen<T> {
+    /// The (inclusive) minimum value in the range of allowable values
     min: T,
+
+    /// The (inclusive) maximum value in the range of allowable values
     max: T,
 }

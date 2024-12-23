@@ -2,7 +2,7 @@ use std::ops::{Range, RangeFrom, RangeFull, RangeTo, RangeToInclusive};
 
 use crate::{InputGenerator, IntoInputGenerator};
 
-macro_rules! unsigned_others {
+macro_rules! others {
     ($($t: ty),+$(,)?) => {$(
         impl IntoInputGenerator<$t> for Range<$t> {
             fn into_input_generator(self) -> impl InputGenerator<Input = $t> {
@@ -40,7 +40,7 @@ macro_rules! unsigned_others {
     )+}
 }
 
-unsigned_others! { u8, u16, u32, u64, u128, usize }
+others! { u8, u16, u32, u64, u128, usize }
 
 #[cfg(test)]
 mod tests {
