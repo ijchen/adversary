@@ -9,7 +9,8 @@ features:
   - [ ] Canonical
     - [x] [unit](https://doc.rust-lang.org/std/primitive.unit.html)
     - [x] [bool](https://doc.rust-lang.org/std/primitive.bool.html)
-    - [x] integers
+    - [x] unsigned integers
+    - [ ] signed integers
     - [ ] floats
     - [ ] [char](https://doc.rust-lang.org/std/primitive.char.html)
     - [x] [tuple](https://doc.rust-lang.org/std/primitive.tuple.html)
@@ -43,10 +44,18 @@ features:
     - [x] just(T)
     - [x] just_with(impl Fn() -> T)
   - [ ] Numerical ranges
-    - [ ] Unsigned integers
+    - [x] Unsigned integers
+      - [x] Inclusive range
+      - [x] Other ranges
+      - [x] Shrinking
     - [ ] Signed integers
-    - [ ] All range types (inclusive/exclusive, bounded/unbounded)
+      - [ ] Inclusive range
+      - [ ] Other ranges
+      - [ ] Shrinking
     - [ ] Floating point numbers
+      - [ ] Inclusive range
+      - [ ] Other ranges
+      - [ ] Shrinking
   - [ ] String regexes
   - [x] Bool with probability
     - [x] From float in 0.0..=1.0
