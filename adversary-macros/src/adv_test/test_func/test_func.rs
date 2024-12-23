@@ -1,10 +1,14 @@
+use std::collections::HashMap;
+
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
 use syn::{
     punctuated::{Pair, Punctuated},
     spanned::Spanned,
-    Attribute, Block, FnArg, Ident, ItemFn, PatType, Token, Visibility,
+    Attribute, Block, Expr, FnArg, Ident, ItemFn, PatType, Token, Visibility,
 };
+
+use crate::adv_test::test_attribute::TestAttribute;
 
 use super::Expectation;
 
@@ -33,12 +37,29 @@ pub struct TestFunc {
 
 impl TestFunc {
     pub fn input_identifier_args(&self) -> Vec<Ident> {
+        fn extract_identifiers(arg_pat: &syn::Pat) -> Vec<Ident> {
+            use syn::Pat as P;
+            match arg_pat {
+                P::Ident(pat_ident) => vec![pat_ident.ident.clone()],
+
+                P::Paren(pat_paren) => extract_identifiers(&pat_paren.pat),
+
+                P::Reference(pat_reference) => extract_identifiers(&pat_reference.pat),
+
+                P::Tuple(pat_tuple) => pat_tuple
+                    .elems
+                    .iter()
+                    .flat_map(extract_identifiers)
+                    .collect(),
+
+                P::Type(pat_type) => extract_identifiers(&pat_type.pat),
+
+                _ => vec![],
+            }
+        }
         self.inputs
             .iter()
-            .flat_map(|arg| match &*arg.pat {
-                syn::Pat::Ident(arg) => Some(arg.ident.clone()),
-                _ => None,
-            })
+            .flat_map(|arg| extract_identifiers(&arg.pat))
             .collect()
     }
 
@@ -160,7 +181,9 @@ impl TestFunc {
         })
     }
 
-    pub fn into_converted_tokens(self) -> TokenStream {
+    pub fn into_converted_tokens(self, test_attribute: &TestAttribute) -> TokenStream {
+        // TODO(ichen): despaghettify this code, it is not readable at all rn
+
         let Self {
             attrs,
             vis,
@@ -193,6 +216,50 @@ impl TestFunc {
             .collect();
 
         let test_name = ident.to_string();
+
+        fn get_custom_generator(
+            arg_pat: &syn::Pat,
+            arg_ty: &syn::Type,
+            generators: &HashMap<Ident, Expr>,
+        ) -> Option<TokenStream> {
+            use syn::Pat as P;
+            match arg_pat {
+                P::Ident(pat_ident) => generators
+                    .get(&pat_ident.ident)
+                    .map(|generator| quote! { #generator }),
+                P::Paren(pat_paren) => get_custom_generator(&pat_paren.pat, arg_ty, generators),
+                P::Reference(pat_reference) => {
+                    get_custom_generator(&pat_reference.pat, arg_ty, generators)
+                }
+                P::Tuple(pat_tuple) => {
+                    let individual_gens = pat_tuple
+                        .elems
+                        .iter()
+                        .zip(match arg_ty {
+                            syn::Type::Tuple(type_tuple) => &type_tuple.elems,
+                            _ => todo!(),
+                        })
+                        .map(|(elem, elem_arg_ty)| {
+                            get_custom_generator(elem, elem_arg_ty, generators)
+                                .unwrap_or_else(|| quote! { ::adversary::any::<#elem_arg_ty>() })
+                        })
+                        .collect::<Vec<TokenStream>>();
+
+                    Some(quote! { (#(#individual_gens),*) })
+                }
+                P::Type(pat_type) => get_custom_generator(&pat_type.pat, arg_ty, generators),
+                _ => None,
+            }
+        }
+        let generators = inputs
+            .iter()
+            .map(|arg| {
+                let arg_ty = &arg.ty;
+                get_custom_generator(&arg.pat, arg_ty, &test_attribute.generators)
+                    .unwrap_or_else(|| quote! { ::adversary::any::<#arg_ty>() })
+            })
+            .collect::<Vec<_>>();
+        let generator = quote! { (#(#generators),*) };
 
         let test_run = match &output {
             Expectation::DoesNotPanic => quote! {
@@ -232,14 +299,13 @@ impl TestFunc {
             #vis #fn_token #ident #paren_token -> ::std::process::ExitCode {
                 fn inner_test(#inputs) #inner_ret #block
 
-                let mut generator = (#(::adversary::any::<#arg_types>()),*);
+                let mut generator = #generator;
                 let mut rng = ::adversary::rand::thread_rng();
 
                 let run_result = #test_run;
 
-                let mut report = match run_result {
-                    ::std::result::Result::Ok(()) => return ::std::process::ExitCode::SUCCESS,
-                    ::std::result::Result::Err(report) => report,
+                let ::std::result::Result::Err(mut report) = run_result else {
+                    return ::std::process::ExitCode::SUCCESS;
                 };
                 report.test_name = ::std::option::Option::Some(::std::string::String::from(#test_name));
 
@@ -251,18 +317,9 @@ impl TestFunc {
                 // See:
                 // https://lukaskalbertodt.github.io/2019/12/05/generalized-autoref-based-specialization.html
                 //
-                // TODO(ichen): convert each argument independently, want:
-                // `(ids: Vec<u8>, thing: NotDebug, other: String)`
-                // ...to become...
-                // ids: [2, 6, 32, 51]
-                // thing: <user_crate::module::NotDebug> (output from type_name)
-                // other: Hello, world!
-                // ...instead of...
-                // <(std::vec::Vec<u8>, user_crate::module::NotDebug, std::string::String)>
-                //
                 // TODO(ichen): figure out why specifying this type is necessary
-                //                    vvvvvvvvvvvvvvvvvvvvv
-                let converter = |value: &(#(#arg_types),*)| {
+                //                                 vvvvvvvvvvvvvvvvvvvv
+                let converter = |(#(#arg_idents),*): &(#(#arg_types),*)| {
                     struct Wrap<'a, T>(&'a T);
 
                     trait ViaDisplay { fn stringify(&self) -> ::std::string::String; }
@@ -280,7 +337,9 @@ impl TestFunc {
                         fn stringify(&self) -> ::std::string::String { ::std::format!("<{}>", ::std::any::type_name::<T>()) }
                     }
 
-                    (&&&Wrap(value)).stringify()
+                    ::std::format!("{}", <[_]>::join(&[#(
+                        (&&&Wrap(#arg_idents)).stringify()
+                    ),*], ", "))
                 };
                 ::std::eprintln!("{}", report.render::<::adversary::report::renderer::Plaintext>(converter));
 

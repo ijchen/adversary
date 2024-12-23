@@ -40,7 +40,6 @@ macro_rules! unsigned_range_inclusive {
             // - Range start and end
             // - Range start + 1 and end - 1
             // - The middle two or three numbers, whichever is symmetrical
-            // - 0, 1
             //
             // Note that each potential value is only included if it actually
             // falls within the range of allowed values.
@@ -52,7 +51,7 @@ macro_rules! unsigned_range_inclusive {
                 match cardinality_minus_one {
                     0..=6 => (self.min..=self.max).collect(),
                     cardinality_minus_one => {
-                        let mut nums = Vec::with_capacity(9);
+                        let mut nums = Vec::with_capacity(7);
 
                         nums.push(self.min);
                         nums.push(self.max);
@@ -64,13 +63,6 @@ macro_rules! unsigned_range_inclusive {
                         }
                         nums.push(self.min + cardinality_minus_one / 2);
                         nums.push(self.min + cardinality_minus_one / 2 + 1);
-
-                        if !nums.contains(&0) {
-                            nums.push(0)
-                        }
-                        if !nums.contains(&1) {
-                            nums.push(1)
-                        }
 
                         nums
                     }

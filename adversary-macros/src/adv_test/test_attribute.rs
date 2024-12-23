@@ -5,7 +5,6 @@ use syn::{parse::Parser, punctuated::Punctuated, spanned::Spanned, Expr, Ident, 
 
 #[derive(Debug)]
 pub struct TestAttribute {
-    #[expect(dead_code, reason = "will be used, code not implemented")]
     pub generators: HashMap<Ident, Expr>,
 }
 

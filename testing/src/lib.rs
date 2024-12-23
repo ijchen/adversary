@@ -28,6 +28,12 @@ mod tests {
         add(add(a, b), c) == add(a, add(b, c))
     }
 
+    #[adv_test(b = 100..1209451)]
+    fn custom_gen((a, b, c): (u32, u32, u32)) -> bool {
+        let _ = (a, c);
+        (100..1209451).contains(&b)
+    }
+
     // #[derive(Clone)]
     // struct Foo;
     // impl adv::Canonical for Foo {
@@ -46,6 +52,37 @@ mod tests {
     // }
     // #[adv_test]
     // fn my_cool_test3(_: Foo) -> bool {
+    //     false
+    // }
+
+    // #[derive(Clone)]
+    // struct Nothing;
+    // impl adv::Canonical for Nothing {
+    //     fn canonical() -> impl InputGenerator<Input = Self> + Send + Sync + Unpin {
+    //         just(Nothing)
+    //     }
+    // }
+    // #[derive(Debug, Clone)]
+    // struct Debugger;
+    // impl adv::Canonical for Debugger {
+    //     fn canonical() -> impl InputGenerator<Input = Self> + Send + Sync + Unpin {
+    //         just(Debugger)
+    //     }
+    // }
+    // #[derive(Clone)]
+    // struct Displayer;
+    // impl adv::Canonical for Displayer {
+    //     fn canonical() -> impl InputGenerator<Input = Self> + Send + Sync + Unpin {
+    //         just(Displayer)
+    //     }
+    // }
+    // impl std::fmt::Display for Displayer {
+    //     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    //         write!(f, "My cool Displayer!!!")
+    //     }
+    // }
+    // #[adv_test]
+    // fn my_cool_test4(_: Displayer, _: Debugger, _: Nothing) -> bool {
     //     false
     // }
 }

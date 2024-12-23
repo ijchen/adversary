@@ -10,7 +10,7 @@ pub fn adv_test(attr: TokenStream, item: TokenStream) -> syn::Result<TokenStream
     let func = TestFunc::parse(item)?;
 
     // Parse the attribute itself, and arguments (like custom generators)
-    let _attributes = TestAttribute::parse(attr, &func.input_identifier_args())?;
+    let attributes = TestAttribute::parse(attr, &func.input_identifier_args())?;
 
-    Ok(func.into_converted_tokens())
+    Ok(func.into_converted_tokens(&attributes))
 }
