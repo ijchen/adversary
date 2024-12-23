@@ -20,7 +20,7 @@
 // in a zero-cost way that avoids trait conflict issues, I'd absolutely love to
 // see what you're cooking up. Maybe some newtype enum dispatch thing?
 
-mod signed_range_inclusive;
+mod signed_int;
 mod unsigned_int;
 
 /// A shared struct across all numeric range types for input generation.
