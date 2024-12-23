@@ -42,7 +42,10 @@ macro_rules! unsigned_range_inclusive {
             // - The middle two or three numbers, whichever is symmetrical
             //
             // Note that each potential value is only included if it actually
-            // falls within the range of allowed values.
+            // falls within the range of allowed values. Also note that this
+            // will always include 0 and 1 if possible - as long as they are
+            // within the range, they will be either the range start, or the
+            // range start + 1.
             //
             // TODO: at some point, consider an optimized version of this that
             // doesn't allocate and uses smart math
