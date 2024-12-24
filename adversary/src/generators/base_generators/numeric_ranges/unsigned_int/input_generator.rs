@@ -55,6 +55,7 @@ macro_rules! unsigned_range_inclusive {
                     0..=6 => (self.min..=self.max).collect(),
                     cardinality_minus_one => {
                         let mut nums = Vec::with_capacity(7);
+                        let half_cardinality = self.min + cardinality_minus_one / 2;
 
                         nums.push(self.min);
                         nums.push(self.max);
@@ -62,10 +63,10 @@ macro_rules! unsigned_range_inclusive {
                         nums.push(self.max - 1);
 
                         if cardinality_minus_one % 2 == 0 {
-                            nums.push(self.min + cardinality_minus_one / 2 - 1);
+                            nums.push(half_cardinality - 1);
                         }
-                        nums.push(self.min + cardinality_minus_one / 2);
-                        nums.push(self.min + cardinality_minus_one / 2 + 1);
+                        nums.push(half_cardinality);
+                        nums.push(half_cardinality + 1);
 
                         nums
                     }
@@ -95,6 +96,8 @@ unsigned_range_inclusive! { u8, u16, u32, u64, u128, usize }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use crate::prelude::*;
 
     #[test]
@@ -144,6 +147,59 @@ mod tests {
             .unwrap_err()
             .simplest_failing_input(),
             &((2500 as f64 / 71 as f64).ceil() as u128 * 71)
+        );
+    }
+
+    #[test]
+    fn adversary_sanity_check() {
+        // 1 2 3 4 5 6 7
+        // ^ ^ ^ ^ ^ ^ ^
+        let gen = (1u32..=7).into_input_generator();
+        assert_eq!(
+            HashSet::from([1, 2, 3, 4, 5, 6, 7]),
+            gen.adversarial()
+                .map(|is| gen.create_input(is))
+                .collect::<HashSet<_>>()
+        );
+
+        // 1 2 3 4 5 6 7 8
+        // ^ ^   ^ ^   ^ ^
+        let gen = (1u32..=8).into_input_generator();
+        assert_eq!(
+            HashSet::from([1, 2, 4, 5, 7, 8]),
+            gen.adversarial()
+                .map(|is| gen.create_input(is))
+                .collect::<HashSet<_>>()
+        );
+
+        // 1 2 3 4 5 6 7 8 9
+        // ^ ^   ^ ^ ^   ^ ^
+        let gen = (1u32..=9).into_input_generator();
+        assert_eq!(
+            HashSet::from([1, 9, 2, 8, 4, 5, 6]),
+            gen.adversarial()
+                .map(|is| gen.create_input(is))
+                .collect::<HashSet<_>>()
+        );
+
+        // 32 33 34 35 36 37 38 39 40 41 42 43 44
+        // ^^ ^^          ^^ ^^ ^^          ^^ ^^
+        let gen = (32u32..=44).into_input_generator();
+        assert_eq!(
+            HashSet::from([32, 33, 37, 38, 39, 43, 44]),
+            gen.adversarial()
+                .map(|is| gen.create_input(is))
+                .collect::<HashSet<_>>()
+        );
+
+        // 32 33 34 35 36 37 38 39 40 41 42 43 44 45
+        // ^^ ^^             ^^ ^^             ^^ ^^
+        let gen = (32u32..=45).into_input_generator();
+        assert_eq!(
+            HashSet::from([32, 33, 38, 39, 44, 45]),
+            gen.adversarial()
+                .map(|is| gen.create_input(is))
+                .collect::<HashSet<_>>()
         );
     }
 }
