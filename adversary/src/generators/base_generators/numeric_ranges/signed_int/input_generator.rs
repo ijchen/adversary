@@ -1,8 +1,8 @@
 use std::ops::RangeInclusive;
 
-use crate::{shrinker::Shrinker, shrinkers::NeverShrink, InputGenerator, IntoInputGenerator};
+use crate::{shrinker::Shrinker, InputGenerator, IntoInputGenerator};
 
-use super::super::RangeInclusiveGen;
+use super::{super::RangeInclusiveGen, shrinker::RangeInclusiveShrinkerSigned};
 
 macro_rules! signed_range_inclusive {
     ($($i:ty = $u:ty),+$(,)?) => {$(
@@ -90,10 +90,10 @@ macro_rules! signed_range_inclusive {
 
             fn new_shrinker(
                 &self,
-                _failing_input: Self::InputSource,
+                failing_input: Self::InputSource,
             ) -> impl Shrinker<InputSource = Self::InputSource> {
-                // TODO: signed integer shrinking
-                NeverShrink::new()
+                // TODO: invariants
+                RangeInclusiveShrinkerSigned::<$i, $u>::new(self.min, self.max, failing_input)
             }
 
             fn create_input(&self, input_source: Self::InputSource) -> Self::Input {

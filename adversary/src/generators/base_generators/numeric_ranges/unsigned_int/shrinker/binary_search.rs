@@ -35,6 +35,7 @@ use super::{
 //
 // ## The "Valid range" invariant
 // `min <= self.low < self.high`
+#[derive(Debug, Clone)]
 pub struct BinarySearch<T> {
     /// The lower value in the binary search range, which hasn't yet been
     /// observed passing.
@@ -92,7 +93,7 @@ macro_rules! binary_search {
                 // If we've finished binary searching, move on to the next phase
                 if new_low == new_high {
                     // We go down to `min + 1` at lowest instead of `min`
-                    // because this phase assumes the "Try min" phase has
+                    // because this phase assumes the "Try simplest" phase has
                     // already run, and if `min` were failing we wouldn't be
                     // here.
                     //

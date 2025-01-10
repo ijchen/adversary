@@ -34,6 +34,11 @@ mod tests {
         (100..1209451).contains(&b)
     }
 
+    #[adv_test]
+    fn signed(n: i16) -> bool {
+        !(-300..-25).contains(&n)
+    }
+
     // #[derive(Clone)]
     // struct Foo;
     // impl adv::Canonical for Foo {

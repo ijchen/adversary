@@ -1,24 +1,25 @@
 use super::{binary_search::BinarySearch, done::Done, RangeInclusiveShrinkerUnsigned};
 
-/// Implementation of the "Try min" phase of unsigned integer shrinking.
+/// Implementation of the "Try simplest" phase of unsigned integer shrinking.
 ///
 /// # Description
-/// This phase tries the minimum value in the shrinking range immediately.
+/// This phase tries the simplest value in the shrinking range immediately.
 ///
 /// # Next phase
-/// If the minimum value is found to be failing, shrinking ends immediately.
-/// Otherwise, the minimum value isn't (always) failing, so we move on to the
+/// If the simplest value is found to be failing, shrinking ends immediately.
+/// Otherwise, the simplest value isn't (always) failing, so we move on to the
 /// next step, binary search.
 ///
 /// # Goal
-/// The goal behind this step is to waste no time trying larger values if the
-/// minimal value will fail anyway.
+/// The goal behind this step is to waste no time trying more complex values if
+/// the simplest value will fail anyway.
 //
 // # Invariants
 //
 // ## The "Min" invariant
 // `self.min < self.simplest_known_failing`
-pub struct TryMin<T> {
+#[derive(Debug, Clone)]
+pub struct TrySimplest<T> {
     /// The minimum value in the shrinking range.
     min: T,
 
@@ -27,10 +28,10 @@ pub struct TryMin<T> {
     simplest_known_failing: T,
 }
 
-macro_rules! try_min {
+macro_rules! try_simplest {
     ($($t: ty),+$(,)?) => {$(
-        impl TryMin<$t> {
-            /// Constructs a new [`TryMin`].
+        impl TrySimplest<$t> {
+            /// Constructs a new [`TrySimplest`].
             ///
             /// # Panics
             /// if the invariant `min < simplest_known_failing` is not true.
@@ -42,11 +43,13 @@ macro_rules! try_min {
             }
 
             pub fn current_attempt(&self) -> Option<$t> {
+                // For unsigned integers, the minimum value is always the
+                // simplest.
                 Some(self.min)
             }
 
             pub fn next_phase(&self, current_attempt_passed: bool) -> RangeInclusiveShrinkerUnsigned<$t> {
-                // If the min value failed, we're done shrinking
+                // If the simplest value failed, we're done shrinking
                 if !current_attempt_passed {
                     return RangeInclusiveShrinkerUnsigned::Done(Done::new());
                 }
@@ -75,4 +78,4 @@ macro_rules! try_min {
     )+};
 }
 
-try_min! { u8, u16, u32, u64, u128, usize }
+try_simplest! { u8, u16, u32, u64, u128, usize }
