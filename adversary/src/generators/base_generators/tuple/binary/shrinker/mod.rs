@@ -91,9 +91,7 @@ impl<'gens, GenA: InputGenerator, GenB: InputGenerator> TupleShrinker2<'gens, Ge
     }
 }
 
-impl<'gens, GenA: InputGenerator, GenB: InputGenerator> Shrinker
-    for TupleShrinker2<'gens, GenA, GenB>
-{
+impl<GenA: InputGenerator, GenB: InputGenerator> Shrinker for TupleShrinker2<'_, GenA, GenB> {
     type InputSource = (GenA::InputSource, GenB::InputSource);
 
     fn current_attempt(&self) -> Option<Self::InputSource> {

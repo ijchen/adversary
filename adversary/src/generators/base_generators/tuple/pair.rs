@@ -28,7 +28,7 @@ impl<'gens, Left: InputGenerator, Right: InputGenerator> Pair<'gens, Left, Right
     }
 }
 
-impl<'gens, Left: InputGenerator, Right: InputGenerator> Shrinker for Pair<'gens, Left, Right> {
+impl<Left: InputGenerator, Right: InputGenerator> Shrinker for Pair<'_, Left, Right> {
     type InputSource = (Left::InputSource, Right::InputSource);
 
     fn current_attempt(&self) -> Option<Self::InputSource> {

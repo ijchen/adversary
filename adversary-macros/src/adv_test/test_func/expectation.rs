@@ -155,10 +155,10 @@ impl Expectation {
                         return invalid_meta_item_arg_error;
                     };
 
-                    if !name_value
+                    if name_value
                         .path
                         .get_ident()
-                        .is_some_and(|ident| ident == "expected")
+                        .is_none_or(|ident| ident != "expected")
                     {
                         return invalid_meta_item_arg_error;
                     };
