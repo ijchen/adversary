@@ -20,10 +20,47 @@ use crate::{report::Observation, shrinker::Shrinker};
 /// is actually contained within submodules for each phase - this enum really
 /// just organizes them all together.
 ///
+/// # How sign effects simplicity
+/// It's worth discussing how sign (positive vs. negative) effects how "simple"
+/// a value is considered. Of course, simplicity is both subjective and
+/// context-dependent. Fortunately, this isn't really a correctness issue - at
+/// worst, poor shrinking will be less helpful to the developer debugging a
+/// failing test. This simplicity metric, as with all others in this library,
+/// are meant to be generally aligned with what will be most helpful most often
+/// in a typical use case.
+///
+/// To me, it's pretty clear that all things being equal, a negative value is
+/// more complicated than a positive value. It's pretty obvious to me that 5 is
+/// simpler than -5. But I also don't think *all* negative values are more
+/// complicated than *all* positive ones - It's equally obvious to me that -1 is
+/// simpler than 4817326. That said, I don't think being negative should just be
+/// a "tiebreaker" when the magnitude is the same - I would argue that 12923 is
+/// simpler than -12921, even though the latter has a smaller absolute value.
+///
+/// For entirely made up reasons and because I feel like it's "about right", I
+/// have decided that a negative value is around the same complexity as it's
+/// square - that is, -5 is approximately as complicated as 25, and -12948 is
+/// about as complicated as 167650704. Since it's useful to always be able to
+/// pick a winner when comparing two values for simplicity, in the event of a
+/// tie (like -5 and 25), I've decided the positive number is simpler (this is
+/// useful because I certainly want 1 to be simpler than -1). In other words,
+/// the magnitude of a negative number must be less than the square root of some
+/// positive number in order to be considered simpler. So -5 is simpler than 26,
+/// but not simpler than 25.
+///
+/// The reason I landed on square/sqrt is because it is the function that will
+/// approximately double or halve the number of digits when going between
+/// positive and negative values of equal complexity, which felt "about right"
+/// to me (proving this uses some cute log rules, fun activity for the reader).
+///
 /// # Phases
 /// More details on each phase can be found in their respective modules, but
 /// here's a high-level overview of each:
-/// - TODO: the rest of them
+/// - [Try simplest](try_simplest) - Try the simplest value immediately
+/// - [Shrink magnitude](shrink_magnitude) - Shrink the magnitude (absolute
+///   value) of the current simplest failing value, maintaining its sign.
+/// - [Flip sign](flip_sign) - Attempt to find a simpler failing value with the
+///   opposite sign of the current simplest failing value.
 /// - [Done](done) - Done shrinking
 ///
 /// # Phase transitions
@@ -31,8 +68,13 @@ use crate::{report::Observation, shrinker::Shrinker};
 /// one in the sequence, but some phases will jump forward or backward under
 /// certain circumstances.
 ///
-/// For example, TODO: examples
-// TODO: implement real phases
+/// For example, if "Try simplest" finds that the simplest value fails, it
+/// immediately jumps to "Done", since there is no point trying more complicated
+/// values when we know the simplest value is failing. As another example, the
+/// "Flip sign" phase will jump *backwards* to "Shrink magnitude" if it finds
+/// a failing value, with the idea being that we've discovered failing values
+/// within the opposite sign, so it's worth spending some time searching for an
+/// even simpler value with this new sign.
 pub enum RangeInclusiveShrinkerSigned<T> {
     Done(Done<T>),
 }
@@ -41,6 +83,7 @@ macro_rules! shrinker {
     ($($t: ty),+$(,)?) => {$(
         impl RangeInclusiveShrinkerSigned<$t> {
             pub fn new() -> Self {
+                // TODO: real phases
                 Self::Done(Done::new())
             }
         }
