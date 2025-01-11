@@ -8,7 +8,7 @@ use crate::{
 use super::shrinker::RangeInclusiveShrinkerSigned;
 
 macro_rules! signed_range_inclusive {
-    ($($i:ty = $u:ty ),+$(,)?) => {$(
+    ($($i:ty = $u:ty),+$(,)?) => {$(
         const _: () = assert!(size_of::<$i>() == size_of::<$u>());
 
         impl IntoInputGenerator<$i> for RangeInclusive<$i> {
@@ -21,22 +21,13 @@ macro_rules! signed_range_inclusive {
             }
         }
 
-        impl RangeInclusiveGen<$i> {
-            fn cardinality_infallible(&self) -> $u {
-                // This uses some pretty sexy two's complement modular
-                // arithmetic tricks to avoid overflow issues
-                // Sanity check: https://play.rust-lang.org/?version=stable&mode=release&edition=2021&gist=f5e25ab4f97e57206163f8ece48d8aa6
-                <$u>::wrapping_sub(self.max as $u, self.min as $u)
-            }
-        }
-
         impl InputGenerator for RangeInclusiveGen<$i> {
             type Input = $i;
 
             type InputSource = Self::Input;
 
             fn cardinality(&self) -> Option<usize> {
-                usize::try_from(self.cardinality_infallible()).ok().and_then(|cardinality| cardinality.checked_add(1))
+                usize::try_from(<$i>::abs_diff(self.min, self.max)).ok().and_then(|cardinality| cardinality.checked_add(1))
             }
 
             fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
@@ -61,11 +52,11 @@ macro_rules! signed_range_inclusive {
             // TODO: at some point, consider an optimized version of this that
             // doesn't allocate and uses smart math
             fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
-                match self.cardinality_infallible() {
-                    0..=7 => (self.min..=self.max).collect(),
-                    cardinality => {
-                        // Infallible - `uN::MAX / 2 <= iN::MAX` is always true
-                        let half_cardinality = <$i>::try_from(cardinality / 2).unwrap();
+                match <$i>::abs_diff(self.min, self.max) {
+                    0..=6 => (self.min..=self.max).collect(),
+                    cardinality_minus_one => {
+                        // Infallible - `uN::MAX / 2 <= iN::MAX`
+                        let half_cardinality = <$i>::try_from(cardinality_minus_one / 2).unwrap();
 
                         let mut nums = Vec::with_capacity(10);
 
@@ -74,19 +65,19 @@ macro_rules! signed_range_inclusive {
                         nums.push(self.min + 1);
                         nums.push(self.max - 1);
 
-                        nums.push(self.min + half_cardinality - 1);
-                        nums.push(self.min + half_cardinality);
-                        if cardinality % 2 == 1 {
-                            nums.push(self.min + half_cardinality + 1);
+                        if cardinality_minus_one % 2 == 0 {
+                            nums.push(self.min + half_cardinality - 1);
                         }
+                        nums.push(self.min + half_cardinality);
+                        nums.push(self.min + half_cardinality + 1);
 
-                        if !nums.contains(&-1) {
+                        if (self.min..=self.max).contains(&-1) && !nums.contains(&-1) {
                             nums.push(-1)
                         }
-                        if !nums.contains(&0) {
+                        if (self.min..=self.max).contains(&0) && !nums.contains(&0) {
                             nums.push(0)
                         }
-                        if !nums.contains(&1) {
+                        if (self.min..=self.max).contains(&1) && !nums.contains(&1) {
                             nums.push(1)
                         }
 
@@ -123,62 +114,118 @@ signed_range_inclusive! {
     isize = usize,
 }
 
-// TODO(ichen): comment tests back in when shrinking is implemented
-// #[cfg(test)]
-// mod tests {
-//     use crate::prelude::*;
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
 
-//     // TODO: have a cooler name
-//     #[test]
-//     fn test_with_cool_name() {
-//         assert_eq!(
-//             run_test(|_| false, -42..=6, &mut crate::rand::thread_rng())
-//                 .unwrap_err()
-//                 .simplest_failing_input,
-//             0
-//         );
+    use crate::prelude::*;
 
-//         assert_eq!(
-//             run_test(|n| n < 123, -45..=1000i64, &mut crate::rand::thread_rng())
-//                 .unwrap_err()
-//                 .simplest_failing_input,
-//             123
-//         );
+    // TODO: better name
+    #[test]
+    fn adversary_sanity_check() {
+        // 1 2 3 4 5 6 7
+        // ^ ^ ^ ^ ^ ^ ^
+        let gen = (1i32..=7).into_input_generator();
+        assert_eq!(
+            HashSet::from([1, 2, 3, 4, 5, 6, 7]),
+            gen.adversarial()
+                .map(|is| gen.create_input(is))
+                .collect::<HashSet<_>>()
+        );
 
-//         assert_eq!(
-//             run_test(
-//                 |_| false,
-//                 i128::MIN..=i128::MAX,
-//                 &mut crate::rand::thread_rng()
-//             )
-//             .unwrap_err()
-//             .simplest_failing_input,
-//             0
-//         );
+        // 1 2 3 4 5 6 7 8
+        // ^ ^   ^ ^   ^ ^
+        let gen = (1i32..=8).into_input_generator();
+        assert_eq!(
+            HashSet::from([1, 2, 4, 5, 7, 8]),
+            gen.adversarial()
+                .map(|is| gen.create_input(is))
+                .collect::<HashSet<_>>()
+        );
 
-//         assert_eq!(
-//             run_test(|n| n > -100, -421..=-21i32, &mut crate::rand::thread_rng())
-//                 .unwrap_err()
-//                 .simplest_failing_input,
-//             -100
-//         );
+        // 1 2 3 4 5 6 7 8 9
+        // ^ ^   ^ ^ ^   ^ ^
+        let gen = (1i32..=9).into_input_generator();
+        assert_eq!(
+            HashSet::from([1, 9, 2, 8, 4, 5, 6]),
+            gen.adversarial()
+                .map(|is| gen.create_input(is))
+                .collect::<HashSet<_>>()
+        );
 
-//         assert_eq!(
-//             run_test(
-//                 |n| n < 643,
-//                 45..=2000000i128,
-//                 &mut crate::rand::thread_rng()
-//             )
-//             .unwrap_err()
-//             .simplest_failing_input,
-//             643
-//         );
+        // 32 33 34 35 36 37 38 39 40 41 42 43 44
+        // ^^ ^^          ^^ ^^ ^^          ^^ ^^
+        let gen = (32i32..=44).into_input_generator();
+        assert_eq!(
+            HashSet::from([32, 33, 37, 38, 39, 43, 44]),
+            gen.adversarial()
+                .map(|is| gen.create_input(is))
+                .collect::<HashSet<_>>()
+        );
 
-//         assert_eq!(
-//             run_test(|n| n > -6, i16::MIN..=3, &mut crate::rand::thread_rng())
-//                 .unwrap_err()
-//                 .simplest_failing_input,
-//             -6
-//         );
-//     }
-// }
+        // 32 33 34 35 36 37 38 39 40 41 42 43 44 45
+        // ^^ ^^             ^^ ^^             ^^ ^^
+        let gen = (32i32..=45).into_input_generator();
+        assert_eq!(
+            HashSet::from([32, 33, 38, 39, 44, 45]),
+            gen.adversarial()
+                .map(|is| gen.create_input(is))
+                .collect::<HashSet<_>>()
+        );
+    }
+
+    // TODO(ichen): comment tests back in when shrinking is implemented
+    // TODO: have a cooler name
+    // #[test]
+    // fn test_with_cool_name() {
+    //     assert_eq!(
+    //         run_test(|_| false, -42..=6, &mut crate::rand::thread_rng())
+    //             .unwrap_err()
+    //             .simplest_failing_input,
+    //         0
+    //     );
+
+    //     assert_eq!(
+    //         run_test(|n| n < 123, -45..=1000i64, &mut crate::rand::thread_rng())
+    //             .unwrap_err()
+    //             .simplest_failing_input,
+    //         123
+    //     );
+
+    //     assert_eq!(
+    //         run_test(
+    //             |_| false,
+    //             i128::MIN..=i128::MAX,
+    //             &mut crate::rand::thread_rng()
+    //         )
+    //         .unwrap_err()
+    //         .simplest_failing_input,
+    //         0
+    //     );
+
+    //     assert_eq!(
+    //         run_test(|n| n > -100, -421..=-21i32, &mut crate::rand::thread_rng())
+    //             .unwrap_err()
+    //             .simplest_failing_input,
+    //         -100
+    //     );
+
+    //     assert_eq!(
+    //         run_test(
+    //             |n| n < 643,
+    //             45..=2000000i128,
+    //             &mut crate::rand::thread_rng()
+    //         )
+    //         .unwrap_err()
+    //         .simplest_failing_input,
+    //         643
+    //     );
+
+    //     assert_eq!(
+    //         run_test(|n| n > -6, i16::MIN..=3, &mut crate::rand::thread_rng())
+    //             .unwrap_err()
+    //             .simplest_failing_input,
+    //         -6
+    //     );
+    // }
+}
