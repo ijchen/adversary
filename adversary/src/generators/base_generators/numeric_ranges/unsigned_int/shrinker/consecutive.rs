@@ -113,10 +113,9 @@ macro_rules! consecutive {
                     return if Self::starting_value(self.simplest_known_failing, self.min) == self.min + 1 {
                         RangeInclusiveShrinkerUnsigned::Done(Done::new())
                     }
-                    // Otherwise, there's more values to try between min
-                    // and the new simplest failing input we just found,
-                    // so start back at the binary search phase with our
-                    // new information
+                    // Otherwise, there's more values to try between min and the
+                    // new simplest failing input we just found, so start back
+                    // at the binary search phase with our new information
                     else {
                         // Invariant: BinarySearch::new requires us to ensure
                         // that `self.min <= self.min + 1 < self.current`.
@@ -131,9 +130,8 @@ macro_rules! consecutive {
                     };
                 }
 
-                // If we've hit the simplest known failing input, we've
-                // tried all values in our consecutive run - give up and
-                // move to done
+                // If we've hit the simplest known failing input, we've tried
+                // all values in our consecutive run - give up and move to done
                 //
                 // `self.current + 1` can't overflow because the "Within
                 // consecutive run" invariant guarantees that `self.current <

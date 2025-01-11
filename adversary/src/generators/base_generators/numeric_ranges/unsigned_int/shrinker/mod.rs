@@ -11,13 +11,13 @@ mod binary_search;
 mod consecutive;
 mod done;
 mod spread_out;
-mod try_min;
+mod try_simplest;
 
 use binary_search::BinarySearch;
 use consecutive::Consecutive;
 use done::Done;
 use spread_out::SpreadOut;
-use try_min::TryMin;
+use try_simplest::TrySimplest;
 
 use crate::{report::Observation, shrinker::Shrinker};
 
@@ -31,7 +31,7 @@ use crate::{report::Observation, shrinker::Shrinker};
 /// # Phases
 /// More details on each phase can be found in their respective modules, but
 /// here's a high-level overview of each:
-/// - [Try min](try_min) - try the minimum value immediately
+/// - [Try simplest](try_simplest) - try the simplest value immediately
 /// - [Binary search](binary_search) - binary search to a simpler value
 /// - [Spread out](spread_out) - Try a spread out sampling of values between the
 ///   minimum and the simplest known failing value
@@ -44,15 +44,15 @@ use crate::{report::Observation, shrinker::Shrinker};
 /// one in the sequence, but some phases will jump forward or backward under
 /// certain circumstances.
 ///
-/// For example, if "Try min" finds that the minimum value fails, it immediately
-/// jumps to "Done", since there is no point trying larger values when we know
-/// the simplest value is failing. As another example, both the "Spread out" and
-/// "Consecutive" phases will jump *backwards* to "Binary search" if they find
-/// failing values, with the idea being that we've discovered values that binary
-/// search missed, so it maybe be worth trying binary search again with a more
-/// refined range.
+/// For example, if "Try simplest" finds that the simplest value fails, it
+/// immediately jumps to "Done", since there is no point trying larger values
+/// when we know the simplest value is failing. As another example, both the
+/// "Spread out" and "Consecutive" phases will jump *backwards* to "Binary
+/// search" if they find failing values, with the idea being that we've
+/// discovered values that binary search missed, so it maybe be worth trying
+/// binary search again with a more refined range.
 pub enum RangeInclusiveShrinkerUnsigned<T> {
-    TryMin(TryMin<T>),
+    TrySimplest(TrySimplest<T>),
     BinarySearch(BinarySearch<T>),
     SpreadOut(SpreadOut<T>),
     Consecutive(Consecutive<T>),
@@ -70,7 +70,7 @@ macro_rules! shrinker {
                 if simplest_known_failing == min {
                     Self::Done(Done::new())
                 } else {
-                    Self::TryMin(TryMin::<$t>::new(min, simplest_known_failing))
+                    Self::TrySimplest(TrySimplest::<$t>::new(min, simplest_known_failing))
                 }
             }
         }
@@ -80,7 +80,7 @@ macro_rules! shrinker {
 
             fn current_attempt(&self) -> Option<Self::InputSource> {
                 match self {
-                    Self::TryMin(phase) => phase.current_attempt(),
+                    Self::TrySimplest(phase) => phase.current_attempt(),
                     Self::BinarySearch(phase) => phase.current_attempt(),
                     Self::SpreadOut(phase) => phase.current_attempt(),
                     Self::Consecutive(phase) => phase.current_attempt(),
@@ -90,7 +90,7 @@ macro_rules! shrinker {
 
             fn update(&mut self, current_attempt_passed: bool) {
                 *self = match self {
-                    Self::TryMin(phase) => phase.next_phase(current_attempt_passed),
+                    Self::TrySimplest(phase) => phase.next_phase(current_attempt_passed),
                     Self::BinarySearch(phase) => phase.next_phase(current_attempt_passed),
                     Self::SpreadOut(phase) => phase.next_phase(current_attempt_passed),
                     Self::Consecutive(phase) => phase.next_phase(current_attempt_passed),
