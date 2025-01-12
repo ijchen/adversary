@@ -34,7 +34,7 @@ use super::{
 // # Invariants
 //
 // ## The "Valid range" invariant
-// `min <= self.low < self.high`
+// `self.min <= self.low < self.high`
 pub struct BinarySearch<T> {
     /// The lower value in the binary search range, which hasn't yet been
     /// observed passing.

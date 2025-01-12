@@ -91,9 +91,9 @@ macro_rules! signed_range_inclusive {
 
             fn new_shrinker(
                 &self,
-                _failing_input: Self::InputSource,
+                failing_input: Self::InputSource,
             ) -> impl Shrinker<InputSource = Self::InputSource> {
-                RangeInclusiveShrinkerSigned::<$t>::new()
+                RangeInclusiveShrinkerSigned::<$t>::new(failing_input, (self.min, self.max))
             }
 
             fn create_input(&self, input_source: Self::InputSource) -> Self::Input {

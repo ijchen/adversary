@@ -37,7 +37,8 @@ macro_rules! try_simplest {
             pub fn new(min: $t, simplest_known_failing: $t) -> Self {
                 assert!(min < simplest_known_failing);
 
-                // Invariant: "Min" is upheld by assertion above
+                // Invariant: "Min" must be upheld by the caller, and is checked
+                // with the assertion above.
                 Self { min, simplest_known_failing }
             }
 
@@ -46,7 +47,7 @@ macro_rules! try_simplest {
             }
 
             pub fn next_phase(&self, current_attempt_passed: bool) -> RangeInclusiveShrinkerUnsigned<$t> {
-                // If the min value failed, we're done shrinking
+                // If the simplest value failed, we're done shrinking
                 if !current_attempt_passed {
                     return RangeInclusiveShrinkerUnsigned::Done(Done::new());
                 }
