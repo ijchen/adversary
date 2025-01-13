@@ -18,6 +18,7 @@ use super::{binary_search::BinarySearch, done::Done, RangeInclusiveShrinkerUnsig
 //
 // ## The "Min" invariant
 // `self.min < self.simplest_known_failing`
+#[derive(Debug, Clone)]
 pub struct TrySimplest<T> {
     /// The minimum value in the shrinking range.
     min: T,

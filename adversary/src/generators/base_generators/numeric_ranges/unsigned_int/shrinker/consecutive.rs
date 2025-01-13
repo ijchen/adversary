@@ -37,6 +37,7 @@ pub const CONSEC_COUNT: u8 = 100;
 // ## The "Within consecutive run" invariant
 // `start <= self.current < self.simplest_known_failing`
 // where `start = max(self.min + 1, self.simplest_known_failing - CONSEC_COUNT)`
+#[derive(Debug, Clone)]
 pub struct Consecutive<T> {
     /// The current value we're attempting.
     current: T,

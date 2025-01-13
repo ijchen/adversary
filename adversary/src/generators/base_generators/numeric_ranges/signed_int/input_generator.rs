@@ -8,9 +8,11 @@ use crate::{
 use super::shrinker::RangeInclusiveShrinkerSigned;
 
 macro_rules! signed_range_inclusive {
-    ($($t:ty),+$(,)?) => {$(
-        impl IntoInputGenerator<$t> for RangeInclusive<$t> {
-            fn into_input_generator(self) -> impl InputGenerator<Input = $t> {
+    ($($i:ty = $u:ty),+$(,)?) => {$(
+        const _: () = assert!(size_of::<$i>() == size_of::<$u>());
+
+        impl IntoInputGenerator<$i> for RangeInclusive<$i> {
+            fn into_input_generator(self) -> impl InputGenerator<Input = $i> {
                 let min = *self.start();
                 let max = *self.end();
                 assert!(min <= max);
@@ -19,13 +21,13 @@ macro_rules! signed_range_inclusive {
             }
         }
 
-        impl InputGenerator for RangeInclusiveGen<$t> {
-            type Input = $t;
+        impl InputGenerator for RangeInclusiveGen<$i> {
+            type Input = $i;
 
             type InputSource = Self::Input;
 
             fn cardinality(&self) -> Option<usize> {
-                usize::try_from(<$t>::abs_diff(self.min, self.max)).ok().and_then(|cardinality| cardinality.checked_add(1))
+                usize::try_from(<$i>::abs_diff(self.min, self.max)).ok().and_then(|cardinality| cardinality.checked_add(1))
             }
 
             fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
@@ -50,11 +52,11 @@ macro_rules! signed_range_inclusive {
             // TODO: at some point, consider an optimized version of this that
             // doesn't allocate and uses smart math
             fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
-                match <$t>::abs_diff(self.min, self.max) {
+                match <$i>::abs_diff(self.min, self.max) {
                     0..=6 => (self.min..=self.max).collect(),
                     cardinality_minus_one => {
                         // Infallible - `uN::MAX / 2 <= iN::MAX`
-                        let half_cardinality = <$t>::try_from(cardinality_minus_one / 2).unwrap();
+                        let half_cardinality = <$i>::try_from(cardinality_minus_one / 2).unwrap();
 
                         let mut nums = Vec::with_capacity(10);
 
@@ -93,7 +95,7 @@ macro_rules! signed_range_inclusive {
                 &self,
                 failing_input: Self::InputSource,
             ) -> impl Shrinker<InputSource = Self::InputSource> {
-                RangeInclusiveShrinkerSigned::<$t>::new(failing_input, (self.min, self.max))
+                RangeInclusiveShrinkerSigned::<$i, $u>::new(failing_input, (self.min, self.max))
             }
 
             fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
@@ -103,7 +105,14 @@ macro_rules! signed_range_inclusive {
     )+};
 }
 
-signed_range_inclusive! { i8, i16, i32, i64, i128, isize }
+signed_range_inclusive! {
+    i8 = u8,
+    i16 = u16,
+    i32 = u32,
+    i64 = u64,
+    i128 = u128,
+    isize = usize,
+}
 
 #[cfg(test)]
 mod tests {

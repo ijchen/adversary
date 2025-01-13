@@ -8,9 +8,11 @@
 //! see the documentation in their respective modules.
 
 mod done;
+mod shrink_magnitude;
 mod try_simplest;
 
 use done::Done;
+use shrink_magnitude::ShrinkMagnitude;
 use try_simplest::TrySimplest;
 
 use crate::{report::Observation, shrinker::Shrinker};
@@ -77,20 +79,23 @@ use crate::{report::Observation, shrinker::Shrinker};
 /// a failing value, with the idea being that we've discovered failing values
 /// within the opposite sign, so it's worth spending some time searching for an
 /// even simpler value with this new sign.
-pub enum RangeInclusiveShrinkerSigned<T> {
-    TrySimplest(TrySimplest<T>),
-    Done(Done<T>),
+pub enum RangeInclusiveShrinkerSigned<I, U> {
+    TrySimplest(TrySimplest<I>),
+    ShrinkMagnitude(ShrinkMagnitude<I, U>),
+    Done(Done<I, U>),
 }
 
 macro_rules! shrinker {
-    ($($t: ty),+$(,)?) => {$(
-        impl RangeInclusiveShrinkerSigned<$t> {
+    ($($i:ty = $u:ty),+$(,)?) => {$(
+        const _: () = assert!(size_of::<$i>() == size_of::<$u>());
+
+        impl RangeInclusiveShrinkerSigned<$i, $u> {
             /// Constructs a new [`RangeInclusiveShrinkerSigned`].
             ///
             /// # Panics
             /// if the invariant `min <= simplest_known_failing <= max` is not
             /// true.
-            pub fn new(simplest_known_failing: $t, (min, max): ($t, $t)) -> Self {
+            pub fn new(simplest_known_failing: $i, (min, max): ($i, $i)) -> Self {
                 debug_assert!(min <= simplest_known_failing && simplest_known_failing <= max);
 
                 // If the simplest known failing value is the simplest possible
@@ -101,7 +106,7 @@ macro_rules! shrinker {
 
                 // Invariant: upheld by our caller, and checked with the
                 // assertion above.
-                Self::TrySimplest(TrySimplest::<$t>::new(simplest_known_failing, (min, max)))
+                Self::TrySimplest(TrySimplest::<$i>::new(simplest_known_failing, (min, max)))
             }
 
             #[expect(unused, reason = "will be used by flip sign step")]
@@ -121,7 +126,7 @@ macro_rules! shrinker {
             ///
             /// # Panics
             /// if `min <= n <= max` is not true.
-            fn flipped_simpler(n: $t, (min, max): ($t, $t)) -> Option<$t> {
+            fn flipped_simpler(n: $i, (min, max): ($i, $i)) -> Option<$i> {
                 assert!(min <= n && n <= max);
 
                 (n != 0 && n != 1 && min < 0 && max > 0).then(|| {
@@ -150,8 +155,8 @@ macro_rules! shrinker {
             }
 
             /// Returns the median of three numbers.
-            fn median_of_three(a: $t, b: $t, c: $t) -> $t {
-                <$t>::max(<$t>::min(a, b), <$t>::min(<$t>::max(a, b), c))
+            fn median_of_three(a: $i, b: $i, c: $i) -> $i {
+                <$i>::max(<$i>::min(a, b), <$i>::min(<$i>::max(a, b), c))
             }
 
             /// Returns the simplest value within the given range.
@@ -159,17 +164,18 @@ macro_rules! shrinker {
             /// For more information on what makes a value "simpler" despite
             /// different signs, see the "How sign effects simplicity" section
             /// on [`RangeInclusiveShrinkerSigned`].
-            fn simplest_in_range(min: $t, max: $t) -> $t {
+            fn simplest_in_range(min: $i, max: $i) -> $i {
                 Self::median_of_three(min, max, 0)
             }
         }
 
-        impl Shrinker for RangeInclusiveShrinkerSigned<$t> {
-            type InputSource = $t;
+        impl Shrinker for RangeInclusiveShrinkerSigned<$i, $u> {
+            type InputSource = $i;
 
             fn current_attempt(&self) -> Option<Self::InputSource> {
                 match self {
                     Self::TrySimplest(phase) => phase.current_attempt(),
+                    Self::ShrinkMagnitude(phase) => phase.current_attempt(),
                     Self::Done(phase) => phase.current_attempt(),
                 }
             }
@@ -177,6 +183,7 @@ macro_rules! shrinker {
             fn update(&mut self, current_attempt_passed: bool) {
                 *self = match self {
                     Self::TrySimplest(phase) => phase.next_phase(current_attempt_passed),
+                    Self::ShrinkMagnitude(phase) => phase.next_phase(current_attempt_passed),
                     Self::Done(phase) => phase.next_phase(current_attempt_passed),
                 }
             }
@@ -189,4 +196,11 @@ macro_rules! shrinker {
     )+};
 }
 
-shrinker! { i8, i16, i32, i64, i128, isize }
+shrinker! {
+    i8 = u8,
+    i16 = u16,
+    i32 = u32,
+    i64 = u64,
+    i128 = u128,
+    isize = usize,
+}

@@ -45,6 +45,7 @@ pub const SPREAD_COUNT: u8 = 12;
 //
 // ## The "Valid index" invariant
 // `index < SPREAD_COUNT`
+#[derive(Debug, Clone)]
 pub struct SpreadOut<T> {
     /// The zero-based index of which "chunk" of the input space we're currently
     /// searching. Will be between 0 (inclusive) and [`SPREAD_COUNT`]

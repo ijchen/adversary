@@ -20,7 +20,6 @@ use spread_out::SpreadOut;
 use try_simplest::TrySimplest;
 
 use crate::{report::Observation, shrinker::Shrinker};
-
 /// The shrinker implementation for unsigned integer range
 /// [`InputGenerator`](crate::InputGenerator)s.
 ///
@@ -51,6 +50,8 @@ use crate::{report::Observation, shrinker::Shrinker};
 /// search" if they find failing values, with the idea being that we've
 /// discovered values that binary search missed, so it maybe be worth trying
 /// binary search again with a more refined range.
+
+#[derive(Debug, Clone)]
 pub enum RangeInclusiveShrinkerUnsigned<T> {
     TrySimplest(TrySimplest<T>),
     BinarySearch(BinarySearch<T>),

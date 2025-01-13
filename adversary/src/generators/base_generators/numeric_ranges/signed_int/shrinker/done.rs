@@ -10,9 +10,9 @@ use super::RangeInclusiveShrinkerSigned;
 ///
 /// # Next phase
 /// This is the final phase, and will never change to any other phase.
-pub struct Done<T>(PhantomData<T>);
+pub struct Done<T, U>(PhantomData<(T, U)>);
 
-impl<T> Done<T> {
+impl<T, U> Done<T, U> {
     pub fn new() -> Self {
         Self(PhantomData)
     }
@@ -21,7 +21,7 @@ impl<T> Done<T> {
         None
     }
 
-    pub fn next_phase(&self, _current_attempt_passed: bool) -> RangeInclusiveShrinkerSigned<T> {
+    pub fn next_phase(&self, _current_attempt_passed: bool) -> RangeInclusiveShrinkerSigned<T, U> {
         RangeInclusiveShrinkerSigned::Done(Self::new())
     }
 }

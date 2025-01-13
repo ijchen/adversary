@@ -10,6 +10,7 @@ use super::RangeInclusiveShrinkerUnsigned;
 ///
 /// # Next phase
 /// This is the final phase, and will never change to any other phase.
+#[derive(Debug, Clone)]
 pub struct Done<T>(PhantomData<T>);
 
 impl<T> Done<T> {
