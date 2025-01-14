@@ -1,7 +1,7 @@
-use crate::{just, Canonical, InputGenerator};
+use crate::{just, Canonical, ValueGen};
 
 impl Canonical for () {
-    fn canonical() -> impl InputGenerator<Input = Self> {
+    fn canonical() -> impl ValueGen<Value = Self> {
         just(())
     }
 }

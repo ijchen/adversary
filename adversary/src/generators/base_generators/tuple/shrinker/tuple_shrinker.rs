@@ -1,4 +1,4 @@
-use crate::{report::Observation, shrinker::Shrinker, InputGenerator};
+use crate::{report::Observation, shrinker::Shrinker, ValueGen};
 
 use super::{all_together::*, elementwise::*, pairwise::*};
 
@@ -11,13 +11,13 @@ macro_rules! tuple_shrinker {
         // meaningful ways.
         const _: () = assert!($n > 2);
 
-        pub struct [<TupleShrinker $n>]<'gens, $([<Gen $letter>]: InputGenerator),+> {
+        pub struct [<TupleShrinker $n>]<'gens, $([<Gen $letter>]: ValueGen),+> {
             generators: ($(&'gens [<Gen $letter>]),+),
-            current_values: ($([<Gen $letter>]::InputSource),+),
+            current_values: ($([<Gen $letter>]::Seed),+),
             phase: [<Phase $n>]<'gens, $([<Gen $letter>]),+>,
         }
 
-        enum [<Phase $n>]<'gens, $([<Gen $letter>]: InputGenerator),+> {
+        enum [<Phase $n>]<'gens, $([<Gen $letter>]: ValueGen),+> {
             ElementwiseFirstPass([<Elementwise $n>]<'gens, $([<Gen $letter>]),+>),
             AllTogetherFirstPass([<AllTogether $n>]<'gens, $([<Gen $letter>]),+>),
             Pairwise([<Pairwise $n>]<'gens, $([<Gen $letter>]),+>),
@@ -26,12 +26,12 @@ macro_rules! tuple_shrinker {
             Done,
         }
 
-        impl<'gens, $([<Gen $letter>]: InputGenerator),+>
+        impl<'gens, $([<Gen $letter>]: ValueGen),+>
             [<TupleShrinker $n>]<'gens, $([<Gen $letter>]),+>
         {
             pub fn new(
                 generators: ($(&'gens [<Gen $letter>]),+),
-                current_values: ($([<Gen $letter>]::InputSource),+),
+                current_values: ($([<Gen $letter>]::Seed),+),
             ) -> Self {
                 let phase =
                     [<Phase $n>]::ElementwiseFirstPass([<Elementwise $n>]::new(generators, current_values.clone()));
@@ -95,12 +95,12 @@ macro_rules! tuple_shrinker {
             }
         }
 
-        impl<'gens, $([<Gen $letter>]: InputGenerator),+> Shrinker
+        impl<'gens, $([<Gen $letter>]: ValueGen),+> Shrinker
             for [<TupleShrinker $n>]<'gens, $([<Gen $letter>]),+>
         {
-            type InputSource = ($([<Gen $letter>]::InputSource),+);
+            type Seed = ($([<Gen $letter>]::Seed),+);
 
-            fn current_attempt(&self) -> Option<Self::InputSource> {
+            fn current_attempt(&self) -> Option<Self::Seed> {
                 match &self.phase {
                     [<Phase $n>]::ElementwiseFirstPass(phase) => phase.current_attempt(),
                     [<Phase $n>]::AllTogetherFirstPass(phase) => phase.current_attempt(),

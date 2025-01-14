@@ -37,7 +37,7 @@ mod tests {
     // #[derive(Clone)]
     // struct Foo;
     // impl adv::Canonical for Foo {
-    //     fn canonical() -> impl InputGenerator<Input = Self> + Send + Sync + Unpin {
+    //     fn canonical() -> impl ValueGen<Value = Self> + Send + Sync + Unpin {
     //         just(Foo)
     //     }
     // }
@@ -58,21 +58,21 @@ mod tests {
     // #[derive(Clone)]
     // struct Nothing;
     // impl adv::Canonical for Nothing {
-    //     fn canonical() -> impl InputGenerator<Input = Self> + Send + Sync + Unpin {
+    //     fn canonical() -> impl ValueGen<Value = Self> + Send + Sync + Unpin {
     //         just(Nothing)
     //     }
     // }
     // #[derive(Debug, Clone)]
     // struct Debugger;
     // impl adv::Canonical for Debugger {
-    //     fn canonical() -> impl InputGenerator<Input = Self> + Send + Sync + Unpin {
+    //     fn canonical() -> impl ValueGen<Value = Self> + Send + Sync + Unpin {
     //         just(Debugger)
     //     }
     // }
     // #[derive(Clone)]
     // struct Displayer;
     // impl adv::Canonical for Displayer {
-    //     fn canonical() -> impl InputGenerator<Input = Self> + Send + Sync + Unpin {
+    //     fn canonical() -> impl ValueGen<Value = Self> + Send + Sync + Unpin {
     //         just(Displayer)
     //     }
     // }

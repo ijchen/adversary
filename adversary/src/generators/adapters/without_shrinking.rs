@@ -1,16 +1,16 @@
-use crate::{shrinker::Shrinker, shrinkers::NeverShrink, InputGenerator};
+use crate::{shrinker::Shrinker, shrinkers::NeverShrink, ValueGen};
 
 pub struct WithoutShrinking<G>(G);
 
-impl<G: InputGenerator> InputGenerator for WithoutShrinking<G> {
-    type Input = G::Input;
-    type InputSource = G::InputSource;
+impl<G: ValueGen> ValueGen for WithoutShrinking<G> {
+    type Value = G::Value;
+    type Seed = G::Seed;
 
     fn cardinality(&self) -> Option<usize> {
         self.0.cardinality()
     }
 
-    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+    fn exhaustive(&self) -> impl Iterator<Item = Self::Seed> {
         self.0.exhaustive()
     }
 
@@ -18,27 +18,24 @@ impl<G: InputGenerator> InputGenerator for WithoutShrinking<G> {
         self.0.adversarial_count()
     }
 
-    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+    fn adversarial(&self) -> impl Iterator<Item = Self::Seed> {
         self.0.adversarial()
     }
 
-    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::Seed {
         self.0.sample(rng)
     }
 
-    fn new_shrinker(
-        &self,
-        _failing_input: Self::InputSource,
-    ) -> impl Shrinker<InputSource = Self::InputSource> {
+    fn new_shrinker(&self, _seed: Self::Seed) -> impl Shrinker<Seed = Self::Seed> {
         NeverShrink::new()
     }
 
-    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
-        self.0.create_input(input_source)
+    fn create_value(&self, seed: Self::Seed) -> Self::Value {
+        self.0.create_value(seed)
     }
 }
 
-impl<G: InputGenerator> WithoutShrinking<G> {
+impl<G: ValueGen> WithoutShrinking<G> {
     pub fn new(inner_generator: G) -> Self {
         Self(inner_generator)
     }

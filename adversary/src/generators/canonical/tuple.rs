@@ -1,10 +1,10 @@
-use crate::{Canonical, InputGenerator, IntoInputGenerator};
+use crate::{Canonical, IntoValueGen, ValueGen};
 
 macro_rules! canonical_tuples {
     ($( ( $($letter:ident),+$(,)? ) ),*$(,)?) => {$(
         impl<$($letter : Canonical ,)+> Canonical for ($($letter ,)+) {
-            fn canonical() -> impl InputGenerator<Input = Self> {
-                ($(<$letter>::canonical() ,)+).into_input_generator()
+            fn canonical() -> impl ValueGen<Value = Self> {
+                ($(<$letter>::canonical() ,)+).into_value_gen()
             }
         }
     )*}

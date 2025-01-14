@@ -1,4 +1,4 @@
-use crate::{shrinker::Shrinker, InputGenerator};
+use crate::{shrinker::Shrinker, ValueGen};
 
 macro_rules! elementwise {
     ($(
@@ -18,22 +18,22 @@ macro_rules! elementwise {
         // meaningful ways.
         const _: () = assert!($n > 2);
 
-        pub struct [<Elementwise $n>]<'gens, $([<Gen $letter>]: InputGenerator),+> {
-            current_values: ($([<Gen $letter>]::InputSource),+),
+        pub struct [<Elementwise $n>]<'gens, $([<Gen $letter>]: ValueGen),+> {
+            current_values: ($([<Gen $letter>]::Seed),+),
             step: [<Step $n>]<'gens, $([<Gen $letter>]),+>,
         }
 
-        enum [<Step $n>]<'gens, $([<Gen $letter>]: InputGenerator),+> {
-            $([<Shrinking $letter>](Box<dyn Shrinker<InputSource = [<Gen $letter>]::InputSource> + 'gens>),)+
+        enum [<Step $n>]<'gens, $([<Gen $letter>]: ValueGen),+> {
+            $([<Shrinking $letter>](Box<dyn Shrinker<Seed = [<Gen $letter>]::Seed> + 'gens>),)+
             Done,
         }
 
-        impl<'gens, $([<Gen $letter>]: InputGenerator),+>
+        impl<'gens, $([<Gen $letter>]: ValueGen),+>
             [<Elementwise $n>]<'gens, $([<Gen $letter>]),+>
         {
             pub fn new(
                 generators: ($(&'gens [<Gen $letter>]),+),
-                current_values: ($([<Gen $letter>]::InputSource),+),
+                current_values: ($([<Gen $letter>]::Seed),+),
             ) -> Self {
                 let step = [<Step $n>]::ShrinkingA(Box::new(
                     generators.0.new_shrinker(current_values.0.clone()),
@@ -75,7 +75,7 @@ macro_rules! elementwise {
 
             pub fn current_attempt(
                 &self,
-            ) -> Option<($([<Gen $letter>]::InputSource),+)> {
+            ) -> Option<($([<Gen $letter>]::Seed),+)> {
                 match &self.step {
                     $(
                         [<Step $n>]::[<Shrinking $letter>](shrinker) => Some((

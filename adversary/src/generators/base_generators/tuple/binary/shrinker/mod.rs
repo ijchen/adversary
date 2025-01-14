@@ -3,16 +3,16 @@ use elementwise::Elementwise;
 
 use crate::{
     generators::base_generators::tuple::Pair, report::Observation, shrinker::Shrinker,
-    InputGenerator,
+    ValueGen,
 };
 
-pub struct TupleShrinker2<'gens, GenA: InputGenerator, GenB: InputGenerator> {
+pub struct TupleShrinker2<'gens, GenA: ValueGen, GenB: ValueGen> {
     generators: (&'gens GenA, &'gens GenB),
-    current_values: (GenA::InputSource, GenB::InputSource),
+    current_values: (GenA::Seed, GenB::Seed),
     phase: Phase<'gens, GenA, GenB>,
 }
 
-enum Phase<'gens, GenA: InputGenerator, GenB: InputGenerator> {
+enum Phase<'gens, GenA: ValueGen, GenB: ValueGen> {
     ElementwiseFirstPass(Elementwise<'gens, GenA, GenB>),
     TogetherFirstPass(Pair<'gens, GenA, GenB>),
     ElementwiseSecondPass(Elementwise<'gens, GenA, GenB>),
@@ -20,10 +20,10 @@ enum Phase<'gens, GenA: InputGenerator, GenB: InputGenerator> {
     Done,
 }
 
-impl<'gens, GenA: InputGenerator, GenB: InputGenerator> TupleShrinker2<'gens, GenA, GenB> {
+impl<'gens, GenA: ValueGen, GenB: ValueGen> TupleShrinker2<'gens, GenA, GenB> {
     pub fn new(
         generators: (&'gens GenA, &'gens GenB),
-        current_values: (GenA::InputSource, GenB::InputSource),
+        current_values: (GenA::Seed, GenB::Seed),
     ) -> Self {
         let phase =
             Phase::ElementwiseFirstPass(Elementwise::new(generators, current_values.clone()));
@@ -91,10 +91,10 @@ impl<'gens, GenA: InputGenerator, GenB: InputGenerator> TupleShrinker2<'gens, Ge
     }
 }
 
-impl<GenA: InputGenerator, GenB: InputGenerator> Shrinker for TupleShrinker2<'_, GenA, GenB> {
-    type InputSource = (GenA::InputSource, GenB::InputSource);
+impl<GenA: ValueGen, GenB: ValueGen> Shrinker for TupleShrinker2<'_, GenA, GenB> {
+    type Seed = (GenA::Seed, GenB::Seed);
 
-    fn current_attempt(&self) -> Option<Self::InputSource> {
+    fn current_attempt(&self) -> Option<Self::Seed> {
         match &self.phase {
             Phase::ElementwiseFirstPass(phase) => phase.current_attempt(),
             Phase::TogetherFirstPass(phase) => phase.current_attempt(),

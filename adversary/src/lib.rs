@@ -1,26 +1,26 @@
 pub mod generators;
-mod input_generator;
-mod input_generator_ext;
-mod into_input_generator;
+mod into_value_gen;
 pub mod prelude;
 pub mod report;
 mod self_test_helpers;
 mod shrinker;
 pub mod shrinkers;
 mod test_runners;
+mod value_gen;
+mod value_gen_ext;
 
 #[cfg(feature = "macros")]
 pub use adversary_macros::adv_test;
 
 // TODO(ichen): I don't really want to re-export this whole crate - we only need
-// rand::Rng for InputGenerator. Instead, have our own Rng trait.
+// rand::Rng for ValueGen. Instead, have our own Rng trait.
 pub use rand;
 
 pub use generators::{any, bool, just, just_with, Canonical};
-pub use input_generator::InputGenerator;
-pub use input_generator_ext::InputGeneratorExt;
-pub use into_input_generator::IntoInputGenerator;
+pub use into_value_gen::IntoValueGen;
 pub use test_runners::{run_test, run_test_panics};
+pub use value_gen::ValueGen;
+pub use value_gen_ext::ValueGenExt;
 
 #[cfg(test)]
 mod tests {
@@ -59,7 +59,7 @@ mod tests {
                 ShrinkStep::new(false, false, true),
             ]
         );
-        assert_eq!(report.simplest_failing_input(), &true);
+        assert_eq!(report.simplest_failing_value(), &true);
 
         let report = run_test(|v: bool| v, any(), &mut crate::rand::thread_rng()).unwrap_err();
         assert_eq!(report.passing_runs, 0);
@@ -67,7 +67,7 @@ mod tests {
             report.shrink_steps,
             vec![ShrinkStep::new(false, false, false)]
         );
-        assert_eq!(report.simplest_failing_input(), &false);
+        assert_eq!(report.simplest_failing_value(), &false);
 
         let report = run_test(|_: bool| false, any(), &mut crate::rand::thread_rng()).unwrap_err();
         assert_eq!(report.passing_runs, 0);
@@ -75,7 +75,7 @@ mod tests {
             report.shrink_steps,
             vec![ShrinkStep::new(false, false, false)]
         );
-        assert_eq!(report.simplest_failing_input(), &false);
+        assert_eq!(report.simplest_failing_value(), &false);
 
         run_test(|_: bool| true, any(), &mut crate::rand::thread_rng()).unwrap();
     }

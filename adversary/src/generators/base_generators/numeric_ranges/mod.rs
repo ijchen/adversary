@@ -1,7 +1,7 @@
 // TODO(ichen): Update this comment, the conflicting trait impl is the real
 // issue here - a blanket impl for any `T: RangeBounds` would mean anything
 // which does *or could possibly ever* implement `RangeBounds` would not be
-// allowed to have `IntoInputGenerator` implemented for it, directly or through
+// allowed to have `IntoValueGen` implemented for it, directly or through
 // another impl.
 // NOTE(ichen): I don't think I can (efficiently) implement this generically for
 // any `T: std::ops::RangeBounds`. When we need to iterate over the range, the
@@ -14,16 +14,16 @@
 // There's also possibly some conflicting trait implementation / specialization
 // issues - `std::ops::RangeBounds` is a foreign trait, so nothing's stopping
 // std from implementing it on one of the other foreign types (&[T], String,
-// etc.) I've manually implemented InputGenerator for.
+// etc.) I've manually implemented ValueGen for.
 //
-// If anybody can think of a way to impl InputGenerator for (impl RangeBounds)
-// in a zero-cost way that avoids trait conflict issues, I'd absolutely love to
-// see what you're cooking up. Maybe some newtype enum dispatch thing?
+// If anybody can think of a way to impl ValueGen for (impl RangeBounds) in a
+// zero-cost way that avoids trait conflict issues, I'd absolutely love to see
+// what you're cooking up. Maybe some newtype enum dispatch thing?
 
 mod signed_int;
 mod unsigned_int;
 
-/// A shared struct across all numeric range types for input generation.
+/// A shared struct across all numeric range types for value generation.
 // Representation invariant: min <= max
 struct RangeInclusiveGen<T> {
     /// The (inclusive) minimum value in the range of allowable values

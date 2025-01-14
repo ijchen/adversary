@@ -29,9 +29,9 @@ impl<T> NeverShrink<T> {
 }
 
 impl<T> Shrinker for NeverShrink<T> {
-    type InputSource = T;
+    type Seed = T;
 
-    fn current_attempt(&self) -> Option<Self::InputSource> {
+    fn current_attempt(&self) -> Option<Self::Seed> {
         None
     }
 

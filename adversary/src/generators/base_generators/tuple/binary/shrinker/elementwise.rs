@@ -1,20 +1,20 @@
-use crate::{shrinker::Shrinker, InputGenerator};
+use crate::{shrinker::Shrinker, ValueGen};
 
-pub struct Elementwise<'gens, GenA: InputGenerator, GenB: InputGenerator> {
-    current_values: (GenA::InputSource, GenB::InputSource),
+pub struct Elementwise<'gens, GenA: ValueGen, GenB: ValueGen> {
+    current_values: (GenA::Seed, GenB::Seed),
     step: Step<'gens, GenA, GenB>,
 }
 
-enum Step<'gens, GenA: InputGenerator, GenB: InputGenerator> {
-    ShrinkingA(Box<dyn Shrinker<InputSource = GenA::InputSource> + 'gens>),
-    ShrinkingB(Box<dyn Shrinker<InputSource = GenB::InputSource> + 'gens>),
+enum Step<'gens, GenA: ValueGen, GenB: ValueGen> {
+    ShrinkingA(Box<dyn Shrinker<Seed = GenA::Seed> + 'gens>),
+    ShrinkingB(Box<dyn Shrinker<Seed = GenB::Seed> + 'gens>),
     Done,
 }
 
-impl<'gens, GenA: InputGenerator, GenB: InputGenerator> Elementwise<'gens, GenA, GenB> {
+impl<'gens, GenA: ValueGen, GenB: ValueGen> Elementwise<'gens, GenA, GenB> {
     pub fn new(
         generators: (&'gens GenA, &'gens GenB),
-        current_values: (GenA::InputSource, GenB::InputSource),
+        current_values: (GenA::Seed, GenB::Seed),
     ) -> Self {
         let step = Step::ShrinkingA(Box::new(
             generators.0.new_shrinker(current_values.0.clone()),
@@ -52,7 +52,7 @@ impl<'gens, GenA: InputGenerator, GenB: InputGenerator> Elementwise<'gens, GenA,
         matches!(self.step, Step::Done)
     }
 
-    pub fn current_attempt(&self) -> Option<(GenA::InputSource, GenB::InputSource)> {
+    pub fn current_attempt(&self) -> Option<(GenA::Seed, GenB::Seed)> {
         match &self.step {
             Step::ShrinkingA(shrinker) => Some((
                 shrinker.current_attempt().unwrap(),

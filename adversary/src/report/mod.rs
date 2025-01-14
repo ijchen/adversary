@@ -34,12 +34,12 @@ pub struct Report<T> {
     pub observations: Vec<Observation>,
 
     /// Each step taken during the shrinking process, from the original failing
-    /// input as the first element to the simplest failing input as the last
+    /// value as the first element to the simplest failing value as the last
     /// element.
     ///
     /// For any normal shrinking process, it is guaranteed that the first step
     /// will be a failing non-informational step, since it is by definition the
-    /// original failing input. This guarantee is upheld by test runners in this
+    /// original failing value. This guarantee is upheld by test runners in this
     /// crate which generate [`Report`]s, although since the field is `pub`,
     /// nothing stops other code from violating this invariant by modifying the
     /// field directly.
@@ -47,15 +47,15 @@ pub struct Report<T> {
 }
 
 impl<T> Report<T> {
-    /// Returns the original failing input.
+    /// Returns the original failing value.
     ///
     /// # Panics
     /// If element 0 in the `shrink_step` field doesn't exist, or doesn't have
     /// both `test_passed` and `just_informational` set to false. This shouldn't
     /// happen, because there should always at least be the original failing
-    /// input, although if the `shrink_step` field has been modified by the user
+    /// value, although if the `shrink_step` field has been modified by the user
     /// this may occur.
-    pub fn original_failing_input(&self) -> &T {
+    pub fn original_failing_value(&self) -> &T {
         let first_shrinking_step = &self
             .shrink_steps
             .first()
@@ -73,20 +73,20 @@ impl<T> Report<T> {
         &first_shrinking_step.value
     }
 
-    /// Returns the simplest failing input.
+    /// Returns the simplest failing value.
     ///
     /// # Panics
     /// If the `shrink_step` field does not contain any [`ShrinkStep`]s that
     /// have both `test_passed` and `just_informational` set to false. This
     /// shouldn't happen, because there should always at least be the original
-    /// failing input, although if the `shrink_step` field has been modified by
+    /// failing value, although if the `shrink_step` field has been modified by
     /// the user this may occur.
-    pub fn simplest_failing_input(&self) -> &T {
+    pub fn simplest_failing_value(&self) -> &T {
         &self
             .shrink_steps
             .iter()
             .rfind(|step| !step.test_passed && !step.just_informational)
-            .expect("there should always be at least one failing non-informational step, the original failing input")
+            .expect("there should always be at least one failing non-informational step, the original failing value")
             .value
     }
 

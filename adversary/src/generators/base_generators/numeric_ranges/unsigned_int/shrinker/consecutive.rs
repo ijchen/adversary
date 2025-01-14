@@ -26,7 +26,7 @@ pub const CONSEC_COUNT: u8 = 100;
 /// The goal behind this step is to try a large run of consecutive values just
 /// less than the current simplest known failing value, with the hope that we
 /// will be able to recognize and jump past any relatively small gaps of passing
-/// inputs between the current simplest known failing value and simpler failing
+/// values between the current simplest known failing value and simpler failing
 /// values.
 //
 // # Invariants
@@ -115,7 +115,7 @@ macro_rules! consecutive {
                         RangeInclusiveShrinkerUnsigned::Done(Done::new())
                     }
                     // Otherwise, there's more values to try between min and the
-                    // new simplest failing input we just found, so start back
+                    // new simplest failing value we just found, so start back
                     // at the binary search phase with our new information
                     else {
                         // Invariant: BinarySearch::new requires us to ensure
@@ -131,7 +131,7 @@ macro_rules! consecutive {
                     };
                 }
 
-                // If we've hit the simplest known failing input, we've tried
+                // If we've hit the simplest known failing value, we've tried
                 // all values in our consecutive run - give up and move to done
                 //
                 // `self.current + 1` can't overflow because the "Within

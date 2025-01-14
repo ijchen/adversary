@@ -1,18 +1,18 @@
-use crate::{report::Observation, shrinker::Shrinker, InputGenerator};
+use crate::{report::Observation, shrinker::Shrinker, ValueGen};
 
-pub struct Pair<'gens, Left: InputGenerator, Right: InputGenerator> {
-    left_shrinker: Box<dyn Shrinker<InputSource = Left::InputSource> + 'gens>,
-    right_shrinker: Box<dyn Shrinker<InputSource = Right::InputSource> + 'gens>,
-    left_current_value: Left::InputSource,
-    right_current_value: Right::InputSource,
+pub struct Pair<'gens, Left: ValueGen, Right: ValueGen> {
+    left_shrinker: Box<dyn Shrinker<Seed = Left::Seed> + 'gens>,
+    right_shrinker: Box<dyn Shrinker<Seed = Right::Seed> + 'gens>,
+    left_current_value: Left::Seed,
+    right_current_value: Right::Seed,
 }
 
-impl<'gens, Left: InputGenerator, Right: InputGenerator> Pair<'gens, Left, Right> {
+impl<'gens, Left: ValueGen, Right: ValueGen> Pair<'gens, Left, Right> {
     pub fn new(
-        left_shrinker: impl Shrinker<InputSource = Left::InputSource> + 'gens,
-        right_shrinker: impl Shrinker<InputSource = Right::InputSource> + 'gens,
-        left_current_value: Left::InputSource,
-        right_current_value: Right::InputSource,
+        left_shrinker: impl Shrinker<Seed = Left::Seed> + 'gens,
+        right_shrinker: impl Shrinker<Seed = Right::Seed> + 'gens,
+        left_current_value: Left::Seed,
+        right_current_value: Right::Seed,
     ) -> Self {
         Self {
             left_shrinker: Box::new(left_shrinker),
@@ -28,10 +28,10 @@ impl<'gens, Left: InputGenerator, Right: InputGenerator> Pair<'gens, Left, Right
     }
 }
 
-impl<Left: InputGenerator, Right: InputGenerator> Shrinker for Pair<'_, Left, Right> {
-    type InputSource = (Left::InputSource, Right::InputSource);
+impl<Left: ValueGen, Right: ValueGen> Shrinker for Pair<'_, Left, Right> {
+    type Seed = (Left::Seed, Right::Seed);
 
-    fn current_attempt(&self) -> Option<Self::InputSource> {
+    fn current_attempt(&self) -> Option<Self::Seed> {
         match (
             self.left_shrinker.current_attempt(),
             self.right_shrinker.current_attempt(),

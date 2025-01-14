@@ -4,11 +4,11 @@ mod pair;
 mod shrinker;
 mod unary;
 
-use crate::{shrinker::Shrinker, InputGenerator, IntoInputGenerator};
+use crate::{shrinker::Shrinker, IntoValueGen, ValueGen};
 
 pub use pair::Pair;
 
-macro_rules! impl_tuple_into_input_generator {
+macro_rules! impl_tuple_into_value_gen {
     ($(
         $n:literal {
             @ letters : $($letter:ident)+
@@ -22,24 +22,24 @@ macro_rules! impl_tuple_into_input_generator {
 
         impl<
             $($letter),+,
-            $([<IntoGen $letter>]: IntoInputGenerator<[<$letter>]>),+,
-        > IntoInputGenerator<($([<$letter>]),+)> for ($([<IntoGen $letter>]),+)
+            $([<IntoGen $letter>]: IntoValueGen<[<$letter>]>),+,
+        > IntoValueGen<($([<$letter>]),+)> for ($([<IntoGen $letter>]),+)
         {
-            fn into_input_generator(self) -> impl InputGenerator<Input = ($([<$letter>]),+)> {
+            fn into_value_gen(self) -> impl ValueGen<Value = ($([<$letter>]),+)> {
                 [<TupleGen $n>](
-                    $(self.[<$index>].into_input_generator()),+
+                    $(self.[<$index>].into_value_gen()),+
                 )
             }
         }
 
         struct [<TupleGen $n>]<$([<Gen $letter>]),+>($([<Gen $letter>]),+);
 
-        impl<$([<Gen $letter>]: InputGenerator),+> InputGenerator
+        impl<$([<Gen $letter>]: ValueGen),+> ValueGen
             for [<TupleGen $n>]<$([<Gen $letter>]),+>
         {
-            type Input = ($([<Gen $letter>]::Input),+);
+            type Value = ($([<Gen $letter>]::Value),+);
 
-            type InputSource = ($([<Gen $letter>]::InputSource),+);
+            type Seed = ($([<Gen $letter>]::Seed),+);
 
             #[expect(
                 clippy::needless_question_mark,
@@ -49,7 +49,7 @@ macro_rules! impl_tuple_into_input_generator {
                 Some(1usize $(.checked_mul(self.$index.cardinality()?)?)+)
             }
 
-            fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+            fn exhaustive(&self) -> impl Iterator<Item = Self::Seed> {
                 cartesian_product::[<cartesian_product_ $n>]($(|| self.$index.exhaustive()),+)
             }
 
@@ -61,29 +61,29 @@ macro_rules! impl_tuple_into_input_generator {
                 Some(1usize $(.checked_mul(self.$index.adversarial_count()?)?)+)
             }
 
-            fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+            fn adversarial(&self) -> impl Iterator<Item = Self::Seed> {
                 cartesian_product::[<cartesian_product_ $n>]($(|| self.$index.adversarial()),+)
             }
 
-            fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+            fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::Seed {
                 ($(self.$index.sample(rng)),+)
             }
 
             fn new_shrinker(
                 &self,
-                failing_input: Self::InputSource,
-            ) -> impl Shrinker<InputSource = Self::InputSource> {
-                shrinker::[<TupleShrinker $n>]::new(($(&self.$index),+), failing_input)
+                failing_value_seed: Self::Seed,
+            ) -> impl Shrinker<Seed = Self::Seed> {
+                shrinker::[<TupleShrinker $n>]::new(($(&self.$index),+), failing_value_seed)
             }
 
-            fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
-                ($(self.$index.create_input(input_source.$index)),+)
+            fn create_value(&self, seed: Self::Seed) -> Self::Value {
+                ($(self.$index.create_value(seed.$index)),+)
             }
         }
     )*}};
 }
 
-impl_tuple_into_input_generator! {
+impl_tuple_into_value_gen! {
     3 {
         @letters: A B C
         @indices: 0 1 2

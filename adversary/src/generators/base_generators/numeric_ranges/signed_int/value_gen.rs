@@ -2,7 +2,7 @@ use std::ops::RangeInclusive;
 
 use crate::{
     generators::base_generators::numeric_ranges::RangeInclusiveGen, shrinker::Shrinker,
-    InputGenerator, IntoInputGenerator,
+    IntoValueGen, ValueGen,
 };
 
 use super::shrinker::RangeInclusiveShrinkerSigned;
@@ -11,8 +11,8 @@ macro_rules! signed_range_inclusive {
     ($($i:ty = $u:ty),+$(,)?) => {$(
         const _: () = assert!(size_of::<$i>() == size_of::<$u>());
 
-        impl IntoInputGenerator<$i> for RangeInclusive<$i> {
-            fn into_input_generator(self) -> impl InputGenerator<Input = $i> {
+        impl IntoValueGen<$i> for RangeInclusive<$i> {
+            fn into_value_gen(self) -> impl ValueGen<Value = $i> {
                 let min = *self.start();
                 let max = *self.end();
                 assert!(min <= max);
@@ -21,16 +21,16 @@ macro_rules! signed_range_inclusive {
             }
         }
 
-        impl InputGenerator for RangeInclusiveGen<$i> {
-            type Input = $i;
+        impl ValueGen for RangeInclusiveGen<$i> {
+            type Value = $i;
 
-            type InputSource = Self::Input;
+            type Seed = Self::Value;
 
             fn cardinality(&self) -> Option<usize> {
                 usize::try_from(<$i>::abs_diff(self.min, self.max)).ok().and_then(|cardinality| cardinality.checked_add(1))
             }
 
-            fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+            fn exhaustive(&self) -> impl Iterator<Item = Self::Seed> {
                 self.min..=self.max
             }
 
@@ -51,7 +51,7 @@ macro_rules! signed_range_inclusive {
             //
             // TODO: at some point, consider an optimized version of this that
             // doesn't allocate and uses smart math
-            fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+            fn adversarial(&self) -> impl Iterator<Item = Self::Seed> {
                 match <$i>::abs_diff(self.min, self.max) {
                     0..=6 => (self.min..=self.max).collect(),
                     cardinality_minus_one => {
@@ -87,19 +87,19 @@ macro_rules! signed_range_inclusive {
                 .into_iter()
             }
 
-            fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+            fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::Seed {
                 rng.gen_range(self.min..=self.max)
             }
 
             fn new_shrinker(
                 &self,
-                failing_input: Self::InputSource,
-            ) -> impl Shrinker<InputSource = Self::InputSource> {
-                RangeInclusiveShrinkerSigned::<$i, $u>::new(failing_input, (self.min, self.max))
+                seed: Self::Seed,
+            ) -> impl Shrinker<Seed = Self::Seed> {
+                RangeInclusiveShrinkerSigned::<$i, $u>::new(seed, (self.min, self.max))
             }
 
-            fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
-                input_source
+            fn create_value(&self, seed: Self::Seed) -> Self::Value {
+                seed
             }
         }
     )+};
@@ -125,51 +125,51 @@ mod tests {
     fn adversary_sanity_check() {
         // 1 2 3 4 5 6 7
         // ^ ^ ^ ^ ^ ^ ^
-        let gen = (1i32..=7).into_input_generator();
+        let gen = (1i32..=7).into_value_gen();
         assert_eq!(
             HashSet::from([1, 2, 3, 4, 5, 6, 7]),
             gen.adversarial()
-                .map(|is| gen.create_input(is))
+                .map(|is| gen.create_value(is))
                 .collect::<HashSet<_>>()
         );
 
         // 1 2 3 4 5 6 7 8
         // ^ ^   ^ ^   ^ ^
-        let gen = (1i32..=8).into_input_generator();
+        let gen = (1i32..=8).into_value_gen();
         assert_eq!(
             HashSet::from([1, 2, 4, 5, 7, 8]),
             gen.adversarial()
-                .map(|is| gen.create_input(is))
+                .map(|is| gen.create_value(is))
                 .collect::<HashSet<_>>()
         );
 
         // 1 2 3 4 5 6 7 8 9
         // ^ ^   ^ ^ ^   ^ ^
-        let gen = (1i32..=9).into_input_generator();
+        let gen = (1i32..=9).into_value_gen();
         assert_eq!(
             HashSet::from([1, 9, 2, 8, 4, 5, 6]),
             gen.adversarial()
-                .map(|is| gen.create_input(is))
+                .map(|is| gen.create_value(is))
                 .collect::<HashSet<_>>()
         );
 
         // 32 33 34 35 36 37 38 39 40 41 42 43 44
         // ^^ ^^          ^^ ^^ ^^          ^^ ^^
-        let gen = (32i32..=44).into_input_generator();
+        let gen = (32i32..=44).into_value_gen();
         assert_eq!(
             HashSet::from([32, 33, 37, 38, 39, 43, 44]),
             gen.adversarial()
-                .map(|is| gen.create_input(is))
+                .map(|is| gen.create_value(is))
                 .collect::<HashSet<_>>()
         );
 
         // 32 33 34 35 36 37 38 39 40 41 42 43 44 45
         // ^^ ^^             ^^ ^^             ^^ ^^
-        let gen = (32i32..=45).into_input_generator();
+        let gen = (32i32..=45).into_value_gen();
         assert_eq!(
             HashSet::from([32, 33, 38, 39, 44, 45]),
             gen.adversarial()
-                .map(|is| gen.create_input(is))
+                .map(|is| gen.create_value(is))
                 .collect::<HashSet<_>>()
         );
     }
@@ -181,14 +181,14 @@ mod tests {
     //     assert_eq!(
     //         run_test(|_| false, -42..=6, &mut crate::rand::thread_rng())
     //             .unwrap_err()
-    //             .simplest_failing_input,
+    //             .simplest_failing_value,
     //         0
     //     );
 
     //     assert_eq!(
     //         run_test(|n| n < 123, -45..=1000i64, &mut crate::rand::thread_rng())
     //             .unwrap_err()
-    //             .simplest_failing_input,
+    //             .simplest_failing_value,
     //         123
     //     );
 
@@ -199,14 +199,14 @@ mod tests {
     //             &mut crate::rand::thread_rng()
     //         )
     //         .unwrap_err()
-    //         .simplest_failing_input,
+    //         .simplest_failing_value,
     //         0
     //     );
 
     //     assert_eq!(
     //         run_test(|n| n > -100, -421..=-21i32, &mut crate::rand::thread_rng())
     //             .unwrap_err()
-    //             .simplest_failing_input,
+    //             .simplest_failing_value,
     //         -100
     //     );
 
@@ -217,14 +217,14 @@ mod tests {
     //             &mut crate::rand::thread_rng()
     //         )
     //         .unwrap_err()
-    //         .simplest_failing_input,
+    //         .simplest_failing_value,
     //         643
     //     );
 
     //     assert_eq!(
     //         run_test(|n| n > -6, i16::MIN..=3, &mut crate::rand::thread_rng())
     //             .unwrap_err()
-    //             .simplest_failing_input,
+    //             .simplest_failing_value,
     //         -6
     //     );
     // }

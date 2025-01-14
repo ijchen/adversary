@@ -1,8 +1,8 @@
-use crate::{shrinker::Shrinker, InputGenerator};
+use crate::{shrinker::Shrinker, ValueGen};
 
-pub fn without_adversarial<G: InputGenerator>(
+pub fn without_adversarial<G: ValueGen>(
     inner_generator: G,
-) -> impl InputGenerator<Input = G::Input, InputSource = G::InputSource> {
+) -> impl ValueGen<Value = G::Value, Seed = G::Seed> {
     WithoutAdversarial { inner_generator }
 }
 
@@ -10,16 +10,16 @@ struct WithoutAdversarial<G> {
     inner_generator: G,
 }
 
-impl<G: InputGenerator> InputGenerator for WithoutAdversarial<G> {
-    type Input = G::Input;
+impl<G: ValueGen> ValueGen for WithoutAdversarial<G> {
+    type Value = G::Value;
 
-    type InputSource = G::InputSource;
+    type Seed = G::Seed;
 
     fn cardinality(&self) -> Option<usize> {
         self.inner_generator.cardinality()
     }
 
-    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+    fn exhaustive(&self) -> impl Iterator<Item = Self::Seed> {
         self.inner_generator.exhaustive()
     }
 
@@ -27,22 +27,19 @@ impl<G: InputGenerator> InputGenerator for WithoutAdversarial<G> {
         Some(0)
     }
 
-    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+    fn adversarial(&self) -> impl Iterator<Item = Self::Seed> {
         std::iter::empty()
     }
 
-    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::Seed {
         self.inner_generator.sample(rng)
     }
 
-    fn new_shrinker(
-        &self,
-        failing_input: Self::InputSource,
-    ) -> impl Shrinker<InputSource = Self::InputSource> {
-        self.inner_generator.new_shrinker(failing_input)
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> impl Shrinker<Seed = Self::Seed> {
+        self.inner_generator.new_shrinker(failing_value_seed)
     }
 
-    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
-        self.inner_generator.create_input(input_source)
+    fn create_value(&self, seed: Self::Seed) -> Self::Value {
+        self.inner_generator.create_value(seed)
     }
 }

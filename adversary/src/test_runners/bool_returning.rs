@@ -1,35 +1,35 @@
 use crate::rand::Rng;
 
 use crate::shrinker::Shrinker as _;
-use crate::IntoInputGenerator;
-use crate::{report::Report, report::ShrinkStep, InputGenerator};
+use crate::IntoValueGen;
+use crate::{report::Report, report::ShrinkStep, ValueGen};
 
-struct FailingInputReport<T, I> {
-    pub failing_input: T,
-    pub failing_input_source: I,
+struct FailingValueReport<T, I> {
+    pub failing_value: T,
+    pub failing_value_seed: I,
     pub passing_runs: u64,
 }
 
-fn find_failing_input<T, I: Clone>(
+fn find_failing_value<T, I: Clone>(
     test: &impl Fn(T) -> bool,
-    generator: &mut impl InputGenerator<Input = T, InputSource = I>,
+    generator: &mut impl ValueGen<Value = T, Seed = I>,
     rng: &mut impl Rng,
-) -> Option<FailingInputReport<T, I>> {
+) -> Option<FailingValueReport<T, I>> {
     #[inline]
     fn helper<T, I: Clone>(
         test: &impl Fn(T) -> bool,
-        generator: &impl InputGenerator<Input = T, InputSource = I>,
-        inputs: impl Iterator<Item = I>,
-    ) -> Option<FailingInputReport<T, I>> {
+        generator: &impl ValueGen<Value = T, Seed = I>,
+        seeds: impl Iterator<Item = I>,
+    ) -> Option<FailingValueReport<T, I>> {
         // TODO: maybe make this all functional and appease the lambda bros
         let mut passing_runs: u64 = 0;
-        for input_source in inputs {
-            let test_passed = test(generator.create_input(input_source.clone()));
+        for seed in seeds {
+            let test_passed = test(generator.create_value(seed.clone()));
 
             if !test_passed {
-                return Some(FailingInputReport {
-                    failing_input: generator.create_input(input_source.clone()),
-                    failing_input_source: input_source,
+                return Some(FailingValueReport {
+                    failing_value: generator.create_value(seed.clone()),
+                    failing_value_seed: seed,
                     passing_runs,
                 });
             }
@@ -38,7 +38,7 @@ fn find_failing_input<T, I: Clone>(
             // indicates that:
             // > [`u64::MAX`] indicates that the test failed [`usize::MAX`]
             // > *or more* times.
-            // FWIW, at 50 billion inputs per second, it would take over 11
+            // FWIW, at 50 billion iterations per second, it would take over 11
             // years to reach u64::MAX
             passing_runs = passing_runs.saturating_add(1);
         }
@@ -82,13 +82,13 @@ fn find_failing_input<T, I: Clone>(
 
 fn shrink_and_generate_report<T, I: Clone>(
     test: &impl Fn(T) -> bool,
-    generator: &impl InputGenerator<Input = T, InputSource = I>,
-    failing_input_report: FailingInputReport<T, I>,
+    generator: &impl ValueGen<Value = T, Seed = I>,
+    failing_value_report: FailingValueReport<T, I>,
 ) -> Report<T> {
-    let mut shrinker = generator.new_shrinker(failing_input_report.failing_input_source);
+    let mut shrinker = generator.new_shrinker(failing_value_report.failing_value_seed);
 
     let mut shrink_steps = vec![ShrinkStep::new(
-        failing_input_report.failing_input,
+        failing_value_report.failing_value,
         false,
         false,
     )];
@@ -96,16 +96,16 @@ fn shrink_and_generate_report<T, I: Clone>(
     // faulty Shrinker impls)
     loop {
         // TODO: allow info-gathering attempts
-        let Some(input_source) = shrinker.current_attempt() else {
+        let Some(seed) = shrinker.current_attempt() else {
             break;
         };
 
-        let test_passed = test(generator.create_input(input_source.clone()));
+        let test_passed = test(generator.create_value(seed.clone()));
 
         shrinker.update(test_passed);
 
         shrink_steps.push(ShrinkStep::new(
-            generator.create_input(input_source),
+            generator.create_value(seed),
             false,
             test_passed,
         ));
@@ -114,7 +114,7 @@ fn shrink_and_generate_report<T, I: Clone>(
     Report {
         test_name: None,
         panic_info: None,
-        passing_runs: failing_input_report.passing_runs,
+        passing_runs: failing_value_report.passing_runs,
         observations: shrinker.into_observations(),
         shrink_steps,
     }
@@ -124,20 +124,20 @@ fn shrink_and_generate_report<T, I: Clone>(
 // TODO: handle generator impls that lie about their sizes
 pub fn run_test<T>(
     test: impl Fn(T) -> bool,
-    generator: impl IntoInputGenerator<T>,
+    generator: impl IntoValueGen<T>,
     rng: &mut impl Rng,
 ) -> Result<(), Box<Report<T>>> {
-    let mut generator = generator.into_input_generator();
+    let mut generator = generator.into_value_gen();
 
-    // Find a failing input
-    let Some(failing_input_report) = find_failing_input(&test, &mut generator, rng) else {
+    // Find a failing value
+    let Some(failing_value_report) = find_failing_value(&test, &mut generator, rng) else {
         return Ok(());
     };
 
-    // Shrink the failing input and generate a report
+    // Shrink the failing value and generate a report
     Err(Box::new(shrink_and_generate_report(
         &test,
         &generator,
-        failing_input_report,
+        failing_value_report,
     )))
 }

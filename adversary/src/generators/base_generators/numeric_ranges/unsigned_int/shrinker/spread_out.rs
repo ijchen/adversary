@@ -15,7 +15,8 @@ pub const SPREAD_COUNT: u8 = 12;
 /// This phase selects a fixed number ([`SPREAD_COUNT`]) of integers,
 /// approximately evenly spaced out between the minimum value in the range and
 /// the current simplest known failing value. This range is divided into
-/// equal-sized sections, and the center of that section is used as an input.
+/// equal-sized sections, and the center of that section is used as an input
+/// value.
 ///
 /// Because of rounding that occurs with integer math, the values chosen may not
 /// be the mathematically closest integers to the "true" most evenly spread out
@@ -154,7 +155,7 @@ macro_rules! spread_out {
                         RangeInclusiveShrinkerUnsigned::Done(Done::new())
                     }
                     // Otherwise, there's more values to try between min and the
-                    // new simplest failing input we just found, so start back
+                    // new simplest failing value we just found, so start back
                     // at the binary search phase with our new information
                     else {
                         // Invariant: BinarySearch::new requires that `min <=

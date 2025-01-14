@@ -8,7 +8,7 @@ use std::{
 use crate::{
     rand::Rng,
     report::{PanicInfo, PanicLocation, Report},
-    IntoInputGenerator,
+    IntoValueGen,
 };
 
 use super::run_test;
@@ -30,7 +30,7 @@ fn extract_panic_message(any: Box<dyn Any + Send + 'static>) -> Option<String> {
 // Behavior) may happen with the panic hook)
 pub fn run_test_panics<T: UnwindSafe>(
     test: impl Fn(T) + RefUnwindSafe,
-    generator: impl IntoInputGenerator<T>,
+    generator: impl IntoValueGen<T>,
     rng: &mut impl Rng,
 ) -> Result<(), Box<Report<T>>> {
     enum PanicHookStatus {

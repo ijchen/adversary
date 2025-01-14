@@ -1,20 +1,20 @@
 use std::marker::PhantomData;
 
-use crate::{report::Observation, shrinker::Shrinker, InputGenerator};
+use crate::{report::Observation, shrinker::Shrinker, ValueGen};
 
 #[repr(transparent)]
 struct JustWith<F>(F);
 
-impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
-    type Input = T;
+impl<T, F: Fn() -> T> ValueGen for JustWith<F> {
+    type Value = T;
 
-    type InputSource = ();
+    type Seed = ();
 
     fn cardinality(&self) -> Option<usize> {
         Some(1)
     }
 
-    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+    fn exhaustive(&self) -> impl Iterator<Item = Self::Seed> {
         std::iter::once(())
     }
 
@@ -22,7 +22,7 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
         Some(1)
     }
 
-    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+    fn adversarial(&self) -> impl Iterator<Item = Self::Seed> {
         std::iter::once(())
     }
 
@@ -30,18 +30,15 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
         clippy::unused_unit,
         reason = "literally returning a unit value - made explicit for clarity"
     )]
-    fn sample(&self, _rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+    fn sample(&self, _rng: &mut (impl rand::Rng + ?Sized)) -> Self::Seed {
         ()
     }
 
-    fn new_shrinker(
-        &self,
-        (): Self::InputSource,
-    ) -> impl Shrinker<InputSource = Self::InputSource> {
+    fn new_shrinker(&self, (): Self::Seed) -> impl Shrinker<Seed = Self::Seed> {
         JustShrinker(PhantomData)
     }
 
-    fn create_input(&self, _input_source: Self::InputSource) -> Self::Input {
+    fn create_value(&self, (): Self::Seed) -> Self::Value {
         (self.0)()
     }
 }
@@ -49,9 +46,9 @@ impl<T, F: Fn() -> T> InputGenerator for JustWith<F> {
 struct JustShrinker<T>(PhantomData<T>);
 
 impl<T: Clone> Shrinker for JustShrinker<T> {
-    type InputSource = T;
+    type Seed = T;
 
-    fn current_attempt(&self) -> Option<Self::InputSource> {
+    fn current_attempt(&self) -> Option<Self::Seed> {
         None
     }
 
@@ -62,17 +59,17 @@ impl<T: Clone> Shrinker for JustShrinker<T> {
     }
 }
 
-/// An [`InputGenerator`] that always produces clones of the same value and
-/// never shrinks.
-pub fn just<T: Clone>(value: T) -> impl InputGenerator<Input = T, InputSource = ()> {
+/// A [`ValueGen`] that always produces clones of the same value and never
+/// shrinks.
+pub fn just<T: Clone>(value: T) -> impl ValueGen<Value = T, Seed = ()> {
     // TODO(ichen): write unit tests to ensure the compiler optimizes this
     // closure away
     JustWith(move || value.clone())
 }
 
-/// An [`InputGenerator`] that computes a value from the provided closure and
-/// never shrinks.
-pub fn just_with<T>(f: impl Fn() -> T) -> impl InputGenerator<Input = T, InputSource = ()> {
+/// A [`ValueGen`] that computes a value from the provided closure and never
+/// shrinks.
+pub fn just_with<T>(f: impl Fn() -> T) -> impl ValueGen<Value = T, Seed = ()> {
     JustWith(f)
 }
 
@@ -87,18 +84,18 @@ mod tests {
         assert_eq!(strategy.cardinality(), Some(1));
         assert!(strategy
             .exhaustive()
-            .map(|input_source| strategy.create_input(input_source))
+            .map(|seed| strategy.create_value(seed))
             .eq([35]));
 
         assert_eq!(strategy.adversarial_count(), Some(1));
         assert!(strategy
             .adversarial()
-            .map(|input_source| strategy.create_input(input_source))
+            .map(|seed| strategy.create_value(seed))
             .eq([35]));
 
         let mut rng = crate::rand::thread_rng();
         for _ in 0..100 {
-            assert_eq!(strategy.create_input(strategy.sample(&mut rng)), 35);
+            assert_eq!(strategy.create_value(strategy.sample(&mut rng)), 35);
         }
 
         let shrinker = strategy.new_shrinker(());
@@ -115,19 +112,19 @@ mod tests {
         assert_eq!(strategy.cardinality(), Some(1));
         assert!(strategy
             .exhaustive()
-            .map(|input_source| strategy.create_input(input_source))
+            .map(|seed| strategy.create_value(seed))
             .eq([NotClone("hi")]));
 
         assert_eq!(strategy.adversarial_count(), Some(1));
         assert!(strategy
             .adversarial()
-            .map(|input_source| strategy.create_input(input_source))
+            .map(|seed| strategy.create_value(seed))
             .eq([NotClone("hi")]));
 
         let mut rng = crate::rand::thread_rng();
         for _ in 0..100 {
             assert_eq!(
-                strategy.create_input(strategy.sample(&mut rng)),
+                strategy.create_value(strategy.sample(&mut rng)),
                 NotClone("hi")
             );
         }

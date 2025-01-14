@@ -70,7 +70,7 @@ fn failure_summary<T>(output: &mut String, report: &Report<T>, converter: impl F
         "failed after {formatted_run_count}. The simplest failing input found was:",
     );
 
-    writeln_string!(output, "{}", converter(report.simplest_failing_input()));
+    writeln_string!(output, "{}", converter(report.simplest_failing_value()));
 }
 
 // Outputs the details section
@@ -110,7 +110,7 @@ fn details<T>(output: &mut String, report: &Report<T>, converter: impl Fn(&T) ->
     writeln_string!(
         output,
         "Simplest failing input: {}",
-        converter(report.simplest_failing_input())
+        converter(report.simplest_failing_value())
     );
 
     // Original failing input: [948752093874, 94357209348671097, 437685812673...
@@ -119,7 +119,7 @@ fn details<T>(output: &mut String, report: &Report<T>, converter: impl Fn(&T) ->
     writeln_string!(
         output,
         "Original failing input: {}",
-        converter(report.original_failing_input())
+        converter(report.original_failing_value())
     );
     // TODO: observations, ex:
     // Observations:

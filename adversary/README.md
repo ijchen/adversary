@@ -61,9 +61,9 @@ features:
     - [x] From float in 0.0..=1.0
     - [x] From ratio (3 in 5, for example)
     - [ ] Implemented "properly" (optimally) for float vs ratio vs 50/50
-  - [ ] Vec<T> from length range and InputGenerator<Input = T>
+  - [ ] Vec<T> from length range and ValueGen<Value = T>
   - [ ] Result<T, E> from probability, shrink direction (Ok or Err), and
-  both Inputgenerator<Input = T> and InputGenerator<Input = E>
+  both ValueGen<Value = T> and ValueGen<Value = E>
   - [ ] Random T from a &[T] (just picks a value from the slice)
 - [ ] Implement "informational" shrink attempts (values to be tested which are
 more complicated than the simplest known failing case, but which would still be

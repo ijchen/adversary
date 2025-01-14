@@ -3,12 +3,12 @@ mod ints;
 mod tuple;
 mod unit;
 
-use crate::InputGenerator;
+use crate::ValueGen;
 
 pub trait Canonical: Sized {
-    fn canonical() -> impl InputGenerator<Input = Self> + Send + Sync + Unpin;
+    fn canonical() -> impl ValueGen<Value = Self> + Send + Sync + Unpin;
 }
 
-pub fn any<T: Canonical>() -> impl InputGenerator<Input = T> + Send + Sync + Unpin {
+pub fn any<T: Canonical>() -> impl ValueGen<Value = T> + Send + Sync + Unpin {
     T::canonical()
 }

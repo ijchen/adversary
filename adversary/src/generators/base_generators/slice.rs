@@ -1,29 +1,29 @@
-use crate::{report::Observation, shrinker::Shrinker, InputGenerator, IntoInputGenerator};
+use crate::{report::Observation, shrinker::Shrinker, IntoValueGen, ValueGen};
 
-impl<'a, T> IntoInputGenerator<&'a T> for &'a [T] {
-    fn into_input_generator(self) -> impl InputGenerator<Input = &'a T> {
-        SliceInputGenerator(self)
+impl<'a, T> IntoValueGen<&'a T> for &'a [T] {
+    fn into_value_gen(self) -> impl ValueGen<Value = &'a T> {
+        SliceValueGen(self)
     }
 }
 
-impl<'a, T, const N: usize> IntoInputGenerator<&'a T> for &'a [T; N] {
-    fn into_input_generator(self) -> impl InputGenerator<Input = &'a T> {
-        SliceInputGenerator(self)
+impl<'a, T, const N: usize> IntoValueGen<&'a T> for &'a [T; N] {
+    fn into_value_gen(self) -> impl ValueGen<Value = &'a T> {
+        SliceValueGen(self)
     }
 }
 
-struct SliceInputGenerator<'a, T>(&'a [T]);
+struct SliceValueGen<'a, T>(&'a [T]);
 
-impl<'a, T> InputGenerator for SliceInputGenerator<'a, T> {
-    type Input = &'a T;
+impl<'a, T> ValueGen for SliceValueGen<'a, T> {
+    type Value = &'a T;
 
-    type InputSource = usize;
+    type Seed = usize;
 
     fn cardinality(&self) -> Option<usize> {
         Some(self.0.len())
     }
 
-    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+    fn exhaustive(&self) -> impl Iterator<Item = Self::Seed> {
         0..self.0.len()
     }
 
@@ -31,26 +31,23 @@ impl<'a, T> InputGenerator for SliceInputGenerator<'a, T> {
         Some(0)
     }
 
-    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+    fn adversarial(&self) -> impl Iterator<Item = Self::Seed> {
         std::iter::empty()
     }
 
-    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::Seed {
         rng.gen_range(0..self.0.len())
     }
 
-    fn new_shrinker(
-        &self,
-        failing_input: Self::InputSource,
-    ) -> impl Shrinker<InputSource = Self::InputSource> {
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> impl Shrinker<Seed = Self::Seed> {
         SliceShrinker {
             next_index_to_try: 0,
-            lowest_known_failing_index: failing_input,
+            lowest_known_failing_index: failing_value_seed,
         }
     }
 
-    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
-        &self.0[input_source]
+    fn create_value(&self, seed: Self::Seed) -> Self::Value {
+        &self.0[seed]
     }
 }
 
@@ -60,9 +57,9 @@ pub struct SliceShrinker {
 }
 
 impl Shrinker for SliceShrinker {
-    type InputSource = usize;
+    type Seed = usize;
 
-    fn current_attempt(&self) -> Option<Self::InputSource> {
+    fn current_attempt(&self) -> Option<Self::Seed> {
         (self.next_index_to_try < self.lowest_known_failing_index).then_some(self.next_index_to_try)
     }
 
@@ -104,7 +101,7 @@ mod tests {
                 ShrinkStep::new(&4, false, true),
             ]
         );
-        assert_eq!(report.simplest_failing_input(), &&5);
+        assert_eq!(report.simplest_failing_value(), &&5);
     }
 
     #[test]
@@ -127,6 +124,6 @@ mod tests {
                 ShrinkStep::new(&4, false, true),
             ]
         );
-        assert_eq!(report.simplest_failing_input(), &&5);
+        assert_eq!(report.simplest_failing_value(), &&5);
     }
 }

@@ -1,10 +1,10 @@
 use crate::{
     report::{Importance, Observation},
     shrinker::Shrinker,
-    InputGenerator,
+    ValueGen,
 };
 
-pub fn chance(chance_of_true: f64, shrink_to: bool) -> impl InputGenerator<Input = bool> {
+pub fn chance(chance_of_true: f64, shrink_to: bool) -> impl ValueGen<Value = bool> {
     assert!((0.0..=1.0).contains(&chance_of_true));
 
     assert!(
@@ -22,7 +22,7 @@ pub fn chance_ratio(
     numerator: u64,
     denominator: u64,
     shrink_to: bool,
-) -> impl InputGenerator<Input = bool> {
+) -> impl ValueGen<Value = bool> {
     assert!(denominator != 0);
     assert!(numerator <= denominator);
 
@@ -39,15 +39,15 @@ struct ChanceGen {
     shrink_to: bool,
 }
 
-impl InputGenerator for ChanceGen {
-    type Input = bool;
-    type InputSource = Self::Input;
+impl ValueGen for ChanceGen {
+    type Value = bool;
+    type Seed = Self::Value;
 
     fn cardinality(&self) -> Option<usize> {
         Some(2)
     }
 
-    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+    fn exhaustive(&self) -> impl Iterator<Item = Self::Seed> {
         [false, true].into_iter()
     }
 
@@ -55,25 +55,22 @@ impl InputGenerator for ChanceGen {
         Some(2)
     }
 
-    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+    fn adversarial(&self) -> impl Iterator<Item = Self::Seed> {
         [false, true].into_iter()
     }
 
-    fn sample(&self, rng: &mut (impl crate::rand::Rng + ?Sized)) -> Self::InputSource {
+    fn sample(&self, rng: &mut (impl crate::rand::Rng + ?Sized)) -> Self::Seed {
         rng.gen_bool(self.chance_of_true)
     }
 
-    fn new_shrinker(
-        &self,
-        failing_input: Self::InputSource,
-    ) -> impl Shrinker<InputSource = Self::InputSource> {
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> impl Shrinker<Seed = Self::Seed> {
         let mut shrinker = BoolShrinker {
             shrink_to: self.shrink_to,
             t: Default::default(),
             f: Default::default(),
         };
 
-        match failing_input {
+        match failing_value_seed {
             true => &mut shrinker.t,
             false => &mut shrinker.f,
         }
@@ -82,8 +79,8 @@ impl InputGenerator for ChanceGen {
         shrinker
     }
 
-    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
-        input_source
+    fn create_value(&self, seed: Self::Seed) -> Self::Value {
+        seed
     }
 }
 
@@ -95,9 +92,9 @@ struct BoolShrinker {
 }
 
 impl Shrinker for BoolShrinker {
-    type InputSource = bool;
+    type Seed = bool;
 
-    fn current_attempt(&self) -> Option<Self::InputSource> {
+    fn current_attempt(&self) -> Option<Self::Seed> {
         // If we haven't tried our "shrink to" value yet, try it
         let shrink_to_observed = match self.shrink_to {
             true => self.t,

@@ -18,7 +18,7 @@ use try_simplest::TrySimplest;
 use crate::{report::Observation, shrinker::Shrinker};
 
 /// The shrinker implementation for signed integer range
-/// [`InputGenerator`](crate::InputGenerator)s.
+/// [`ValueGen`](crate::ValueGen)s.
 ///
 /// Shrinking is split up into multiple distinct "phases". The bulk of the logic
 /// is actually contained within submodules for each phase - this enum really
@@ -170,9 +170,9 @@ macro_rules! shrinker {
         }
 
         impl Shrinker for RangeInclusiveShrinkerSigned<$i, $u> {
-            type InputSource = $i;
+            type Seed = $i;
 
-            fn current_attempt(&self) -> Option<Self::InputSource> {
+            fn current_attempt(&self) -> Option<Self::Seed> {
                 match self {
                     Self::TrySimplest(phase) => phase.current_attempt(),
                     Self::ShrinkMagnitude(phase) => phase.current_attempt(),

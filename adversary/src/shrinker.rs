@@ -1,13 +1,13 @@
 use crate::report::Observation;
 
 pub trait Shrinker {
-    type InputSource;
+    type Seed;
 
     /// TODO
     ///
     /// NOTE: make it clear that implementors must ensure any value returned in
     /// Some(...) is simpler than any previous attempt that passed
-    fn current_attempt(&self) -> Option<Self::InputSource>;
+    fn current_attempt(&self) -> Option<Self::Seed>;
 
     /// TODO
     ///

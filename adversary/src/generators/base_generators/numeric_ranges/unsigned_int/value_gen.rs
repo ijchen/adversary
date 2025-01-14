@@ -1,13 +1,13 @@
 use std::ops::RangeInclusive;
 
-use crate::{shrinker::Shrinker, InputGenerator, IntoInputGenerator};
+use crate::{shrinker::Shrinker, IntoValueGen, ValueGen};
 
 use super::{super::RangeInclusiveGen, shrinker::RangeInclusiveShrinkerUnsigned};
 
 macro_rules! unsigned_range_inclusive {
     ($($t: ty),+$(,)?) => {$(
-        impl IntoInputGenerator<$t> for RangeInclusive<$t> {
-            fn into_input_generator(self) -> impl InputGenerator<Input = $t> {
+        impl IntoValueGen<$t> for RangeInclusive<$t> {
+            fn into_value_gen(self) -> impl ValueGen<Value = $t> {
                 let min = *self.start();
                 let max = *self.end();
                 assert!(min <= max);
@@ -16,17 +16,17 @@ macro_rules! unsigned_range_inclusive {
             }
         }
 
-        impl InputGenerator for RangeInclusiveGen<$t> {
-            type Input = $t;
+        impl ValueGen for RangeInclusiveGen<$t> {
+            type Value = $t;
 
-            type InputSource = Self::Input;
+            type Seed = Self::Value;
 
             fn cardinality(&self) -> Option<usize> {
                 // For unsigned ints where min <= max, max - min can't overflow
                 usize::try_from(self.max - self.min).ok().and_then(|cardinality| cardinality.checked_add(1))
             }
 
-            fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+            fn exhaustive(&self) -> impl Iterator<Item = Self::Seed> {
                 self.min..=self.max
             }
 
@@ -49,7 +49,7 @@ macro_rules! unsigned_range_inclusive {
             //
             // TODO: at some point, consider an optimized version of this that
             // doesn't allocate and uses smart math
-            fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+            fn adversarial(&self) -> impl Iterator<Item = Self::Seed> {
                 let cardinality_minus_one = self.max - self.min;
                 match cardinality_minus_one {
                     0..=6 => (self.min..=self.max).collect(),
@@ -74,19 +74,16 @@ macro_rules! unsigned_range_inclusive {
                 .into_iter()
             }
 
-            fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+            fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::Seed {
                 rng.gen_range(self.min..=self.max)
             }
 
-            fn new_shrinker(
-                &self,
-                failing_input: Self::InputSource,
-            ) -> impl Shrinker<InputSource = Self::InputSource> {
-                RangeInclusiveShrinkerUnsigned::<$t>::new(self.min, failing_input)
+            fn new_shrinker(&self, seed: Self::Seed) -> impl Shrinker<Seed = Self::Seed> {
+                RangeInclusiveShrinkerUnsigned::<$t>::new(self.min, seed)
             }
 
-            fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
-                input_source
+            fn create_value(&self, seed: Self::Seed) -> Self::Value {
+                seed
             }
         }
     )+};
@@ -105,14 +102,14 @@ mod tests {
         assert_eq!(
             run_test(|_| false, 0..=6u8, &mut crate::rand::thread_rng())
                 .unwrap_err()
-                .simplest_failing_input(),
+                .simplest_failing_value(),
             &0
         );
 
         assert_eq!(
             run_test(|n| n < 123, 45..=1000u32, &mut crate::rand::thread_rng())
                 .unwrap_err()
-                .simplest_failing_input(),
+                .simplest_failing_value(),
             &123
         );
 
@@ -123,7 +120,7 @@ mod tests {
                 &mut crate::rand::thread_rng()
             )
             .unwrap_err()
-            .simplest_failing_input(),
+            .simplest_failing_value(),
             &643
         );
 
@@ -134,7 +131,7 @@ mod tests {
                 &mut crate::rand::thread_rng()
             )
             .unwrap_err()
-            .simplest_failing_input(),
+            .simplest_failing_value(),
             &1234
         );
 
@@ -145,7 +142,7 @@ mod tests {
                 &mut crate::rand::thread_rng()
             )
             .unwrap_err()
-            .simplest_failing_input(),
+            .simplest_failing_value(),
             &((2500 as f64 / 71 as f64).ceil() as u128 * 71)
         );
     }
@@ -154,51 +151,51 @@ mod tests {
     fn adversary_sanity_check() {
         // 1 2 3 4 5 6 7
         // ^ ^ ^ ^ ^ ^ ^
-        let gen = (1u32..=7).into_input_generator();
+        let gen = (1u32..=7).into_value_gen();
         assert_eq!(
             HashSet::from([1, 2, 3, 4, 5, 6, 7]),
             gen.adversarial()
-                .map(|is| gen.create_input(is))
+                .map(|is| gen.create_value(is))
                 .collect::<HashSet<_>>()
         );
 
         // 1 2 3 4 5 6 7 8
         // ^ ^   ^ ^   ^ ^
-        let gen = (1u32..=8).into_input_generator();
+        let gen = (1u32..=8).into_value_gen();
         assert_eq!(
             HashSet::from([1, 2, 4, 5, 7, 8]),
             gen.adversarial()
-                .map(|is| gen.create_input(is))
+                .map(|is| gen.create_value(is))
                 .collect::<HashSet<_>>()
         );
 
         // 1 2 3 4 5 6 7 8 9
         // ^ ^   ^ ^ ^   ^ ^
-        let gen = (1u32..=9).into_input_generator();
+        let gen = (1u32..=9).into_value_gen();
         assert_eq!(
             HashSet::from([1, 9, 2, 8, 4, 5, 6]),
             gen.adversarial()
-                .map(|is| gen.create_input(is))
+                .map(|is| gen.create_value(is))
                 .collect::<HashSet<_>>()
         );
 
         // 32 33 34 35 36 37 38 39 40 41 42 43 44
         // ^^ ^^          ^^ ^^ ^^          ^^ ^^
-        let gen = (32u32..=44).into_input_generator();
+        let gen = (32u32..=44).into_value_gen();
         assert_eq!(
             HashSet::from([32, 33, 37, 38, 39, 43, 44]),
             gen.adversarial()
-                .map(|is| gen.create_input(is))
+                .map(|is| gen.create_value(is))
                 .collect::<HashSet<_>>()
         );
 
         // 32 33 34 35 36 37 38 39 40 41 42 43 44 45
         // ^^ ^^             ^^ ^^             ^^ ^^
-        let gen = (32u32..=45).into_input_generator();
+        let gen = (32u32..=45).into_value_gen();
         assert_eq!(
             HashSet::from([32, 33, 38, 39, 44, 45]),
             gen.adversarial()
-                .map(|is| gen.create_input(is))
+                .map(|is| gen.create_value(is))
                 .collect::<HashSet<_>>()
         );
     }

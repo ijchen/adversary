@@ -1,4 +1,4 @@
-use crate::{shrinker::Shrinker as _, InputGenerator};
+use crate::{shrinker::Shrinker as _, ValueGen};
 
 use super::super::Pair;
 
@@ -32,26 +32,26 @@ macro_rules! pairwise {
         // meaningful ways.
         const _: () = assert!($n > 2);
 
-        pub struct [<Pairwise $n>]<'gens, $([<Gen $letter>]: InputGenerator),+> {
-            current_values: ($([<Gen $letter>]::InputSource),+),
+        pub struct [<Pairwise $n>]<'gens, $([<Gen $letter>]: ValueGen),+> {
+            current_values: ($([<Gen $letter>]::Seed),+),
             step: [<Step $n>]<'gens, $([<Gen $letter>]),+>,
         }
 
         // TODO(ichen): is there a nicer way to do this than an enum for every possible
         // combination of two generators?
-        enum [<Step $n>]<'gens, $([<Gen $letter>]: InputGenerator),+> {
+        enum [<Step $n>]<'gens, $([<Gen $letter>]: ValueGen),+> {
             $([<Shrinking $shrinking_first $shrinking_second>](
                 Pair<'gens, [<Gen $shrinking_first>], [<Gen $shrinking_second>]>
             ),)+
             Done,
         }
 
-        impl<'gens, $([<Gen $letter>]: InputGenerator),+>
+        impl<'gens, $([<Gen $letter>]: ValueGen),+>
             [<Pairwise $n>]<'gens, $([<Gen $letter>]),+>
         {
             pub fn new(
                 generators: ($(&'gens [<Gen $letter>]),+),
-                current_values: ($([<Gen $letter>]::InputSource),+),
+                current_values: ($([<Gen $letter>]::Seed),+),
             ) -> Self {
                 let step = [<Step $n>]::ShrinkingAB(Pair::new(
                     generators.0.new_shrinker(current_values.0.clone()),
@@ -109,7 +109,7 @@ macro_rules! pairwise {
 
             pub fn current_attempt(
                 &self,
-            ) -> Option<($([<Gen $letter>]::InputSource),+)> {
+            ) -> Option<($([<Gen $letter>]::Seed),+)> {
                 match &self.step {
                     $(
                         [<Step $n>]::[<Shrinking $shrinking_first $shrinking_second>](pair) => {

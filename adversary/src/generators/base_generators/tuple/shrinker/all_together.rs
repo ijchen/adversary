@@ -1,4 +1,4 @@
-use crate::{shrinker::Shrinker, InputGenerator};
+use crate::{shrinker::Shrinker, ValueGen};
 
 macro_rules! all_together {
     ($(
@@ -12,19 +12,19 @@ macro_rules! all_together {
         // meaningful ways.
         const _: () = assert!($n > 2);
 
-        pub struct [<AllTogether $n>]<'gens, $([<Gen $letter>]: InputGenerator),+> {
-            current_values: ($([<Gen $letter>]::InputSource),+),
+        pub struct [<AllTogether $n>]<'gens, $([<Gen $letter>]: ValueGen),+> {
+            current_values: ($([<Gen $letter>]::Seed),+),
             shrinkers: ($(
-                Box<dyn Shrinker<InputSource = [<Gen $letter>]::InputSource> + 'gens>,
+                Box<dyn Shrinker<Seed = [<Gen $letter>]::Seed> + 'gens>,
             )+),
         }
 
-        impl<'gens, $([<Gen $letter>]: InputGenerator),+>
+        impl<'gens, $([<Gen $letter>]: ValueGen),+>
             [<AllTogether $n>]<'gens, $([<Gen $letter>]),+>
         {
             pub fn new(
                 generators: ($(&'gens [<Gen $letter>]),+),
-                current_values: ($([<Gen $letter>]::InputSource),+),
+                current_values: ($([<Gen $letter>]::Seed),+),
             ) -> Self {
                 let shrinkers = ($(
                     Box::new(generators.$index.new_shrinker(current_values.$index.clone())) as _,
@@ -42,10 +42,10 @@ macro_rules! all_together {
 
             pub fn current_attempt(
                 &self,
-            ) -> Option<($([<Gen $letter>]::InputSource),+)> {
+            ) -> Option<($([<Gen $letter>]::Seed),+)> {
                 match ($(self.shrinkers.$index.current_attempt()),+) {
                     // If all shrinkers are done, so are we
-                    ($(Option::<[<Gen $letter>]::InputSource>::None),+) => None,
+                    ($(Option::<[<Gen $letter>]::Seed>::None),+) => None,
 
                     // As long as any shrinker can make progress, keep trying
                     attempts => Some((
@@ -56,7 +56,7 @@ macro_rules! all_together {
 
             pub fn update(&mut self, current_attempt_passed: bool) {
                 match ($(self.shrinkers.$index.current_attempt()),+) {
-                    ($(Option::<[<Gen $letter>]::InputSource>::None),+) => {
+                    ($(Option::<[<Gen $letter>]::Seed>::None),+) => {
                         panic!(concat!("`AllTogether", $n, "::update` called while all shrinkers were done"))
                     }
 

@@ -1,23 +1,23 @@
-use crate::{report::Observation, shrinker::Shrinker, InputGenerator, IntoInputGenerator};
+use crate::{report::Observation, shrinker::Shrinker, IntoValueGen, ValueGen};
 
-impl<T: Clone, const N: usize> IntoInputGenerator<T> for [T; N] {
-    fn into_input_generator(self) -> impl InputGenerator<Input = T> {
-        ArrayInputGenerator(self)
+impl<T: Clone, const N: usize> IntoValueGen<T> for [T; N] {
+    fn into_value_gen(self) -> impl ValueGen<Value = T> {
+        ArrayValueGen(self)
     }
 }
 
-struct ArrayInputGenerator<T, const N: usize>([T; N]);
+struct ArrayValueGen<T, const N: usize>([T; N]);
 
-impl<T: Clone, const N: usize> InputGenerator for ArrayInputGenerator<T, N> {
-    type Input = T;
+impl<T: Clone, const N: usize> ValueGen for ArrayValueGen<T, N> {
+    type Value = T;
 
-    type InputSource = usize;
+    type Seed = usize;
 
     fn cardinality(&self) -> Option<usize> {
         Some(N)
     }
 
-    fn exhaustive(&self) -> impl Iterator<Item = Self::InputSource> {
+    fn exhaustive(&self) -> impl Iterator<Item = Self::Seed> {
         0..N
     }
 
@@ -25,26 +25,23 @@ impl<T: Clone, const N: usize> InputGenerator for ArrayInputGenerator<T, N> {
         Some(0)
     }
 
-    fn adversarial(&self) -> impl Iterator<Item = Self::InputSource> {
+    fn adversarial(&self) -> impl Iterator<Item = Self::Seed> {
         std::iter::empty()
     }
 
-    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::InputSource {
+    fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::Seed {
         rng.gen_range(0..N)
     }
 
-    fn new_shrinker(
-        &self,
-        failing_input: Self::InputSource,
-    ) -> impl Shrinker<InputSource = Self::InputSource> {
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> impl Shrinker<Seed = Self::Seed> {
         ArrayShrinker {
             next_index_to_try: 0,
-            lowest_known_failing_index: failing_input,
+            lowest_known_failing_index: failing_value_seed,
         }
     }
 
-    fn create_input(&self, input_source: Self::InputSource) -> Self::Input {
-        self.0[input_source].clone()
+    fn create_value(&self, seed: Self::Seed) -> Self::Value {
+        self.0[seed].clone()
     }
 }
 
@@ -55,9 +52,9 @@ pub struct ArrayShrinker {
 }
 
 impl Shrinker for ArrayShrinker {
-    type InputSource = usize;
+    type Seed = usize;
 
-    fn current_attempt(&self) -> Option<Self::InputSource> {
+    fn current_attempt(&self) -> Option<Self::Seed> {
         (self.next_index_to_try < self.lowest_known_failing_index).then_some(self.next_index_to_try)
     }
 
@@ -99,6 +96,6 @@ mod tests {
                 ShrinkStep::new(4, false, true),
             ]
         );
-        assert_eq!(report.simplest_failing_input(), &5);
+        assert_eq!(report.simplest_failing_value(), &5);
     }
 }
