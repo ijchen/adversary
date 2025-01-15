@@ -25,7 +25,9 @@ mod unsigned_int;
 
 /// A shared struct across all numeric range types for value generation.
 // Representation invariant: min <= max
-struct RangeInclusiveGen<T> {
+// TODO: this should not be pub, make private once ATPIT allows IntoValueGen
+// impls to hide the concrete type of IntoValueGen::Gen
+pub struct RangeInclusiveGen<T> {
     /// The (inclusive) minimum value in the range of allowable values
     min: T,
 

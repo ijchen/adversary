@@ -1,12 +1,17 @@
 use crate::{report::Observation, shrinker::Shrinker, IntoValueGen, ValueGen};
 
 impl<T: Clone, const N: usize> IntoValueGen<T> for [T; N] {
-    fn into_value_gen(self) -> impl ValueGen<Value = T> {
+    // TODO: use ATPIT once stabilized
+    type Gen = ArrayValueGen<T, N>;
+
+    fn into_value_gen(self) -> Self::Gen {
         ArrayValueGen(self)
     }
 }
 
-struct ArrayValueGen<T, const N: usize>([T; N]);
+// TODO: this should not be pub, make private once ATPIT allows IntoValueGen
+// impls to hide the concrete type of IntoValueGen::Gen
+pub struct ArrayValueGen<T, const N: usize>([T; N]);
 
 impl<T: Clone, const N: usize> ValueGen for ArrayValueGen<T, N> {
     type Value = T;

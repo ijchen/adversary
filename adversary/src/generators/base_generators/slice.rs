@@ -1,18 +1,26 @@
 use crate::{report::Observation, shrinker::Shrinker, IntoValueGen, ValueGen};
 
 impl<'a, T> IntoValueGen<&'a T> for &'a [T] {
-    fn into_value_gen(self) -> impl ValueGen<Value = &'a T> {
+    // TODO: use ATPIT once stabilized
+    type Gen = SliceValueGen<'a, T>;
+
+    fn into_value_gen(self) -> Self::Gen {
         SliceValueGen(self)
     }
 }
 
 impl<'a, T, const N: usize> IntoValueGen<&'a T> for &'a [T; N] {
-    fn into_value_gen(self) -> impl ValueGen<Value = &'a T> {
+    // TODO: use ATPIT once stabilized
+    type Gen = SliceValueGen<'a, T>;
+
+    fn into_value_gen(self) -> Self::Gen {
         SliceValueGen(self)
     }
 }
 
-struct SliceValueGen<'a, T>(&'a [T]);
+// TODO: this should not be pub, make private once ATPIT allows IntoValueGen
+// impls to hide the concrete type of IntoValueGen::Gen
+pub struct SliceValueGen<'a, T>(&'a [T]);
 
 impl<'a, T> ValueGen for SliceValueGen<'a, T> {
     type Value = &'a T;

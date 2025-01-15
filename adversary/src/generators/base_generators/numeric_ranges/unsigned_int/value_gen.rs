@@ -7,7 +7,10 @@ use super::{super::RangeInclusiveGen, shrinker::RangeInclusiveShrinkerUnsigned};
 macro_rules! unsigned_range_inclusive {
     ($($t: ty),+$(,)?) => {$(
         impl IntoValueGen<$t> for RangeInclusive<$t> {
-            fn into_value_gen(self) -> impl ValueGen<Value = $t> {
+            // TODO: use ATPIT once stabilized
+            type Gen = RangeInclusiveGen<$t>;
+
+            fn into_value_gen(self) -> Self::Gen {
                 let min = *self.start();
                 let max = *self.end();
                 assert!(min <= max);

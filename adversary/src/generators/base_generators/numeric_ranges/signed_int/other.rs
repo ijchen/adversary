@@ -1,11 +1,14 @@
 use std::ops::{Range, RangeFrom, RangeFull, RangeTo, RangeToInclusive};
 
-use crate::{IntoValueGen, ValueGen};
+use crate::{generators::base_generators::numeric_ranges::RangeInclusiveGen, IntoValueGen};
 
 macro_rules! others {
     ($($t: ty),+$(,)?) => {$(
         impl IntoValueGen<$t> for Range<$t> {
-            fn into_value_gen(self) -> impl ValueGen<Value = $t> {
+            // TODO: use ATPIT once stabilized
+            type Gen = RangeInclusiveGen<$t>;
+
+            fn into_value_gen(self) -> Self::Gen {
                 assert!(!self.is_empty());
 
                 (self.start..=self.end - 1).into_value_gen()
@@ -13,7 +16,10 @@ macro_rules! others {
         }
 
         impl IntoValueGen<$t> for RangeTo<$t> {
-            fn into_value_gen(self) -> impl ValueGen<Value = $t> {
+            // TODO: use ATPIT once stabilized
+            type Gen = RangeInclusiveGen<$t>;
+
+            fn into_value_gen(self) -> Self::Gen {
                 assert!(self.end > <$t>::MIN);
 
                 (<$t>::MIN..=self.end - 1).into_value_gen()
@@ -21,19 +27,28 @@ macro_rules! others {
         }
 
         impl IntoValueGen<$t> for RangeToInclusive<$t> {
-            fn into_value_gen(self) -> impl ValueGen<Value = $t> {
+            // TODO: use ATPIT once stabilized
+            type Gen = RangeInclusiveGen<$t>;
+
+            fn into_value_gen(self) -> Self::Gen {
                 (<$t>::MIN..=self.end).into_value_gen()
             }
         }
 
         impl IntoValueGen<$t> for RangeFrom<$t> {
-            fn into_value_gen(self) -> impl ValueGen<Value = $t> {
+            // TODO: use ATPIT once stabilized
+            type Gen = RangeInclusiveGen<$t>;
+
+            fn into_value_gen(self) -> Self::Gen {
                 (self.start..=<$t>::MAX).into_value_gen()
             }
         }
 
         impl IntoValueGen<$t> for RangeFull {
-            fn into_value_gen(self) -> impl ValueGen<Value = $t> {
+            // TODO: use ATPIT once stabilized
+            type Gen = RangeInclusiveGen<$t>;
+
+            fn into_value_gen(self) -> Self::Gen {
                 (<$t>::MIN..=<$t>::MAX).into_value_gen()
             }
         }

@@ -12,7 +12,10 @@ macro_rules! signed_range_inclusive {
         const _: () = assert!(size_of::<$i>() == size_of::<$u>());
 
         impl IntoValueGen<$i> for RangeInclusive<$i> {
-            fn into_value_gen(self) -> impl ValueGen<Value = $i> {
+            // TODO: use ATPIT once stabilized
+            type Gen = RangeInclusiveGen<$i>;
+
+            fn into_value_gen(self) -> Self::Gen {
                 let min = *self.start();
                 let max = *self.end();
                 assert!(min <= max);

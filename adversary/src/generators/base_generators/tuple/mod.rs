@@ -25,14 +25,19 @@ macro_rules! impl_tuple_into_value_gen {
             $([<IntoGen $letter>]: IntoValueGen<[<$letter>]>),+,
         > IntoValueGen<($([<$letter>]),+)> for ($([<IntoGen $letter>]),+)
         {
-            fn into_value_gen(self) -> impl ValueGen<Value = ($([<$letter>]),+)> {
+            // TODO: use ATPIT once stabilized
+            type Gen = [<TupleGen $n>]<$([<IntoGen $letter>]::Gen),+>;
+
+            fn into_value_gen(self) -> Self::Gen {
                 [<TupleGen $n>](
                     $(self.[<$index>].into_value_gen()),+
                 )
             }
         }
 
-        struct [<TupleGen $n>]<$([<Gen $letter>]),+>($([<Gen $letter>]),+);
+        // TODO: this should not be pub, make private once ATPIT allows
+        // IntoValueGen impls to hide the concrete type of IntoValueGen::Gen
+        pub struct [<TupleGen $n>]<$([<Gen $letter>]),+>($([<Gen $letter>]),+);
 
         impl<$([<Gen $letter>]: ValueGen),+> ValueGen
             for [<TupleGen $n>]<$([<Gen $letter>]),+>

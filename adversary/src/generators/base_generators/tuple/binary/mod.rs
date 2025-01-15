@@ -7,12 +7,17 @@ use super::cartesian_product;
 impl<A, B, IntoGenA: IntoValueGen<A>, IntoGenB: IntoValueGen<B>> IntoValueGen<(A, B)>
     for (IntoGenA, IntoGenB)
 {
-    fn into_value_gen(self) -> impl ValueGen<Value = (A, B)> {
+    // TODO: use ATPIT once stabilized
+    type Gen = TupleGen2<IntoGenA::Gen, IntoGenB::Gen>;
+
+    fn into_value_gen(self) -> Self::Gen {
         TupleGen2(self.0.into_value_gen(), self.1.into_value_gen())
     }
 }
 
-struct TupleGen2<GenA, GenB>(GenA, GenB);
+// TODO: this should not be pub, make private once ATPIT allows IntoValueGen
+// impls to hide the concrete type of IntoValueGen::Gen
+pub struct TupleGen2<GenA, GenB>(GenA, GenB);
 
 impl<GenA: ValueGen, GenB: ValueGen> ValueGen for TupleGen2<GenA, GenB> {
     type Value = (GenA::Value, GenB::Value);

@@ -5,13 +5,17 @@ use crate::ValueGen;
 // created or attempted to be turned into a ValueGen. The current impl panics in
 // this case - is that really the best we can do?
 pub trait IntoValueGen<Value> {
-    fn into_value_gen(self) -> impl ValueGen<Value = Value>;
+    type Gen: ValueGen<Value = Value>;
+
+    fn into_value_gen(self) -> Self::Gen;
 }
 
 /// Generic impl of `IntoValueGen` for any `G: ValueGen`
 impl<G: ValueGen> IntoValueGen<G::Value> for G {
+    type Gen = Self;
+
     #[inline]
-    fn into_value_gen(self) -> impl ValueGen<Value = G::Value> {
+    fn into_value_gen(self) -> Self::Gen {
         self
     }
 }
