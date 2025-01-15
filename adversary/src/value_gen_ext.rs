@@ -1,15 +1,31 @@
 use crate::{
-    generators::adapters::{add_adversarial, map, without_adversarial, WithoutShrinking},
-    ValueGen,
+    generators::adapters::{add_adversarial, flatten, map, without_adversarial, WithoutShrinking},
+    IntoValueGen, ValueGen,
 };
 
 pub trait ValueGenExt: ValueGen + Sized {
     // TODO: docs
-    fn adv_map<U, F: Fn(Self::Value) -> U>(
+    fn adv_map<F: Fn(Self::Value) -> T, T>(
         self,
         map_function: F,
-    ) -> impl ValueGen<Value = U, Seed = Self::Seed> {
+    ) -> impl ValueGen<Value = T, Seed = Self::Seed> {
         map(self, map_function)
+    }
+
+    // TODO: docs
+    fn adv_flatten<T>(self) -> impl ValueGen<Value = T>
+    where
+        Self::Value: IntoValueGen<T>,
+    {
+        flatten(self)
+    }
+
+    // TODO: docs
+    fn adv_flat_map<F: Fn(Self::Value) -> G, G: IntoValueGen<T>, T>(
+        self,
+        map_function: F,
+    ) -> impl ValueGen<Value = T> {
+        self.adv_map(map_function).adv_flatten()
     }
 
     // TODO: docs
