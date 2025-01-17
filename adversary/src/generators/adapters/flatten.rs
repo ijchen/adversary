@@ -14,7 +14,7 @@ impl<P: ValueGen<Value = C>, C: IntoValueGen<T>, T> ValueGen for Flatten<P, T> {
     type Seed = (P::Seed, <C::Gen as ValueGen>::Seed);
     // TODO: use ATPIT once stabilized
     type Shrinker<'a>
-        = crate::shrinkers::NeverShrink<Self::Seed>
+        = crate::shrinkers::NeverShrink
     where
         Self: 'a;
 

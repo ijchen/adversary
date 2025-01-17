@@ -15,7 +15,7 @@ pub trait ValueGen {
     /// The [`Shrinker`] type returned by [`new_shrinker`].
     ///
     /// [`new_shrinker`]: ValueGen::new_shrinker
-    type Shrinker<'a>: Shrinker<Seed = Self::Seed>
+    type Shrinker<'a>: Shrinker<Self::Seed>
     where
         Self: 'a;
 

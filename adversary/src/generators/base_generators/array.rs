@@ -60,10 +60,8 @@ pub struct ArrayShrinker {
     lowest_known_failing_index: usize,
 }
 
-impl Shrinker for ArrayShrinker {
-    type Seed = usize;
-
-    fn current_attempt(&self) -> Option<Self::Seed> {
+impl Shrinker<usize> for ArrayShrinker {
+    fn current_attempt(&self) -> Option<usize> {
         (self.next_index_to_try < self.lowest_known_failing_index).then_some(self.next_index_to_try)
     }
 

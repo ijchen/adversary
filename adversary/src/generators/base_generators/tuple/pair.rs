@@ -1,16 +1,16 @@
 use crate::{report::Observation, shrinker::Shrinker, ValueGen};
 
 pub struct Pair<'gens, Left: ValueGen, Right: ValueGen> {
-    left_shrinker: Box<dyn Shrinker<Seed = Left::Seed> + 'gens>,
-    right_shrinker: Box<dyn Shrinker<Seed = Right::Seed> + 'gens>,
+    left_shrinker: Box<dyn Shrinker<Left::Seed> + 'gens>,
+    right_shrinker: Box<dyn Shrinker<Right::Seed> + 'gens>,
     left_current_value: Left::Seed,
     right_current_value: Right::Seed,
 }
 
 impl<'gens, Left: ValueGen, Right: ValueGen> Pair<'gens, Left, Right> {
     pub fn new(
-        left_shrinker: impl Shrinker<Seed = Left::Seed> + 'gens,
-        right_shrinker: impl Shrinker<Seed = Right::Seed> + 'gens,
+        left_shrinker: impl Shrinker<Left::Seed> + 'gens,
+        right_shrinker: impl Shrinker<Right::Seed> + 'gens,
         left_current_value: Left::Seed,
         right_current_value: Right::Seed,
     ) -> Self {
@@ -28,10 +28,10 @@ impl<'gens, Left: ValueGen, Right: ValueGen> Pair<'gens, Left, Right> {
     }
 }
 
-impl<Left: ValueGen, Right: ValueGen> Shrinker for Pair<'_, Left, Right> {
-    type Seed = (Left::Seed, Right::Seed);
-
-    fn current_attempt(&self) -> Option<Self::Seed> {
+impl<Left: ValueGen, Right: ValueGen> Shrinker<(Left::Seed, Right::Seed)>
+    for Pair<'_, Left, Right>
+{
+    fn current_attempt(&self) -> Option<(Left::Seed, Right::Seed)> {
         match (
             self.left_shrinker.current_attempt(),
             self.right_shrinker.current_attempt(),

@@ -7,7 +7,7 @@ impl<G: ValueGen> ValueGen for WithoutShrinking<G> {
     type Seed = G::Seed;
     // TODO: use ATPIT once stabilized
     type Shrinker<'a>
-        = NeverShrink<Self::Seed>
+        = NeverShrink
     where
         Self: 'a;
 

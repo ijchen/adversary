@@ -169,10 +169,8 @@ macro_rules! shrinker {
             }
         }
 
-        impl Shrinker for RangeInclusiveShrinkerSigned<$i, $u> {
-            type Seed = $i;
-
-            fn current_attempt(&self) -> Option<Self::Seed> {
+        impl Shrinker<$i> for RangeInclusiveShrinkerSigned<$i, $u> {
+            fn current_attempt(&self) -> Option<$i> {
                 match self {
                     Self::TrySimplest(phase) => phase.current_attempt(),
                     Self::ShrinkMagnitude(phase) => phase.current_attempt(),

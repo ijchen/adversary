@@ -15,7 +15,7 @@ macro_rules! all_together {
         pub struct [<AllTogether $n>]<'gens, $([<Gen $letter>]: ValueGen),+> {
             current_values: ($([<Gen $letter>]::Seed),+),
             shrinkers: ($(
-                Box<dyn Shrinker<Seed = [<Gen $letter>]::Seed> + 'gens>,
+                Box<dyn Shrinker<[<Gen $letter>]::Seed> + 'gens>,
             )+),
         }
 

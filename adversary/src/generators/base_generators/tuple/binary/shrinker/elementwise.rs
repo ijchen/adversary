@@ -6,8 +6,8 @@ pub struct Elementwise<'gens, GenA: ValueGen, GenB: ValueGen> {
 }
 
 enum Step<'gens, GenA: ValueGen, GenB: ValueGen> {
-    ShrinkingA(Box<dyn Shrinker<Seed = GenA::Seed> + 'gens>),
-    ShrinkingB(Box<dyn Shrinker<Seed = GenB::Seed> + 'gens>),
+    ShrinkingA(Box<dyn Shrinker<GenA::Seed> + 'gens>),
+    ShrinkingB(Box<dyn Shrinker<GenB::Seed> + 'gens>),
     Done,
 }
 

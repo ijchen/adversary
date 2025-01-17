@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use crate::{report::Observation, shrinker::Shrinker};
 
 /// A shrinker for any type, which never performs any shrinking.
@@ -7,31 +5,17 @@ use crate::{report::Observation, shrinker::Shrinker};
 /// [`Shrinker::current_attempt`] always returns [`None`], [`Shrinker::update`]
 /// always panics, and [`Shrinker::into_observations`] always returns an empty
 /// [`Vec`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct NeverShrink<T> {
-    phantom_t: PhantomData<T>,
-}
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct NeverShrink;
 
-// Manual Default impl instead of #[derive(...)]'d because the derive macro adds
-// an overly restrictive `T: Default` bound (we don't care if `T: Default`)
-impl<T> Default for NeverShrink<T> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<T> NeverShrink<T> {
+impl NeverShrink {
     pub fn new() -> Self {
-        Self {
-            phantom_t: PhantomData,
-        }
+        Self
     }
 }
 
-impl<T> Shrinker for NeverShrink<T> {
-    type Seed = T;
-
-    fn current_attempt(&self) -> Option<Self::Seed> {
+impl<T> Shrinker<T> for NeverShrink {
+    fn current_attempt(&self) -> Option<T> {
         None
     }
 

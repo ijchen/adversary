@@ -72,10 +72,8 @@ pub struct SliceShrinker {
     lowest_known_failing_index: usize,
 }
 
-impl Shrinker for SliceShrinker {
-    type Seed = usize;
-
-    fn current_attempt(&self) -> Option<Self::Seed> {
+impl Shrinker<usize> for SliceShrinker {
+    fn current_attempt(&self) -> Option<usize> {
         (self.next_index_to_try < self.lowest_known_failing_index).then_some(self.next_index_to_try)
     }
 

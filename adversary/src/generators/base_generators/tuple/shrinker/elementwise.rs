@@ -24,7 +24,7 @@ macro_rules! elementwise {
         }
 
         enum [<Step $n>]<'gens, $([<Gen $letter>]: ValueGen),+> {
-            $([<Shrinking $letter>](Box<dyn Shrinker<Seed = [<Gen $letter>]::Seed> + 'gens>),)+
+            $([<Shrinking $letter>](Box<dyn Shrinker<[<Gen $letter>]::Seed> + 'gens>),)+
             Done,
         }
 

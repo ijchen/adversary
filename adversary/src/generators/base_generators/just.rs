@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use crate::{report::Observation, shrinker::Shrinker, ValueGen};
 
 #[repr(transparent)]
@@ -12,7 +10,7 @@ impl<T, F: Fn() -> T> ValueGen for JustWith<F> {
 
     // TODO: use ATPIT once stabilized
     type Shrinker<'a>
-        = JustShrinker<()>
+        = JustShrinker
     where
         Self: 'a;
 
@@ -41,7 +39,7 @@ impl<T, F: Fn() -> T> ValueGen for JustWith<F> {
     }
 
     fn new_shrinker(&self, (): Self::Seed) -> Self::Shrinker<'_> {
-        JustShrinker(PhantomData)
+        JustShrinker
     }
 
     fn create_value(&self, (): Self::Seed) -> Self::Value {
@@ -49,12 +47,10 @@ impl<T, F: Fn() -> T> ValueGen for JustWith<F> {
     }
 }
 
-struct JustShrinker<T>(PhantomData<T>);
+struct JustShrinker;
 
-impl<T: Clone> Shrinker for JustShrinker<T> {
-    type Seed = T;
-
-    fn current_attempt(&self) -> Option<Self::Seed> {
+impl<T> Shrinker<T> for JustShrinker {
+    fn current_attempt(&self) -> Option<T> {
         None
     }
 

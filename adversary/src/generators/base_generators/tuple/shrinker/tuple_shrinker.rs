@@ -95,12 +95,10 @@ macro_rules! tuple_shrinker {
             }
         }
 
-        impl<'gens, $([<Gen $letter>]: ValueGen),+> Shrinker
+        impl<'gens, $([<Gen $letter>]: ValueGen),+> Shrinker<($([<Gen $letter>]::Seed),+)>
             for [<TupleShrinker $n>]<'gens, $([<Gen $letter>]),+>
         {
-            type Seed = ($([<Gen $letter>]::Seed),+);
-
-            fn current_attempt(&self) -> Option<Self::Seed> {
+            fn current_attempt(&self) -> Option<($([<Gen $letter>]::Seed),+)> {
                 match &self.phase {
                     [<Phase $n>]::ElementwiseFirstPass(phase) => phase.current_attempt(),
                     [<Phase $n>]::AllTogetherFirstPass(phase) => phase.current_attempt(),

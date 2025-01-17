@@ -76,10 +76,8 @@ macro_rules! shrinker {
             }
         }
 
-        impl Shrinker for RangeInclusiveShrinkerUnsigned<$t> {
-            type Seed = $t;
-
-            fn current_attempt(&self) -> Option<Self::Seed> {
+        impl Shrinker<$t> for RangeInclusiveShrinkerUnsigned<$t> {
+            fn current_attempt(&self) -> Option<$t> {
                 match self {
                     Self::TrySimplest(phase) => phase.current_attempt(),
                     Self::BinarySearch(phase) => phase.current_attempt(),

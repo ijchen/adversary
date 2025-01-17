@@ -2,8 +2,7 @@ mod elementwise;
 use elementwise::Elementwise;
 
 use crate::{
-    generators::base_generators::tuple::Pair, report::Observation, shrinker::Shrinker,
-    ValueGen,
+    generators::base_generators::tuple::Pair, report::Observation, shrinker::Shrinker, ValueGen,
 };
 
 pub struct TupleShrinker2<'gens, GenA: ValueGen, GenB: ValueGen> {
@@ -91,10 +90,10 @@ impl<'gens, GenA: ValueGen, GenB: ValueGen> TupleShrinker2<'gens, GenA, GenB> {
     }
 }
 
-impl<GenA: ValueGen, GenB: ValueGen> Shrinker for TupleShrinker2<'_, GenA, GenB> {
-    type Seed = (GenA::Seed, GenB::Seed);
-
-    fn current_attempt(&self) -> Option<Self::Seed> {
+impl<GenA: ValueGen, GenB: ValueGen> Shrinker<(GenA::Seed, GenB::Seed)>
+    for TupleShrinker2<'_, GenA, GenB>
+{
+    fn current_attempt(&self) -> Option<(GenA::Seed, GenB::Seed)> {
         match &self.phase {
             Phase::ElementwiseFirstPass(phase) => phase.current_attempt(),
             Phase::TogetherFirstPass(phase) => phase.current_attempt(),

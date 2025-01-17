@@ -96,10 +96,8 @@ struct BoolShrinker {
     f: ObservedOutcomes,
 }
 
-impl Shrinker for BoolShrinker {
-    type Seed = bool;
-
-    fn current_attempt(&self) -> Option<Self::Seed> {
+impl Shrinker<bool> for BoolShrinker {
+    fn current_attempt(&self) -> Option<bool> {
         // If we haven't tried our "shrink to" value yet, try it
         let shrink_to_observed = match self.shrink_to {
             true => self.t,
