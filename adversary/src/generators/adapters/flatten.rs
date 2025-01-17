@@ -1,4 +1,4 @@
-use crate::{IntoValueGen, ValueGen};
+use crate::{shrinker::Shrinker, IntoValueGen, ValueGen};
 
 pub fn flatten<P: IntoValueGen<C>, C: IntoValueGen<T>, T>(
     parent_gen: P,
@@ -86,5 +86,109 @@ impl<P: ValueGen<Value = C>, C: IntoValueGen<T>, T> ValueGen for Flatten<P, T> {
             .create_value(seed.0)
             .into_value_gen()
             .create_value(seed.1)
+    }
+}
+
+enum FlattenShrinker<'a, P: ValueGen + 'a, C: ValueGen + 'a, I: Iterator<Item = C::Seed>> {
+    ShrinkParent {
+        parent_shrinker: P::Shrinker<'a>,
+        current_child_seed: C::Seed,
+        remaining_child_seeds: I,
+        simplest_known_failing: (P::Seed, C::Seed),
+    },
+    ShrinkChild {
+        parent_seed: P::Seed,
+        child_shrinker: C::Shrinker<'a>,
+    },
+}
+
+impl<'a, P: ValueGen, C: ValueGen, I: Iterator<Item = C::Seed>> Shrinker<(P::Seed, C::Seed)>
+    for FlattenShrinker<'a, P, C, I>
+{
+    fn current_attempt(&self) -> Option<(P::Seed, C::Seed)> {
+        match self {
+            FlattenShrinker::ShrinkParent {
+                parent_shrinker,
+                current_child_seed,
+                ..
+            } => Some((
+                parent_shrinker.current_attempt().unwrap(),
+                current_child_seed.clone(),
+            )),
+            FlattenShrinker::ShrinkChild {
+                parent_seed,
+                child_shrinker,
+            } => child_shrinker
+                .current_attempt()
+                .map(|child_seed| (parent_seed.clone(), child_seed)),
+        }
+    }
+
+    fn update(&mut self, current_attempt_passed: bool) {
+        // fn get_child_seeds() ->
+
+        match self {
+            FlattenShrinker::ShrinkParent {
+                parent_shrinker,
+                current_child_seed,
+                remaining_child_seeds,
+                simplest_known_failing,
+            } => {
+                // If we found a failing value, shrink the parent
+                if !current_attempt_passed {
+                    *simplest_known_failing = (
+                        parent_shrinker.current_attempt().unwrap(),
+                        current_child_seed.clone(),
+                    );
+                    parent_shrinker.update(false);
+
+                    // TODO: update current_child_seed and remaining_child_seeds
+                    todo!()
+                }
+                // If we didn't find a failing value, try the next one (if there
+                // is another to try)
+                else {
+                    match remaining_child_seeds.next() {
+                        Some(next) => *current_child_seed = next,
+                        // If we're out of child seeds to try, parent shrinking
+                        // should be informed of a "test pass" (we couldn't find
+                        // a failing case)
+                        None => {
+                            parent_shrinker.update(true);
+
+                            // If the parent shrinker still has more seeds to
+                            // try, keep going with a new set of child seeds
+                            if parent_shrinker.current_attempt().is_some() {
+                                // TODO: update current_child_seed and
+                                // remaining_child_seeds (and either keep going
+                                // or if there's no child seed, do a parent
+                                // shrinker update again. Worth noting this is
+                                // not trivial to handle, make sure to correctly
+                                // handle when the child shrinker immediately
+                                // has no current attempt, even multiple times
+                                // in a row)
+                                todo!()
+                            }
+                            // If the parent shrinker is done, move on to
+                            // shrinking the child
+                            else {
+                                *self = FlattenShrinker::ShrinkChild {
+                                    parent_seed: simplest_known_failing.0.clone(),
+                                    child_shrinker: todo!(),
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            FlattenShrinker::ShrinkChild { child_shrinker, .. } => {
+                child_shrinker.update(current_attempt_passed)
+            }
+        }
+    }
+
+    fn into_observations(self) -> Vec<crate::report::Observation> {
+        // TODO(ichen): useful observations
+        Vec::new()
     }
 }
