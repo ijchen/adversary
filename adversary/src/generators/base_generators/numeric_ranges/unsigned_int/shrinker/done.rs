@@ -13,6 +13,10 @@ use super::RangeInclusiveShrinkerUnsigned;
 #[derive(Debug, Clone)]
 pub struct Done<T>(PhantomData<T>);
 
+#[expect(
+    clippy::new_without_default,
+    reason = "this struct shouldn't even be public in the first place - and won't be once ATPIT is stabilized."
+)]
 impl<T> Done<T> {
     pub fn new() -> Self {
         Self(PhantomData)

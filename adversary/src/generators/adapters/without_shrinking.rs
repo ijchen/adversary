@@ -1,10 +1,15 @@
-use crate::{shrinker::Shrinker, shrinkers::NeverShrink, ValueGen};
+use crate::{shrinkers::NeverShrink, ValueGen};
 
 pub struct WithoutShrinking<G>(G);
 
 impl<G: ValueGen> ValueGen for WithoutShrinking<G> {
     type Value = G::Value;
     type Seed = G::Seed;
+    // TODO: use ATPIT once stabilized
+    type Shrinker<'a>
+        = NeverShrink<Self::Seed>
+    where
+        Self: 'a;
 
     fn cardinality(&self) -> Option<usize> {
         self.0.cardinality()
@@ -26,7 +31,7 @@ impl<G: ValueGen> ValueGen for WithoutShrinking<G> {
         self.0.sample(rng)
     }
 
-    fn new_shrinker(&self, _seed: Self::Seed) -> impl Shrinker<Seed = Self::Seed> {
+    fn new_shrinker(&self, _seed: Self::Seed) -> Self::Shrinker<'_> {
         NeverShrink::new()
     }
 

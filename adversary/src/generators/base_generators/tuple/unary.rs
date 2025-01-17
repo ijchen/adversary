@@ -1,4 +1,4 @@
-use crate::{shrinker::Shrinker, IntoValueGen, ValueGen};
+use crate::{IntoValueGen, ValueGen};
 
 // TODO: once ATPIT is stabilized, we can just use this simpler implementation
 // impl<T, IntoGen: IntoValueGen<T>> IntoValueGen<(T,)> for (IntoGen,) {
@@ -25,8 +25,12 @@ pub struct UnaryTupleValueGen<G>(G);
 
 impl<G: ValueGen> ValueGen for UnaryTupleValueGen<G> {
     type Value = (G::Value,);
-
     type Seed = G::Seed;
+    // TODO: use ATPIT once stabilized
+    type Shrinker<'a>
+        = G::Shrinker<'a>
+    where
+        Self: 'a;
 
     fn cardinality(&self) -> Option<usize> {
         self.0.cardinality()
@@ -48,7 +52,7 @@ impl<G: ValueGen> ValueGen for UnaryTupleValueGen<G> {
         self.0.sample(rng)
     }
 
-    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> impl Shrinker<Seed = Self::Seed> {
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
         self.0.new_shrinker(failing_value_seed)
     }
 

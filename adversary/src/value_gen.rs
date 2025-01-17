@@ -12,6 +12,13 @@ pub trait ValueGen {
     /// [`Value`]: ValueGen::Value
     type Seed: Clone;
 
+    /// The [`Shrinker`] type returned by [`new_shrinker`].
+    ///
+    /// [`new_shrinker`]: ValueGen::new_shrinker
+    type Shrinker<'a>: Shrinker<Seed = Self::Seed>
+    where
+        Self: 'a;
+
     /// Returns the length of the iterator returned by [`exhaustive`], or
     /// [`None`] if that length is greater than [`usize::MAX`] or otherwise
     /// should not be relied on.
@@ -75,7 +82,7 @@ pub trait ValueGen {
     ///
     /// The `failing_value_seed` argument should be the seed of the initial
     /// failing value to be shrunk.
-    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> impl Shrinker<Seed = Self::Seed>;
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_>;
 
     // TODO: should this take a `Seed` or a `&Seed`?
     /// Create a [`Value`] from a [`Seed`].

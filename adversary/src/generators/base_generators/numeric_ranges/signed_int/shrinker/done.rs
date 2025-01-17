@@ -12,6 +12,10 @@ use super::RangeInclusiveShrinkerSigned;
 /// This is the final phase, and will never change to any other phase.
 pub struct Done<T, U>(PhantomData<(T, U)>);
 
+#[expect(
+    clippy::new_without_default,
+    reason = "this struct shouldn't even be public in the first place - and won't be once ATPIT is stabilized."
+)]
 impl<T, U> Done<T, U> {
     pub fn new() -> Self {
         Self(PhantomData)

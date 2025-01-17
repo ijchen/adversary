@@ -1,5 +1,7 @@
 use crate::report::Observation;
 
+// TODO: make Shrinker generic over Seed instead of having an associated type
+// (to allow for things like NeverShrink to not need a PhantomData<T>)
 pub trait Shrinker {
     type Seed;
 

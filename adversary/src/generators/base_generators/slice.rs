@@ -27,6 +27,12 @@ impl<'a, T> ValueGen for SliceValueGen<'a, T> {
 
     type Seed = usize;
 
+    // TODO: use ATPIT once stabilized
+    type Shrinker<'b>
+        = SliceShrinker
+    where
+        Self: 'b;
+
     fn cardinality(&self) -> Option<usize> {
         Some(self.0.len())
     }
@@ -47,7 +53,7 @@ impl<'a, T> ValueGen for SliceValueGen<'a, T> {
         rng.gen_range(0..self.0.len())
     }
 
-    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> impl Shrinker<Seed = Self::Seed> {
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
         SliceShrinker {
             next_index_to_try: 0,
             lowest_known_failing_index: failing_value_seed,
@@ -59,6 +65,8 @@ impl<'a, T> ValueGen for SliceValueGen<'a, T> {
     }
 }
 
+// TODO: this should not be pub, make private once ATPIT allows ValueGen impls
+// to hide the concrete type of ValueGen::Shrinker
 pub struct SliceShrinker {
     next_index_to_try: usize,
     lowest_known_failing_index: usize,

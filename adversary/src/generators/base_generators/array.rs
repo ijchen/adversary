@@ -15,8 +15,12 @@ pub struct ArrayValueGen<T, const N: usize>([T; N]);
 
 impl<T: Clone, const N: usize> ValueGen for ArrayValueGen<T, N> {
     type Value = T;
-
     type Seed = usize;
+    // TODO: use ATPIT once stabilized
+    type Shrinker<'a>
+        = ArrayShrinker
+    where
+        Self: 'a;
 
     fn cardinality(&self) -> Option<usize> {
         Some(N)
@@ -38,7 +42,7 @@ impl<T: Clone, const N: usize> ValueGen for ArrayValueGen<T, N> {
         rng.gen_range(0..N)
     }
 
-    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> impl Shrinker<Seed = Self::Seed> {
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
         ArrayShrinker {
             next_index_to_try: 0,
             lowest_known_failing_index: failing_value_seed,

@@ -4,7 +4,7 @@ mod pair;
 mod shrinker;
 mod unary;
 
-use crate::{shrinker::Shrinker, IntoValueGen, ValueGen};
+use crate::{IntoValueGen, ValueGen};
 
 pub use pair::Pair;
 
@@ -43,8 +43,12 @@ macro_rules! impl_tuple_into_value_gen {
             for [<TupleGen $n>]<$([<Gen $letter>]),+>
         {
             type Value = ($([<Gen $letter>]::Value),+);
-
             type Seed = ($([<Gen $letter>]::Seed),+);
+            // TODO: use ATPIT once stabilized
+            type Shrinker<'a>
+                = shrinker::[<TupleShrinker $n>]<'a, $([<Gen $letter>]),+>
+            where
+                Self: 'a;
 
             #[expect(
                 clippy::needless_question_mark,
@@ -77,7 +81,7 @@ macro_rules! impl_tuple_into_value_gen {
             fn new_shrinker(
                 &self,
                 failing_value_seed: Self::Seed,
-            ) -> impl Shrinker<Seed = Self::Seed> {
+            ) -> Self::Shrinker<'_> {
                 shrinker::[<TupleShrinker $n>]::new(($(&self.$index),+), failing_value_seed)
             }
 

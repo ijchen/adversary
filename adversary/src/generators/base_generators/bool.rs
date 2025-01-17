@@ -42,6 +42,11 @@ struct ChanceGen {
 impl ValueGen for ChanceGen {
     type Value = bool;
     type Seed = Self::Value;
+    // TODO: use ATPIT once stabilized
+    type Shrinker<'a>
+        = BoolShrinker
+    where
+        Self: 'a;
 
     fn cardinality(&self) -> Option<usize> {
         Some(2)
@@ -63,7 +68,7 @@ impl ValueGen for ChanceGen {
         rng.gen_bool(self.chance_of_true)
     }
 
-    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> impl Shrinker<Seed = Self::Seed> {
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
         let mut shrinker = BoolShrinker {
             shrink_to: self.shrink_to,
             t: Default::default(),

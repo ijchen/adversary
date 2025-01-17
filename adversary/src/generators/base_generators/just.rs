@@ -10,6 +10,12 @@ impl<T, F: Fn() -> T> ValueGen for JustWith<F> {
 
     type Seed = ();
 
+    // TODO: use ATPIT once stabilized
+    type Shrinker<'a>
+        = JustShrinker<()>
+    where
+        Self: 'a;
+
     fn cardinality(&self) -> Option<usize> {
         Some(1)
     }
@@ -34,7 +40,7 @@ impl<T, F: Fn() -> T> ValueGen for JustWith<F> {
         ()
     }
 
-    fn new_shrinker(&self, (): Self::Seed) -> impl Shrinker<Seed = Self::Seed> {
+    fn new_shrinker(&self, (): Self::Seed) -> Self::Shrinker<'_> {
         JustShrinker(PhantomData)
     }
 

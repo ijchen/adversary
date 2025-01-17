@@ -1,6 +1,6 @@
 mod shrinker;
 
-use crate::{shrinker::Shrinker, IntoValueGen, ValueGen};
+use crate::{IntoValueGen, ValueGen};
 
 use super::cartesian_product;
 
@@ -21,8 +21,12 @@ pub struct TupleGen2<GenA, GenB>(GenA, GenB);
 
 impl<GenA: ValueGen, GenB: ValueGen> ValueGen for TupleGen2<GenA, GenB> {
     type Value = (GenA::Value, GenB::Value);
-
     type Seed = (GenA::Seed, GenB::Seed);
+    // TODO: use ATPIT once stabilized
+    type Shrinker<'a>
+        = shrinker::TupleShrinker2<'a, GenA, GenB>
+    where
+        Self: 'a;
 
     fn cardinality(&self) -> Option<usize> {
         usize::checked_mul(self.0.cardinality()?, self.1.cardinality()?)
@@ -44,7 +48,7 @@ impl<GenA: ValueGen, GenB: ValueGen> ValueGen for TupleGen2<GenA, GenB> {
         (self.0.sample(rng), self.1.sample(rng))
     }
 
-    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> impl Shrinker<Seed = Self::Seed> {
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
         shrinker::TupleShrinker2::new((&self.0, &self.1), failing_value_seed)
     }
 

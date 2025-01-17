@@ -1,4 +1,4 @@
-use crate::{shrinker::Shrinker, IntoValueGen, ValueGen};
+use crate::{IntoValueGen, ValueGen};
 
 pub fn flatten<P: IntoValueGen<C>, C: IntoValueGen<T>, T>(
     parent_gen: P,
@@ -11,8 +11,12 @@ struct Flatten<P, T>(P, std::marker::PhantomData<T>);
 
 impl<P: ValueGen<Value = C>, C: IntoValueGen<T>, T> ValueGen for Flatten<P, T> {
     type Value = T;
-
     type Seed = (P::Seed, <C::Gen as ValueGen>::Seed);
+    // TODO: use ATPIT once stabilized
+    type Shrinker<'a>
+        = crate::shrinkers::NeverShrink<Self::Seed>
+    where
+        Self: 'a;
 
     fn cardinality(&self) -> Option<usize> {
         self.0
@@ -73,7 +77,7 @@ impl<P: ValueGen<Value = C>, C: IntoValueGen<T>, T> ValueGen for Flatten<P, T> {
         (parent_input_source, child_input_source)
     }
 
-    fn new_shrinker(&self, _failing_value_seed: Self::Seed) -> impl Shrinker<Seed = Self::Seed> {
+    fn new_shrinker(&self, _failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
         crate::shrinkers::NeverShrink::new() // TODO: implement flatten shrinking
     }
 

@@ -1,8 +1,7 @@
 use std::ops::RangeInclusive;
 
 use crate::{
-    generators::base_generators::numeric_ranges::RangeInclusiveGen, shrinker::Shrinker,
-    IntoValueGen, ValueGen,
+    generators::base_generators::numeric_ranges::RangeInclusiveGen, IntoValueGen, ValueGen,
 };
 
 use super::shrinker::RangeInclusiveShrinkerSigned;
@@ -26,8 +25,12 @@ macro_rules! signed_range_inclusive {
 
         impl ValueGen for RangeInclusiveGen<$i> {
             type Value = $i;
-
             type Seed = Self::Value;
+            // TODO: use ATPIT once stabilized
+            type Shrinker<'a>
+                = RangeInclusiveShrinkerSigned<$i, $u>
+            where
+                Self: 'a;
 
             fn cardinality(&self) -> Option<usize> {
                 usize::try_from(<$i>::abs_diff(self.min, self.max)).ok().and_then(|cardinality| cardinality.checked_add(1))
@@ -94,10 +97,7 @@ macro_rules! signed_range_inclusive {
                 rng.gen_range(self.min..=self.max)
             }
 
-            fn new_shrinker(
-                &self,
-                seed: Self::Seed,
-            ) -> impl Shrinker<Seed = Self::Seed> {
+            fn new_shrinker(&self, seed: Self::Seed) -> Self::Shrinker<'_> {
                 RangeInclusiveShrinkerSigned::<$i, $u>::new(seed, (self.min, self.max))
             }
 
