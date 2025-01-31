@@ -28,10 +28,7 @@ impl<'a, T> ValueGen for SliceValueGen<'a, T> {
     type Seed = usize;
 
     // TODO: use ATPIT once stabilized
-    type Shrinker<'b>
-        = SliceShrinker
-    where
-        Self: 'b;
+    type Shrinker = SliceShrinker;
 
     fn cardinality(&self) -> Option<usize> {
         Some(self.0.len())
@@ -53,7 +50,7 @@ impl<'a, T> ValueGen for SliceValueGen<'a, T> {
         rng.gen_range(0..self.0.len())
     }
 
-    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker {
         SliceShrinker {
             next_index_to_try: 0,
             lowest_known_failing_index: failing_value_seed,
@@ -72,12 +69,12 @@ pub struct SliceShrinker {
     lowest_known_failing_index: usize,
 }
 
-impl Shrinker<usize> for SliceShrinker {
-    fn current_attempt(&self) -> Option<usize> {
+impl<'a, T> Shrinker<SliceValueGen<'a, T>> for SliceShrinker {
+    fn current_attempt(&self) -> Option<<SliceValueGen<'a, T> as ValueGen>::Seed> {
         (self.next_index_to_try < self.lowest_known_failing_index).then_some(self.next_index_to_try)
     }
 
-    fn update(&mut self, current_attempt_passed: bool) {
+    fn update(&mut self, _generator: &SliceValueGen<'a, T>, current_attempt_passed: bool) {
         if !current_attempt_passed {
             self.lowest_known_failing_index = self.next_index_to_try;
         } else {

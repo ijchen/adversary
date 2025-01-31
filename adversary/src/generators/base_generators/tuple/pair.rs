@@ -1,16 +1,16 @@
 use crate::{report::Observation, shrinker::Shrinker, ValueGen};
 
-pub struct Pair<'gens, Left: ValueGen, Right: ValueGen> {
-    left_shrinker: Box<dyn Shrinker<Left::Seed> + 'gens>,
-    right_shrinker: Box<dyn Shrinker<Right::Seed> + 'gens>,
+pub struct Pair<Left: ValueGen, Right: ValueGen> {
+    left_shrinker: Box<dyn Shrinker<Left>>,
+    right_shrinker: Box<dyn Shrinker<Right>>,
     left_current_value: Left::Seed,
     right_current_value: Right::Seed,
 }
 
-impl<'gens, Left: ValueGen, Right: ValueGen> Pair<'gens, Left, Right> {
+impl<Left: ValueGen, Right: ValueGen> Pair<Left, Right> {
     pub fn new(
-        left_shrinker: impl Shrinker<Left::Seed> + 'gens,
-        right_shrinker: impl Shrinker<Right::Seed> + 'gens,
+        left_shrinker: impl Shrinker<Left> + 'static,
+        right_shrinker: impl Shrinker<Right> + 'static,
         left_current_value: Left::Seed,
         right_current_value: Right::Seed,
     ) -> Self {
@@ -28,10 +28,10 @@ impl<'gens, Left: ValueGen, Right: ValueGen> Pair<'gens, Left, Right> {
     }
 }
 
-impl<Left: ValueGen, Right: ValueGen> Shrinker<(Left::Seed, Right::Seed)>
-    for Pair<'_, Left, Right>
+impl<G: ValueGen<Seed = (Left::Seed, Right::Seed)>, Left: ValueGen, Right: ValueGen> Shrinker<G>
+    for Pair<Left, Right>
 {
-    fn current_attempt(&self) -> Option<(Left::Seed, Right::Seed)> {
+    fn current_attempt(&self) -> Option<G::Seed> {
         match (
             self.left_shrinker.current_attempt(),
             self.right_shrinker.current_attempt(),
@@ -44,13 +44,13 @@ impl<Left: ValueGen, Right: ValueGen> Shrinker<(Left::Seed, Right::Seed)>
         }
     }
 
-    fn update(&mut self, current_attempt_passed: bool) {
+    fn update(&mut self, generator: &G, current_attempt_passed: bool) {
         match (
             self.left_shrinker.current_attempt(),
             self.right_shrinker.current_attempt(),
         ) {
             (None, None) => {
-                panic!("`Pair3::update` called while both shrinkers were done")
+                panic!("`Pair::update` called while both shrinkers were done")
             }
 
             // TODO(ichen): I think there's some kinda weird implications here

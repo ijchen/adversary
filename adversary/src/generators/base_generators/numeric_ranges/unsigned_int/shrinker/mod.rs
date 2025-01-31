@@ -19,7 +19,10 @@ use done::Done;
 use spread_out::SpreadOut;
 use try_simplest::TrySimplest;
 
-use crate::{report::Observation, shrinker::Shrinker};
+use crate::{
+    generators::base_generators::numeric_ranges::RangeInclusiveGen, report::Observation,
+    shrinker::Shrinker, ValueGen,
+};
 /// The shrinker implementation for unsigned integer range
 /// [`ValueGen`](crate::ValueGen)s.
 ///
@@ -76,8 +79,8 @@ macro_rules! shrinker {
             }
         }
 
-        impl Shrinker<$t> for RangeInclusiveShrinkerUnsigned<$t> {
-            fn current_attempt(&self) -> Option<$t> {
+        impl Shrinker<RangeInclusiveGen<$t>> for RangeInclusiveShrinkerUnsigned<$t> {
+            fn current_attempt(&self) -> Option<<RangeInclusiveGen<$t> as ValueGen>::Value> {
                 match self {
                     Self::TrySimplest(phase) => phase.current_attempt(),
                     Self::BinarySearch(phase) => phase.current_attempt(),
@@ -87,7 +90,7 @@ macro_rules! shrinker {
                 }
             }
 
-            fn update(&mut self, current_attempt_passed: bool) {
+            fn update(&mut self, _generator: &RangeInclusiveGen<$t>, current_attempt_passed: bool) {
                 *self = match self {
                     Self::TrySimplest(phase) => phase.next_phase(current_attempt_passed),
                     Self::BinarySearch(phase) => phase.next_phase(current_attempt_passed),

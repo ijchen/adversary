@@ -7,16 +7,16 @@ pub fn flatten<P: IntoValueGen<C>, C: IntoValueGen<T>, T>(
 }
 
 // TODO: is there a way to express this that doesn't need the PhantomData hack?
-struct Flatten<P, T>(P, std::marker::PhantomData<T>);
+struct Flatten<P, C>(P, std::marker::PhantomData<C>);
 
-impl<P: ValueGen<Value = C>, C: IntoValueGen<T>, T> ValueGen for Flatten<P, T> {
-    type Value = T;
-    type Seed = (P::Seed, <C::Gen as ValueGen>::Seed);
+impl<P: ValueGen, C: ValueGen> ValueGen for Flatten<P, C>
+where
+    P::Value: IntoValueGen<C::Value, Gen = C>,
+{
+    type Value = C::Value;
+    type Seed = (P::Seed, C::Seed);
     // TODO: use ATPIT once stabilized
-    type Shrinker<'a>
-        = crate::shrinkers::NeverShrink
-    where
-        Self: 'a;
+    type Shrinker = FlattenShrinker<P, C>;
 
     fn cardinality(&self) -> Option<usize> {
         self.0
@@ -77,8 +77,8 @@ impl<P: ValueGen<Value = C>, C: IntoValueGen<T>, T> ValueGen for Flatten<P, T> {
         (parent_input_source, child_input_source)
     }
 
-    fn new_shrinker(&self, _failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
-        crate::shrinkers::NeverShrink::new() // TODO: implement flatten shrinking
+    fn new_shrinker(&self, _failing_value_seed: Self::Seed) -> Self::Shrinker {
+        todo!() // TODO: implement flatten shrinking
     }
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {
@@ -89,21 +89,24 @@ impl<P: ValueGen<Value = C>, C: IntoValueGen<T>, T> ValueGen for Flatten<P, T> {
     }
 }
 
-enum FlattenShrinker<'a, P: ValueGen + 'a, C: ValueGen + 'a, I: Iterator<Item = C::Seed>> {
+enum FlattenShrinker<P: ValueGen, C: ValueGen> {
     ShrinkParent {
-        parent_shrinker: P::Shrinker<'a>,
+        parent_shrinker: P::Shrinker,
         current_child_seed: C::Seed,
-        remaining_child_seeds: I,
+        // TODO: can we avoid dynamic dispatch here? Static pref, or maybe enum?
+        remaining_child_seeds: Box<dyn Iterator<Item = C::Seed>>,
         simplest_known_failing: (P::Seed, C::Seed),
     },
     ShrinkChild {
         parent_seed: P::Seed,
-        child_shrinker: C::Shrinker<'a>,
+        child_gen: C,
+        child_shrinker: C::Shrinker,
     },
 }
 
-impl<'a, P: ValueGen, C: ValueGen, I: Iterator<Item = C::Seed>> Shrinker<(P::Seed, C::Seed)>
-    for FlattenShrinker<'a, P, C, I>
+impl<P: ValueGen, C: ValueGen> Shrinker<Flatten<P, C>> for FlattenShrinker<P, C>
+where
+    P::Value: IntoValueGen<C::Value, Gen = C>,
 {
     fn current_attempt(&self) -> Option<(P::Seed, C::Seed)> {
         match self {
@@ -118,13 +121,14 @@ impl<'a, P: ValueGen, C: ValueGen, I: Iterator<Item = C::Seed>> Shrinker<(P::See
             FlattenShrinker::ShrinkChild {
                 parent_seed,
                 child_shrinker,
+                ..
             } => child_shrinker
                 .current_attempt()
                 .map(|child_seed| (parent_seed.clone(), child_seed)),
         }
     }
 
-    fn update(&mut self, current_attempt_passed: bool) {
+    fn update(&mut self, generator: &Flatten<P, C>, current_attempt_passed: bool) {
         // fn get_child_seeds() ->
 
         match self {
@@ -140,7 +144,7 @@ impl<'a, P: ValueGen, C: ValueGen, I: Iterator<Item = C::Seed>> Shrinker<(P::See
                         parent_shrinker.current_attempt().unwrap(),
                         current_child_seed.clone(),
                     );
-                    parent_shrinker.update(false);
+                    parent_shrinker.update(&generator.0, false);
 
                     // TODO: update current_child_seed and remaining_child_seeds
                     todo!()
@@ -154,7 +158,7 @@ impl<'a, P: ValueGen, C: ValueGen, I: Iterator<Item = C::Seed>> Shrinker<(P::See
                         // should be informed of a "test pass" (we couldn't find
                         // a failing case)
                         None => {
-                            parent_shrinker.update(true);
+                            parent_shrinker.update(&generator.0, true);
 
                             // If the parent shrinker still has more seeds to
                             // try, keep going with a new set of child seeds
@@ -172,18 +176,27 @@ impl<'a, P: ValueGen, C: ValueGen, I: Iterator<Item = C::Seed>> Shrinker<(P::See
                             // If the parent shrinker is done, move on to
                             // shrinking the child
                             else {
+                                let child_gen = generator
+                                    .0
+                                    .create_value(simplest_known_failing.0.clone())
+                                    .into_value_gen();
+                                let child_shrinker =
+                                    child_gen.new_shrinker(simplest_known_failing.1.clone());
                                 *self = FlattenShrinker::ShrinkChild {
                                     parent_seed: simplest_known_failing.0.clone(),
-                                    child_shrinker: todo!(),
+                                    child_gen,
+                                    child_shrinker,
                                 };
                             }
                         }
                     }
                 }
             }
-            FlattenShrinker::ShrinkChild { child_shrinker, .. } => {
-                child_shrinker.update(current_attempt_passed)
-            }
+            FlattenShrinker::ShrinkChild {
+                child_gen,
+                child_shrinker,
+                ..
+            } => child_shrinker.update(child_gen, current_attempt_passed),
         }
     }
 

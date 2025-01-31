@@ -6,10 +6,7 @@ impl<G: ValueGen> ValueGen for WithoutShrinking<G> {
     type Value = G::Value;
     type Seed = G::Seed;
     // TODO: use ATPIT once stabilized
-    type Shrinker<'a>
-        = NeverShrink
-    where
-        Self: 'a;
+    type Shrinker = NeverShrink;
 
     fn cardinality(&self) -> Option<usize> {
         self.0.cardinality()
@@ -31,7 +28,7 @@ impl<G: ValueGen> ValueGen for WithoutShrinking<G> {
         self.0.sample(rng)
     }
 
-    fn new_shrinker(&self, _seed: Self::Seed) -> Self::Shrinker<'_> {
+    fn new_shrinker(&self, _seed: Self::Seed) -> Self::Shrinker {
         NeverShrink::new()
     }
 

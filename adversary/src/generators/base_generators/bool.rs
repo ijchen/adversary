@@ -43,10 +43,7 @@ impl ValueGen for ChanceGen {
     type Value = bool;
     type Seed = Self::Value;
     // TODO: use ATPIT once stabilized
-    type Shrinker<'a>
-        = BoolShrinker
-    where
-        Self: 'a;
+    type Shrinker = BoolShrinker;
 
     fn cardinality(&self) -> Option<usize> {
         Some(2)
@@ -68,7 +65,7 @@ impl ValueGen for ChanceGen {
         rng.gen_bool(self.chance_of_true)
     }
 
-    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker {
         let mut shrinker = BoolShrinker {
             shrink_to: self.shrink_to,
             t: Default::default(),
@@ -96,8 +93,8 @@ struct BoolShrinker {
     f: ObservedOutcomes,
 }
 
-impl Shrinker<bool> for BoolShrinker {
-    fn current_attempt(&self) -> Option<bool> {
+impl Shrinker<ChanceGen> for BoolShrinker {
+    fn current_attempt(&self) -> Option<<ChanceGen as ValueGen>::Seed> {
         // If we haven't tried our "shrink to" value yet, try it
         let shrink_to_observed = match self.shrink_to {
             true => self.t,
@@ -122,7 +119,7 @@ impl Shrinker<bool> for BoolShrinker {
         None
     }
 
-    fn update(&mut self, current_attempt_passed: bool) {
+    fn update(&mut self, _gen: &ChanceGen, current_attempt_passed: bool) {
         let todo_current_attempt = self.current_attempt().unwrap();
 
         match todo_current_attempt {

@@ -1,4 +1,4 @@
-use crate::ValueGen;
+use crate::{shrinkers::ShrinkWrap, ValueGen};
 
 // TODO(ichen): consider implications of users incorrectly adding adversarial
 // values outside the set of correct values for the generator (ex, adding `3` to
@@ -22,10 +22,7 @@ impl<G: ValueGen> ValueGen for AddAdversarial<G, G::Seed> {
     type Value = G::Value;
     type Seed = G::Seed;
     // TODO: use ATPIT once stabilized
-    type Shrinker<'a>
-        = G::Shrinker<'a>
-    where
-        Self: 'a;
+    type Shrinker = ShrinkWrap<Self, G>;
 
     fn cardinality(&self) -> Option<usize> {
         self.inner_generator.cardinality()
@@ -56,8 +53,11 @@ impl<G: ValueGen> ValueGen for AddAdversarial<G, G::Seed> {
         self.inner_generator.sample(rng)
     }
 
-    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
-        self.inner_generator.new_shrinker(failing_value_seed)
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker {
+        ShrinkWrap::new(
+            self.inner_generator.new_shrinker(failing_value_seed),
+            |gen| &gen.inner_generator,
+        )
     }
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {

@@ -17,10 +17,7 @@ impl<T: Clone, const N: usize> ValueGen for ArrayValueGen<T, N> {
     type Value = T;
     type Seed = usize;
     // TODO: use ATPIT once stabilized
-    type Shrinker<'a>
-        = ArrayShrinker
-    where
-        Self: 'a;
+    type Shrinker = ArrayShrinker;
 
     fn cardinality(&self) -> Option<usize> {
         Some(N)
@@ -42,7 +39,7 @@ impl<T: Clone, const N: usize> ValueGen for ArrayValueGen<T, N> {
         rng.gen_range(0..N)
     }
 
-    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker {
         ArrayShrinker {
             next_index_to_try: 0,
             lowest_known_failing_index: failing_value_seed,
@@ -60,12 +57,12 @@ pub struct ArrayShrinker {
     lowest_known_failing_index: usize,
 }
 
-impl Shrinker<usize> for ArrayShrinker {
+impl<T: Clone, const N: usize> Shrinker<ArrayValueGen<T, N>> for ArrayShrinker {
     fn current_attempt(&self) -> Option<usize> {
         (self.next_index_to_try < self.lowest_known_failing_index).then_some(self.next_index_to_try)
     }
 
-    fn update(&mut self, current_attempt_passed: bool) {
+    fn update(&mut self, _generator: &ArrayValueGen<T, N>, current_attempt_passed: bool) {
         if !current_attempt_passed {
             self.lowest_known_failing_index = self.next_index_to_try;
         } else {

@@ -1,4 +1,4 @@
-use crate::{report::Observation, shrinker::Shrinker};
+use crate::{report::Observation, shrinker::Shrinker, ValueGen};
 
 /// A shrinker for any type, which never performs any shrinking.
 ///
@@ -14,12 +14,12 @@ impl NeverShrink {
     }
 }
 
-impl<T> Shrinker<T> for NeverShrink {
-    fn current_attempt(&self) -> Option<T> {
+impl<G: ValueGen + ?Sized> Shrinker<G> for NeverShrink {
+    fn current_attempt(&self) -> Option<G::Seed> {
         None
     }
 
-    fn update(&mut self, _current_attempt_passed: bool) {
+    fn update(&mut self, _generator: &G, _current_attempt_passed: bool) {
         panic!("`Shrinker::update` called on `NeverShrink`");
     }
 

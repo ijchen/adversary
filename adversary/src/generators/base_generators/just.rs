@@ -9,10 +9,7 @@ impl<T, F: Fn() -> T> ValueGen for JustWith<F> {
     type Seed = ();
 
     // TODO: use ATPIT once stabilized
-    type Shrinker<'a>
-        = JustShrinker
-    where
-        Self: 'a;
+    type Shrinker = JustShrinker;
 
     fn cardinality(&self) -> Option<usize> {
         Some(1)
@@ -38,7 +35,7 @@ impl<T, F: Fn() -> T> ValueGen for JustWith<F> {
         ()
     }
 
-    fn new_shrinker(&self, (): Self::Seed) -> Self::Shrinker<'_> {
+    fn new_shrinker(&self, (): Self::Seed) -> Self::Shrinker {
         JustShrinker
     }
 
@@ -49,12 +46,12 @@ impl<T, F: Fn() -> T> ValueGen for JustWith<F> {
 
 struct JustShrinker;
 
-impl<T> Shrinker<T> for JustShrinker {
-    fn current_attempt(&self) -> Option<T> {
+impl<G: ValueGen> Shrinker<G> for JustShrinker {
+    fn current_attempt(&self) -> Option<G::Seed> {
         None
     }
 
-    fn update(&mut self, _current_attempt_passed: bool) {}
+    fn update(&mut self, _generator: &G, _current_attempt_passed: bool) {}
 
     fn into_observations(self) -> Vec<Observation> {
         Vec::new()

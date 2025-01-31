@@ -1,4 +1,4 @@
-use crate::ValueGen;
+use crate::{shrinkers::ShrinkWrap, ValueGen};
 
 pub fn map<G: ValueGen, U>(
     inner_generator: G,
@@ -19,10 +19,7 @@ impl<U, G: ValueGen, F: Fn(G::Value) -> U> ValueGen for Map<G, F> {
     type Value = U;
     type Seed = G::Seed;
     // TODO: use ATPIT once stabilized
-    type Shrinker<'a>
-        = G::Shrinker<'a>
-    where
-        Self: 'a;
+    type Shrinker = ShrinkWrap<Self, G>;
 
     fn cardinality(&self) -> Option<usize> {
         self.inner_generator.cardinality()
@@ -44,8 +41,11 @@ impl<U, G: ValueGen, F: Fn(G::Value) -> U> ValueGen for Map<G, F> {
         self.inner_generator.sample(rng)
     }
 
-    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
-        self.inner_generator.new_shrinker(failing_value_seed)
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker {
+        ShrinkWrap::new(
+            self.inner_generator.new_shrinker(failing_value_seed),
+            |gen| &gen.inner_generator,
+        )
     }
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {

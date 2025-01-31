@@ -1,4 +1,6 @@
-use crate::shrinker::Shrinker as _;
+use crate::{
+    generators::base_generators::numeric_ranges::RangeInclusiveGen, shrinker::Shrinker as _,
+};
 
 use super::{
     super::super::unsigned_int::RangeInclusiveShrinkerUnsigned, RangeInclusiveShrinkerSigned,
@@ -67,7 +69,7 @@ macro_rules! shrink_magnitude {
 
                 let magnitude_shrinker = RangeInclusiveShrinkerUnsigned::<$u>::new(
                     simplest_in_range.unsigned_abs(),
-                    simplest_known_failing.unsigned_abs()
+                    simplest_known_failing.unsigned_abs(),
                 );
                 assert!(magnitude_shrinker.current_attempt().is_some());
 
@@ -109,7 +111,8 @@ macro_rules! shrink_magnitude {
 
                 // Update the magnitude shrinker
                 let mut new_magnitude_shrinker = self.magnitude_shrinker.clone();
-                new_magnitude_shrinker.update(current_attempt_passed);
+                let fake_unused_generator = &RangeInclusiveGen { min: 0, max: 0 };
+                new_magnitude_shrinker.update(fake_unused_generator, current_attempt_passed);
 
                 // If there's more magnitude shrinking to do, keep going (@bee)
                 if new_magnitude_shrinker.current_attempt().is_some() {
@@ -123,6 +126,7 @@ macro_rules! shrink_magnitude {
                     });
                 }
 
+                // TODO: this
                 todo!()
             }
         }

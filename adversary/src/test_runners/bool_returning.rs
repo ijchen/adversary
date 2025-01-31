@@ -102,7 +102,7 @@ fn shrink_and_generate_report<T, I: Clone>(
 
         let test_passed = test(generator.create_value(seed.clone()));
 
-        shrinker.update(test_passed);
+        shrinker.update(generator, test_passed);
 
         shrink_steps.push(ShrinkStep::new(
             generator.create_value(seed),

@@ -27,10 +27,7 @@ macro_rules! signed_range_inclusive {
             type Value = $i;
             type Seed = Self::Value;
             // TODO: use ATPIT once stabilized
-            type Shrinker<'a>
-                = RangeInclusiveShrinkerSigned<$i, $u>
-            where
-                Self: 'a;
+            type Shrinker = RangeInclusiveShrinkerSigned<$i, $u>;
 
             fn cardinality(&self) -> Option<usize> {
                 usize::try_from(<$i>::abs_diff(self.min, self.max)).ok().and_then(|cardinality| cardinality.checked_add(1))
@@ -97,7 +94,7 @@ macro_rules! signed_range_inclusive {
                 rng.gen_range(self.min..=self.max)
             }
 
-            fn new_shrinker(&self, seed: Self::Seed) -> Self::Shrinker<'_> {
+            fn new_shrinker(&self, seed: Self::Seed) -> Self::Shrinker {
                 RangeInclusiveShrinkerSigned::<$i, $u>::new(seed, (self.min, self.max))
             }
 

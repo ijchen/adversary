@@ -23,10 +23,7 @@ macro_rules! unsigned_range_inclusive {
             type Value = $t;
             type Seed = Self::Value;
             // TODO: use ATPIT once stabilized
-            type Shrinker<'a>
-                = RangeInclusiveShrinkerUnsigned<$t>
-            where
-                Self: 'a;
+            type Shrinker = RangeInclusiveShrinkerUnsigned<$t>;
 
             fn cardinality(&self) -> Option<usize> {
                 // For unsigned ints where min <= max, max - min can't overflow
@@ -85,7 +82,7 @@ macro_rules! unsigned_range_inclusive {
                 rng.gen_range(self.min..=self.max)
             }
 
-            fn new_shrinker(&self, seed: Self::Seed) -> Self::Shrinker<'_> {
+            fn new_shrinker(&self, seed: Self::Seed) -> Self::Shrinker {
                 RangeInclusiveShrinkerUnsigned::<$t>::new(self.min, seed)
             }
 

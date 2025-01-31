@@ -15,7 +15,10 @@ use done::Done;
 use shrink_magnitude::ShrinkMagnitude;
 use try_simplest::TrySimplest;
 
-use crate::{report::Observation, shrinker::Shrinker};
+use crate::{
+    generators::base_generators::numeric_ranges::RangeInclusiveGen, report::Observation,
+    shrinker::Shrinker, ValueGen,
+};
 
 /// The shrinker implementation for signed integer range
 /// [`ValueGen`](crate::ValueGen)s.
@@ -169,8 +172,8 @@ macro_rules! shrinker {
             }
         }
 
-        impl Shrinker<$i> for RangeInclusiveShrinkerSigned<$i, $u> {
-            fn current_attempt(&self) -> Option<$i> {
+        impl Shrinker<RangeInclusiveGen<$i>> for RangeInclusiveShrinkerSigned<$i, $u> {
+            fn current_attempt(&self) -> Option<<RangeInclusiveGen<$i> as ValueGen>::Seed> {
                 match self {
                     Self::TrySimplest(phase) => phase.current_attempt(),
                     Self::ShrinkMagnitude(phase) => phase.current_attempt(),
@@ -178,7 +181,7 @@ macro_rules! shrinker {
                 }
             }
 
-            fn update(&mut self, current_attempt_passed: bool) {
+            fn update(&mut self, _generator: &RangeInclusiveGen<$i>, current_attempt_passed: bool) {
                 *self = match self {
                     Self::TrySimplest(phase) => phase.next_phase(current_attempt_passed),
                     Self::ShrinkMagnitude(phase) => phase.next_phase(current_attempt_passed),
