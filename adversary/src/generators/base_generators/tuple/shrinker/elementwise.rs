@@ -1,4 +1,4 @@
-use crate::{shrinker::Shrinker, ValueGen};
+use crate::{generators::base_generators::tuple::*, shrinker::Shrinker, ValueGen};
 
 macro_rules! elementwise {
     ($(
@@ -18,25 +18,27 @@ macro_rules! elementwise {
         // meaningful ways.
         const _: () = assert!($n > 2);
 
-        pub struct [<Elementwise $n>]<'gens, $([<Gen $letter>]: ValueGen),+> {
+        pub struct [<Elementwise $n>]<$([<Gen $letter>]: ValueGen),+> {
             current_values: ($([<Gen $letter>]::Seed),+),
-            step: [<Step $n>]<'gens, $([<Gen $letter>]),+>,
+            step: [<Step $n>]<$([<Gen $letter>]),+>,
         }
 
-        enum [<Step $n>]<'gens, $([<Gen $letter>]: ValueGen),+> {
-            $([<Shrinking $letter>](Box<dyn Shrinker<[<Gen $letter>]::Seed> + 'gens>),)+
+        enum [<Step $n>]<$([<Gen $letter>]: ValueGen),+> {
+            $([<Shrinking $letter>](Box<dyn Shrinker<[<Gen $letter>]>>),)+
             Done,
         }
 
-        impl<'gens, $([<Gen $letter>]: ValueGen),+>
-            [<Elementwise $n>]<'gens, $([<Gen $letter>]),+>
+        impl<$([<Gen $letter>]: ValueGen),+> [<Elementwise $n>]<$([<Gen $letter>]),+>
+        where
+            $([<Gen $letter>]::Shrinker: 'static,)+
         {
             pub fn new(
-                generators: ($(&'gens [<Gen $letter>]),+),
+                generator: &[<TupleGen $n>]<$([<Gen $letter>]),+>,
                 current_values: ($([<Gen $letter>]::Seed),+),
-            ) -> Self {
+            ) -> Self
+            {
                 let step = [<Step $n>]::ShrinkingA(Box::new(
-                    generators.0.new_shrinker(current_values.0.clone()),
+                    generator.0.new_shrinker(current_values.0.clone()),
                 ));
 
                 let mut this = Self {
@@ -44,18 +46,18 @@ macro_rules! elementwise {
                     step,
                 };
 
-                this.progress_if_necessary(generators);
+                this.progress_if_necessary(generator);
 
                 this
             }
 
-            pub fn progress_if_necessary(&mut self, generators: ($(&'gens [<Gen $letter>]),+)) {
+            pub fn progress_if_necessary(&mut self, generator: &[<TupleGen $n>]<$([<Gen $letter>]),+>) {
                 $(
                     // If the Xth shrinker is done, progress to the (X+1)th
                     if let [<Step $n>]::$shrinking_from(shrinker) = &mut self.step {
                         if shrinker.current_attempt().is_none() {
                             self.step = [<Step $n>]::$shrinking_to(Box::new(
-                                generators.$shrinking_count.new_shrinker(self.current_values.$shrinking_count.clone()),
+                                generator.$shrinking_count.new_shrinker(self.current_values.$shrinking_count.clone()),
                             ));
                         }
                     }
@@ -90,7 +92,7 @@ macro_rules! elementwise {
 
             pub fn update(
                 &mut self,
-                generators: ($(&'gens [<Gen $letter>]),+),
+                generator: &[<TupleGen $n>]<$([<Gen $letter>]),+>,
                 current_attempt_passed: bool,
             ) {
                 match &mut self.step {
@@ -101,12 +103,12 @@ macro_rules! elementwise {
                                 .expect(concat!("`Elementwise", $n, "::update` called, but `Elementwise", $n, "::current_attempt` returned `None`"));
                         }
 
-                        shrinker.update(current_attempt_passed)
+                        shrinker.update(&generator.$index, current_attempt_passed)
                     })+
                     [<Step $n>]::Done => panic!(concat!("`Elementwise", $n, "::update` called while in `Step::Done`")),
                 }
 
-                self.progress_if_necessary(generators);
+                self.progress_if_necessary(generator);
             }
         }
     )*}};

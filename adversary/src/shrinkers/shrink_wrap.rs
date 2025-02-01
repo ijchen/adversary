@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use crate::{report::Observation, shrinker::Shrinker, ValueGen};
 
 /// A [`Shrinker`] for some outer [`ValueGen`] `Outer`, which just delegates to
@@ -8,7 +6,6 @@ use crate::{report::Observation, shrinker::Shrinker, ValueGen};
 pub struct ShrinkWrap<Outer: ValueGen + ?Sized, Inner: ValueGen<Seed = Outer::Seed> + ?Sized> {
     inner: Inner::Shrinker,
     gen_converter: fn(&Outer) -> &Inner,
-    phantom: PhantomData<Outer>,
 }
 
 impl<Outer: ValueGen + ?Sized, Inner: ValueGen<Seed = Outer::Seed> + ?Sized>
@@ -18,7 +15,6 @@ impl<Outer: ValueGen + ?Sized, Inner: ValueGen<Seed = Outer::Seed> + ?Sized>
         Self {
             inner,
             gen_converter,
-            phantom: PhantomData,
         }
     }
 }

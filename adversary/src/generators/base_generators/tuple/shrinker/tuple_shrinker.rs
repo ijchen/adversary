@@ -1,4 +1,6 @@
-use crate::{report::Observation, shrinker::Shrinker, ValueGen};
+use crate::{
+    generators::base_generators::tuple::*, report::Observation, shrinker::Shrinker, ValueGen,
+};
 
 use super::{all_together::*, elementwise::*, pairwise::*};
 
@@ -11,48 +13,49 @@ macro_rules! tuple_shrinker {
         // meaningful ways.
         const _: () = assert!($n > 2);
 
-        pub struct [<TupleShrinker $n>]<'gens, $([<Gen $letter>]: ValueGen),+> {
-            generators: ($(&'gens [<Gen $letter>]),+),
+        pub struct [<TupleShrinker $n>]<$([<Gen $letter>]: ValueGen),+> {
             current_values: ($([<Gen $letter>]::Seed),+),
-            phase: [<Phase $n>]<'gens, $([<Gen $letter>]),+>,
+            phase: [<Phase $n>]<$([<Gen $letter>]),+>,
         }
 
-        enum [<Phase $n>]<'gens, $([<Gen $letter>]: ValueGen),+> {
-            ElementwiseFirstPass([<Elementwise $n>]<'gens, $([<Gen $letter>]),+>),
-            AllTogetherFirstPass([<AllTogether $n>]<'gens, $([<Gen $letter>]),+>),
-            Pairwise([<Pairwise $n>]<'gens, $([<Gen $letter>]),+>),
-            ElementwiseSecondPass([<Elementwise $n>]<'gens, $([<Gen $letter>]),+>),
-            AllTogetherSecondPass([<AllTogether $n>]<'gens, $([<Gen $letter>]),+>),
+        enum [<Phase $n>]<$([<Gen $letter>]: ValueGen),+> {
+            ElementwiseFirstPass([<Elementwise $n>]<$([<Gen $letter>]),+>),
+            AllTogetherFirstPass([<AllTogether $n>]<$([<Gen $letter>]),+>),
+            Pairwise([<Pairwise $n>]<$([<Gen $letter>]),+>),
+            ElementwiseSecondPass([<Elementwise $n>]<$([<Gen $letter>]),+>),
+            AllTogetherSecondPass([<AllTogether $n>]<$([<Gen $letter>]),+>),
             Done,
         }
 
-        impl<'gens, $([<Gen $letter>]: ValueGen),+>
-            [<TupleShrinker $n>]<'gens, $([<Gen $letter>]),+>
+        impl<$([<Gen $letter>]: ValueGen),+> [<TupleShrinker $n>]<$([<Gen $letter>]),+>
+        where
+            $([<Gen $letter>]::Shrinker: 'static,)+
         {
             pub fn new(
-                generators: ($(&'gens [<Gen $letter>]),+),
+                generator: &[<TupleGen $n>]<$([<Gen $letter>]),+>,
                 current_values: ($([<Gen $letter>]::Seed),+),
             ) -> Self {
-                let phase =
-                    [<Phase $n>]::ElementwiseFirstPass([<Elementwise $n>]::new(generators, current_values.clone()));
+                let phase = [<Phase $n>]::ElementwiseFirstPass([<Elementwise $n>]::new(generator, current_values.clone()));
 
                 let mut this = Self {
-                    generators,
                     current_values,
                     phase,
                 };
 
-                this.progress_if_necessary();
+                this.progress_if_necessary(generator);
 
                 this
             }
 
-            pub fn progress_if_necessary(&mut self) {
+            pub fn progress_if_necessary(
+                &mut self,
+                generator: &[<TupleGen $n>]<$([<Gen $letter>]),+>,
+            ) {
                 // If ElementwiseFirstPass is done, progress to AllTogetherFirstPass
                 if let [<Phase $n>]::ElementwiseFirstPass(phase) = &self.phase {
                     if phase.is_done() {
                         self.phase = [<Phase $n>]::AllTogetherFirstPass([<AllTogether $n>]::new(
-                            self.generators,
+                            generator,
                             self.current_values.clone(),
                         ));
                     }
@@ -61,8 +64,10 @@ macro_rules! tuple_shrinker {
                 // If AllTogetherFirstPass is done, progress to Pairwise
                 if let [<Phase $n>]::AllTogetherFirstPass(phase) = &self.phase {
                     if phase.is_done() {
-                        self.phase =
-                            [<Phase $n>]::Pairwise([<Pairwise $n>]::new(self.generators, self.current_values.clone()));
+                        self.phase = [<Phase $n>]::Pairwise([<Pairwise $n>]::new(
+                            generator,
+                            self.current_values.clone()
+                        ));
                     }
                 }
 
@@ -70,7 +75,7 @@ macro_rules! tuple_shrinker {
                 if let [<Phase $n>]::Pairwise(phase) = &self.phase {
                     if phase.is_done() {
                         self.phase = [<Phase $n>]::ElementwiseSecondPass([<Elementwise $n>]::new(
-                            self.generators,
+                            generator,
                             self.current_values.clone(),
                         ));
                     }
@@ -80,7 +85,7 @@ macro_rules! tuple_shrinker {
                 if let [<Phase $n>]::ElementwiseSecondPass(phase) = &self.phase {
                     if phase.is_done() {
                         self.phase = [<Phase $n>]::AllTogetherSecondPass([<AllTogether $n>]::new(
-                            self.generators,
+                            generator,
                             self.current_values.clone(),
                         ));
                     }
@@ -95,10 +100,12 @@ macro_rules! tuple_shrinker {
             }
         }
 
-        impl<'gens, $([<Gen $letter>]: ValueGen),+> Shrinker<($([<Gen $letter>]::Seed),+)>
-            for [<TupleShrinker $n>]<'gens, $([<Gen $letter>]),+>
+        impl<$([<Gen $letter>]: ValueGen),+> Shrinker<[<TupleGen $n>]<$([<Gen $letter>]),+>>
+            for [<TupleShrinker $n>]<$([<Gen $letter>]),+>
+        where
+            $([<Gen $letter>]::Shrinker: 'static,)+
         {
-            fn current_attempt(&self) -> Option<($([<Gen $letter>]::Seed),+)> {
+            fn current_attempt(&self) -> Option<<[<TupleGen $n>]<$([<Gen $letter>]),+> as ValueGen>::Seed> {
                 match &self.phase {
                     [<Phase $n>]::ElementwiseFirstPass(phase) => phase.current_attempt(),
                     [<Phase $n>]::AllTogetherFirstPass(phase) => phase.current_attempt(),
@@ -109,21 +116,17 @@ macro_rules! tuple_shrinker {
                 }
             }
 
-            fn update(&mut self, current_attempt_passed: bool) {
+            fn update(&mut self, generator: &[<TupleGen $n>]<$([<Gen $letter>]),+>, current_attempt_passed: bool) {
                 if !current_attempt_passed {
                     self.current_values = self.current_attempt().unwrap();
                 }
 
                 match &mut self.phase {
-                    [<Phase $n>]::ElementwiseFirstPass(phase) => {
-                        phase.update(self.generators, current_attempt_passed)
-                    }
-                    [<Phase $n>]::AllTogetherFirstPass(phase) => phase.update(current_attempt_passed),
-                    [<Phase $n>]::Pairwise(phase) => phase.update(self.generators, current_attempt_passed),
-                    [<Phase $n>]::ElementwiseSecondPass(phase) => {
-                        phase.update(self.generators, current_attempt_passed)
-                    }
-                    [<Phase $n>]::AllTogetherSecondPass(phase) => phase.update(current_attempt_passed),
+                    [<Phase $n>]::ElementwiseFirstPass(phase) => phase.update(generator, current_attempt_passed),
+                    [<Phase $n>]::AllTogetherFirstPass(phase) => phase.update(generator, current_attempt_passed),
+                    [<Phase $n>]::Pairwise(phase) => phase.update(generator, current_attempt_passed),
+                    [<Phase $n>]::ElementwiseSecondPass(phase) => phase.update(generator, current_attempt_passed),
+                    [<Phase $n>]::AllTogetherSecondPass(phase) => phase.update(generator, current_attempt_passed),
                     [<Phase $n>]::Done => { /* Nothing to do here */ }
                 }
             }

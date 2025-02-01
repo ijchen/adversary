@@ -19,7 +19,7 @@ pub trait ValueGen {
     /// The [`Shrinker`] type returned by [`new_shrinker`].
     ///
     /// [`new_shrinker`]: ValueGen::new_shrinker
-    type Shrinker: Shrinker<Self>;
+    type Shrinker: Shrinker<Self> + 'static;
 
     /// Returns the length of the iterator returned by [`exhaustive`], or
     /// [`None`] if that length is greater than [`usize::MAX`] or otherwise

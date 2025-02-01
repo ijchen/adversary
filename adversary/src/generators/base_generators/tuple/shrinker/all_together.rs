@@ -1,4 +1,4 @@
-use crate::{shrinker::Shrinker, ValueGen};
+use crate::{generators::base_generators::tuple::*, shrinker::Shrinker, ValueGen};
 
 macro_rules! all_together {
     ($(
@@ -12,22 +12,21 @@ macro_rules! all_together {
         // meaningful ways.
         const _: () = assert!($n > 2);
 
-        pub struct [<AllTogether $n>]<'gens, $([<Gen $letter>]: ValueGen),+> {
+        pub struct [<AllTogether $n>]<$([<Gen $letter>]: ValueGen),+> {
             current_values: ($([<Gen $letter>]::Seed),+),
-            shrinkers: ($(
-                Box<dyn Shrinker<[<Gen $letter>]::Seed> + 'gens>,
-            )+),
+            shrinkers: ($(Box<dyn Shrinker<[<Gen $letter>]>>,)+),
         }
 
-        impl<'gens, $([<Gen $letter>]: ValueGen),+>
-            [<AllTogether $n>]<'gens, $([<Gen $letter>]),+>
-        {
+        impl<$([<Gen $letter>]: ValueGen),+> [<AllTogether $n>]<$([<Gen $letter>]),+> {
             pub fn new(
-                generators: ($(&'gens [<Gen $letter>]),+),
+                generator: &[<TupleGen $n>]<$([<Gen $letter>]),+>,
                 current_values: ($([<Gen $letter>]::Seed),+),
-            ) -> Self {
+            ) -> Self
+            where
+                $([<Gen $letter>]::Shrinker: 'static,)+
+            {
                 let shrinkers = ($(
-                    Box::new(generators.$index.new_shrinker(current_values.$index.clone())) as _,
+                    Box::new(generator.$index.new_shrinker(current_values.$index.clone())) as _,
                 )+);
 
                 Self {
@@ -54,7 +53,11 @@ macro_rules! all_together {
                 }
             }
 
-            pub fn update(&mut self, current_attempt_passed: bool) {
+            pub fn update(
+                &mut self,
+                generator: &[<TupleGen $n>]<$([<Gen $letter>]),+>,
+                current_attempt_passed: bool,
+            ) {
                 match ($(self.shrinkers.$index.current_attempt()),+) {
                     ($(Option::<[<Gen $letter>]::Seed>::None),+) => {
                         panic!(concat!("`AllTogether", $n, "::update` called while all shrinkers were done"))
@@ -68,7 +71,7 @@ macro_rules! all_together {
                     attempts => {
                         $(
                             if attempts.$index.is_some() {
-                                self.shrinkers.$index.update(current_attempt_passed);
+                                self.shrinkers.$index.update(&generator.$index, current_attempt_passed);
                             }
                         )+
                     }

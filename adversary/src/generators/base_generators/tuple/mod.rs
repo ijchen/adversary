@@ -41,14 +41,13 @@ macro_rules! impl_tuple_into_value_gen {
 
         impl<$([<Gen $letter>]: ValueGen),+> ValueGen
             for [<TupleGen $n>]<$([<Gen $letter>]),+>
+        where
+            $([<Gen $letter>]::Shrinker: 'static,)+
         {
             type Value = ($([<Gen $letter>]::Value),+);
             type Seed = ($([<Gen $letter>]::Seed),+);
             // TODO: use ATPIT once stabilized
-            type Shrinker<'a>
-                = shrinker::[<TupleShrinker $n>]<'a, $([<Gen $letter>]),+>
-            where
-                Self: 'a;
+            type Shrinker = shrinker::[<TupleShrinker $n>]<$([<Gen $letter>]),+>;
 
             #[expect(
                 clippy::needless_question_mark,
@@ -81,7 +80,7 @@ macro_rules! impl_tuple_into_value_gen {
             fn new_shrinker(
                 &self,
                 failing_value_seed: Self::Seed,
-            ) -> Self::Shrinker<'_> {
+            ) -> Self::Shrinker {
                 shrinker::[<TupleShrinker $n>]::new(($(&self.$index),+), failing_value_seed)
             }
 

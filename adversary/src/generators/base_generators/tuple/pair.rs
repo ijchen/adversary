@@ -28,10 +28,8 @@ impl<Left: ValueGen, Right: ValueGen> Pair<Left, Right> {
     }
 }
 
-impl<G: ValueGen<Seed = (Left::Seed, Right::Seed)>, Left: ValueGen, Right: ValueGen> Shrinker<G>
-    for Pair<Left, Right>
-{
-    fn current_attempt(&self) -> Option<G::Seed> {
+impl<Left: ValueGen, Right: ValueGen> Pair<Left, Right> {
+    pub fn current_attempt(&self) -> Option<(Left::Seed, Right::Seed)> {
         match (
             self.left_shrinker.current_attempt(),
             self.right_shrinker.current_attempt(),
@@ -44,7 +42,7 @@ impl<G: ValueGen<Seed = (Left::Seed, Right::Seed)>, Left: ValueGen, Right: Value
         }
     }
 
-    fn update(&mut self, generator: &G, current_attempt_passed: bool) {
+    pub fn update(&mut self, generators: (&Left, &Right), current_attempt_passed: bool) {
         match (
             self.left_shrinker.current_attempt(),
             self.right_shrinker.current_attempt(),
@@ -60,16 +58,18 @@ impl<G: ValueGen<Seed = (Left::Seed, Right::Seed)>, Left: ValueGen, Right: Value
             // problematic behavior... should investigate.
             attempts => {
                 if attempts.0.is_some() {
-                    self.left_shrinker.update(current_attempt_passed);
+                    self.left_shrinker
+                        .update(generators.0, current_attempt_passed);
                 }
                 if attempts.1.is_some() {
-                    self.right_shrinker.update(current_attempt_passed);
+                    self.right_shrinker
+                        .update(generators.1, current_attempt_passed);
                 }
             }
         }
     }
 
-    fn into_observations(self) -> Vec<Observation> {
+    pub fn into_observations(self) -> Vec<Observation> {
         Vec::new()
     }
 }
