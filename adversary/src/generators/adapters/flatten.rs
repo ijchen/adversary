@@ -3,15 +3,21 @@ use crate::{shrinker::Shrinker, IntoValueGen, ValueGen};
 pub fn flatten<P: IntoValueGen<C>, C: IntoValueGen<T>, T>(
     parent_gen: P,
 ) -> impl ValueGen<Value = T> {
-    Flatten(parent_gen.into_value_gen(), std::marker::PhantomData)
+    Flatten(
+        parent_gen.into_value_gen(),
+        std::marker::PhantomData::<C::Gen>,
+    )
 }
 
 // TODO: is there a way to express this that doesn't need the PhantomData hack?
 struct Flatten<P, T>(P, std::marker::PhantomData<T>);
 
-impl<P: ValueGen<Value = C>, C: IntoValueGen<T>, T> ValueGen for Flatten<P, T> {
-    type Value = T;
-    type Seed = (P::Seed, <C::Gen as ValueGen>::Seed);
+impl<P: ValueGen, C: ValueGen> ValueGen for Flatten<P, C>
+where
+    P::Value: IntoValueGen<C::Value, Gen = C>,
+{
+    type Value = C::Value;
+    type Seed = (P::Seed, C::Seed);
     // TODO: use ATPIT once stabilized
     type Shrinker<'a>
         = crate::shrinkers::NeverShrink
