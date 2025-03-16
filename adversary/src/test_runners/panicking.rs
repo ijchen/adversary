@@ -6,9 +6,9 @@ use std::{
 };
 
 use crate::{
+    IntoValueGen,
     rand::Rng,
     report::{PanicInfo, PanicLocation, Report},
-    IntoValueGen,
 };
 
 use super::run_test;

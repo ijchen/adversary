@@ -1,4 +1,4 @@
-use super::{binary_search::BinarySearch, done::Done, RangeInclusiveShrinkerUnsigned};
+use super::{RangeInclusiveShrinkerUnsigned, binary_search::BinarySearch, done::Done};
 
 /// Implementation of the "Try simplest" phase of unsigned integer shrinking.
 ///

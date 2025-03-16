@@ -1,7 +1,7 @@
 use super::{
-    consecutive::{Consecutive, CONSEC_COUNT},
-    spread_out::{SpreadOut, SPREAD_COUNT},
     RangeInclusiveShrinkerUnsigned,
+    consecutive::{CONSEC_COUNT, Consecutive},
+    spread_out::{SPREAD_COUNT, SpreadOut},
 };
 
 /// Implementation of the "Binary search" phase of unsigned integer shrinking.

@@ -1,4 +1,4 @@
-use crate::{report::Observation, shrinker::Shrinker, ValueGen};
+use crate::{ValueGen, report::Observation, shrinker::Shrinker};
 
 use super::{all_together::*, elementwise::*, pairwise::*};
 

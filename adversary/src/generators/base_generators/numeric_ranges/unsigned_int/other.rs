@@ -1,6 +1,6 @@
 use std::ops::{Range, RangeFrom, RangeFull, RangeTo, RangeToInclusive};
 
-use crate::{generators::base_generators::numeric_ranges::RangeInclusiveGen, IntoValueGen};
+use crate::{IntoValueGen, generators::base_generators::numeric_ranges::RangeInclusiveGen};
 
 macro_rules! others {
     ($($t: ty),+$(,)?) => {$(

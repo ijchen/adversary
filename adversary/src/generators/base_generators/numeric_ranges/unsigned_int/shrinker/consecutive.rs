@@ -1,4 +1,4 @@
-use super::{binary_search::BinarySearch, done::Done, RangeInclusiveShrinkerUnsigned};
+use super::{RangeInclusiveShrinkerUnsigned, binary_search::BinarySearch, done::Done};
 
 /// The number of consecutive values in a row to try during the "Consecutive"
 /// shrinking phase.

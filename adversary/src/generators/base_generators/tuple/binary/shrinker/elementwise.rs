@@ -1,4 +1,4 @@
-use crate::{shrinker::Shrinker, ValueGen};
+use crate::{ValueGen, shrinker::Shrinker};
 
 pub struct Elementwise<'gens, GenA: ValueGen, GenB: ValueGen> {
     current_values: (GenA::Seed, GenB::Seed),

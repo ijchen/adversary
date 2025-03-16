@@ -1,8 +1,8 @@
 use super::{
-    binary_search::BinarySearch,
-    consecutive::{Consecutive, CONSEC_COUNT},
-    done::Done,
     RangeInclusiveShrinkerUnsigned,
+    binary_search::BinarySearch,
+    consecutive::{CONSEC_COUNT, Consecutive},
+    done::Done,
 };
 
 /// The number of spread out values to try during the "Spread out" shrinking

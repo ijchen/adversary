@@ -1,8 +1,8 @@
 use crate::rand::Rng;
 
-use crate::shrinker::Shrinker as _;
 use crate::IntoValueGen;
-use crate::{report::Report, report::ShrinkStep, ValueGen};
+use crate::shrinker::Shrinker as _;
+use crate::{ValueGen, report::Report, report::ShrinkStep};
 
 struct FailingValueReport<T, I> {
     pub failing_value: T,

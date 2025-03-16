@@ -2,7 +2,7 @@ mod elementwise;
 use elementwise::Elementwise;
 
 use crate::{
-    generators::base_generators::tuple::Pair, report::Observation, shrinker::Shrinker, ValueGen,
+    ValueGen, generators::base_generators::tuple::Pair, report::Observation, shrinker::Shrinker,
 };
 
 pub struct TupleShrinker2<'gens, GenA: ValueGen, GenB: ValueGen> {

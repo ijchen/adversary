@@ -1,4 +1,4 @@
-use crate::{report::Observation, shrinker::Shrinker, IntoValueGen, ValueGen};
+use crate::{IntoValueGen, ValueGen, report::Observation, shrinker::Shrinker};
 
 impl<'a, T> IntoValueGen<&'a T> for &'a [T] {
     // TODO: use ATPIT once stabilized

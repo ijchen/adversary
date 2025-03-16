@@ -16,7 +16,7 @@ pub use adversary_macros::adv_test;
 // rand::Rng for ValueGen. Instead, have our own Rng trait.
 pub use rand;
 
-pub use generators::{any, bool, just, just_with, Canonical};
+pub use generators::{Canonical, any, bool, just, just_with};
 pub use into_value_gen::IntoValueGen;
 pub use test_runners::{run_test, run_test_panics};
 pub use value_gen::ValueGen;

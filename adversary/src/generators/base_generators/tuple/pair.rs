@@ -1,4 +1,4 @@
-use crate::{report::Observation, shrinker::Shrinker, ValueGen};
+use crate::{ValueGen, report::Observation, shrinker::Shrinker};
 
 pub struct Pair<'gens, Left: ValueGen, Right: ValueGen> {
     left_shrinker: Box<dyn Shrinker<Left::Seed> + 'gens>,

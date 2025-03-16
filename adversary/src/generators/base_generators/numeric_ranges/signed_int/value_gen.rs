@@ -1,7 +1,7 @@
 use std::ops::RangeInclusive;
 
 use crate::{
-    generators::base_generators::numeric_ranges::RangeInclusiveGen, IntoValueGen, ValueGen,
+    IntoValueGen, ValueGen, generators::base_generators::numeric_ranges::RangeInclusiveGen,
 };
 
 use super::shrinker::RangeInclusiveShrinkerSigned;
@@ -128,51 +128,56 @@ mod tests {
     fn adversary_sanity_check() {
         // 1 2 3 4 5 6 7
         // ^ ^ ^ ^ ^ ^ ^
-        let gen = (1i32..=7).into_value_gen();
+        let value_gen = (1i32..=7).into_value_gen();
         assert_eq!(
             HashSet::from([1, 2, 3, 4, 5, 6, 7]),
-            gen.adversarial()
-                .map(|is| gen.create_value(is))
+            value_gen
+                .adversarial()
+                .map(|is| value_gen.create_value(is))
                 .collect::<HashSet<_>>()
         );
 
         // 1 2 3 4 5 6 7 8
         // ^ ^   ^ ^   ^ ^
-        let gen = (1i32..=8).into_value_gen();
+        let value_gen = (1i32..=8).into_value_gen();
         assert_eq!(
             HashSet::from([1, 2, 4, 5, 7, 8]),
-            gen.adversarial()
-                .map(|is| gen.create_value(is))
+            value_gen
+                .adversarial()
+                .map(|is| value_gen.create_value(is))
                 .collect::<HashSet<_>>()
         );
 
         // 1 2 3 4 5 6 7 8 9
         // ^ ^   ^ ^ ^   ^ ^
-        let gen = (1i32..=9).into_value_gen();
+        let value_gen = (1i32..=9).into_value_gen();
         assert_eq!(
             HashSet::from([1, 9, 2, 8, 4, 5, 6]),
-            gen.adversarial()
-                .map(|is| gen.create_value(is))
+            value_gen
+                .adversarial()
+                .map(|is| value_gen.create_value(is))
                 .collect::<HashSet<_>>()
         );
 
         // 32 33 34 35 36 37 38 39 40 41 42 43 44
         // ^^ ^^          ^^ ^^ ^^          ^^ ^^
-        let gen = (32i32..=44).into_value_gen();
+        let value_gen = (32i32..=44).into_value_gen();
         assert_eq!(
             HashSet::from([32, 33, 37, 38, 39, 43, 44]),
-            gen.adversarial()
-                .map(|is| gen.create_value(is))
+            value_gen
+                .adversarial()
+                .map(|is| value_gen.create_value(is))
                 .collect::<HashSet<_>>()
         );
 
         // 32 33 34 35 36 37 38 39 40 41 42 43 44 45
         // ^^ ^^             ^^ ^^             ^^ ^^
-        let gen = (32i32..=45).into_value_gen();
+        let value_gen = (32i32..=45).into_value_gen();
         assert_eq!(
             HashSet::from([32, 33, 38, 39, 44, 45]),
-            gen.adversarial()
-                .map(|is| gen.create_value(is))
+            value_gen
+                .adversarial()
+                .map(|is| value_gen.create_value(is))
                 .collect::<HashSet<_>>()
         );
     }

@@ -1,7 +1,7 @@
 use crate::{
+    ValueGen,
     report::{Importance, Observation},
     shrinker::Shrinker,
-    ValueGen,
 };
 
 pub fn chance(chance_of_true: f64, shrink_to: bool) -> impl ValueGen<Value = bool> {

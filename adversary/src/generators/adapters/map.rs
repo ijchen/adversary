@@ -55,7 +55,7 @@ impl<U, G: ValueGen, F: Fn(G::Value) -> U> ValueGen for Map<G, F> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{report::ShrinkStep, run_test, IntoValueGen, ValueGenExt};
+    use crate::{IntoValueGen, ValueGenExt, report::ShrinkStep, run_test};
 
     #[test]
     fn test_map_does_the_map_thing() {

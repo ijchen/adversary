@@ -1,4 +1,4 @@
-use crate::{report::Observation, shrinker::Shrinker, ValueGen};
+use crate::{ValueGen, report::Observation, shrinker::Shrinker};
 
 #[repr(transparent)]
 struct JustWith<F>(F);
@@ -84,16 +84,20 @@ mod tests {
         let strategy = adv::just(35);
 
         assert_eq!(strategy.cardinality(), Some(1));
-        assert!(strategy
-            .exhaustive()
-            .map(|seed| strategy.create_value(seed))
-            .eq([35]));
+        assert!(
+            strategy
+                .exhaustive()
+                .map(|seed| strategy.create_value(seed))
+                .eq([35])
+        );
 
         assert_eq!(strategy.adversarial_count(), Some(1));
-        assert!(strategy
-            .adversarial()
-            .map(|seed| strategy.create_value(seed))
-            .eq([35]));
+        assert!(
+            strategy
+                .adversarial()
+                .map(|seed| strategy.create_value(seed))
+                .eq([35])
+        );
 
         let mut rng = crate::rand::thread_rng();
         for _ in 0..100 {
@@ -112,16 +116,20 @@ mod tests {
         let strategy = adv::just_with(|| NotClone("hi"));
 
         assert_eq!(strategy.cardinality(), Some(1));
-        assert!(strategy
-            .exhaustive()
-            .map(|seed| strategy.create_value(seed))
-            .eq([NotClone("hi")]));
+        assert!(
+            strategy
+                .exhaustive()
+                .map(|seed| strategy.create_value(seed))
+                .eq([NotClone("hi")])
+        );
 
         assert_eq!(strategy.adversarial_count(), Some(1));
-        assert!(strategy
-            .adversarial()
-            .map(|seed| strategy.create_value(seed))
-            .eq([NotClone("hi")]));
+        assert!(
+            strategy
+                .adversarial()
+                .map(|seed| strategy.create_value(seed))
+                .eq([NotClone("hi")])
+        );
 
         let mut rng = crate::rand::thread_rng();
         for _ in 0..100 {

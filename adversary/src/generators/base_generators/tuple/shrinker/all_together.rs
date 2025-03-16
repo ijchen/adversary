@@ -1,4 +1,4 @@
-use crate::{shrinker::Shrinker, ValueGen};
+use crate::{ValueGen, shrinker::Shrinker};
 
 macro_rules! all_together {
     ($(

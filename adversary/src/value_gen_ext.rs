@@ -1,6 +1,6 @@
 use crate::{
-    generators::adapters::{add_adversarial, flatten, map, without_adversarial, WithoutShrinking},
     IntoValueGen, ValueGen,
+    generators::adapters::{WithoutShrinking, add_adversarial, flatten, map, without_adversarial},
 };
 
 pub trait ValueGenExt: ValueGen + Sized {

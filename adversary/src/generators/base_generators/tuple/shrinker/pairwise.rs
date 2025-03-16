@@ -1,4 +1,4 @@
-use crate::{shrinker::Shrinker as _, ValueGen};
+use crate::{ValueGen, shrinker::Shrinker as _};
 
 use super::super::Pair;
 

@@ -1,4 +1,4 @@
-use crate::{shrinker::Shrinker, IntoValueGen, ValueGen};
+use crate::{IntoValueGen, ValueGen, shrinker::Shrinker};
 
 pub fn flatten<P: IntoValueGen<C>, C: IntoValueGen<T>, T>(
     parent_gen: P,

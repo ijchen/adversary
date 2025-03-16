@@ -1,4 +1,4 @@
-use crate::{just, Canonical, ValueGen};
+use crate::{Canonical, ValueGen, just};
 
 impl Canonical for () {
     fn canonical() -> impl ValueGen<Value = Self> {

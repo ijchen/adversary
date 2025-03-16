@@ -1,4 +1,4 @@
-use super::{done::Done, shrink_magnitude::ShrinkMagnitude, RangeInclusiveShrinkerSigned};
+use super::{RangeInclusiveShrinkerSigned, done::Done, shrink_magnitude::ShrinkMagnitude};
 
 /// Implementation of the "Try simplest" phase of signed integer shrinking.
 ///
