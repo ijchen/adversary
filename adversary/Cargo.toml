@@ -18,6 +18,7 @@ workspace = true
 rand = "0.8.5"
 adversary-macros = { version = "0.1.0", path = "../adversary-macros", optional = true }
 paste = "1.0.15"
+pair = "0.2.0"
 
 [dev-dependencies]
 

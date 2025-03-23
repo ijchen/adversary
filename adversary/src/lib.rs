@@ -2,6 +2,7 @@ pub mod generators;
 mod into_value_gen;
 pub mod prelude;
 pub mod report;
+mod sample;
 mod self_test_helpers;
 mod shrinker;
 pub mod shrinkers;

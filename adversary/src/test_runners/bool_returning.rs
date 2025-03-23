@@ -1,6 +1,7 @@
 use crate::rand::Rng;
 
 use crate::IntoValueGen;
+use crate::sample::sample;
 use crate::shrinker::Shrinker as _;
 use crate::{ValueGen, report::Report, report::ShrinkStep};
 
@@ -15,69 +16,39 @@ fn find_failing_value<T, I: Clone>(
     generator: &mut impl ValueGen<Value = T, Seed = I>,
     rng: &mut impl Rng,
 ) -> Option<FailingValueReport<T, I>> {
-    #[inline]
-    fn helper<T, I: Clone>(
-        test: &impl Fn(T) -> bool,
-        generator: &impl ValueGen<Value = T, Seed = I>,
-        seeds: impl Iterator<Item = I>,
-    ) -> Option<FailingValueReport<T, I>> {
-        // TODO: maybe make this all functional and appease the lambda bros
-        let mut passing_runs: u64 = 0;
-        for seed in seeds {
-            let test_passed = test(generator.create_value(seed.clone()));
-
-            if !test_passed {
-                return Some(FailingValueReport {
-                    failing_value: generator.create_value(seed.clone()),
-                    failing_value_seed: seed,
-                    passing_runs,
-                });
-            }
-
-            // NOTE(ichen): Saturating add because the documentation on `Report`
-            // indicates that:
-            // > [`u64::MAX`] indicates that the test failed [`usize::MAX`]
-            // > *or more* times.
-            // FWIW, at 50 billion iterations per second, it would take over 11
-            // years to reach u64::MAX
-            passing_runs = passing_runs.saturating_add(1);
-        }
-
-        None
-    }
-
     // TODO: allow customizing these
     const MAX_RUNS: usize = 1_000_000;
     const MIN_RANDOM_INPUTS: usize = MAX_RUNS / 5;
 
     const { assert!(MIN_RANDOM_INPUTS <= MAX_RUNS) }
 
-    // TODO(ichen): consider the cost of triple-monomorphization here, and
-    // possible alternatives.
-    if generator
-        .cardinality()
-        .is_some_and(|cardinality| cardinality <= MAX_RUNS)
-    {
-        helper(&test, generator, generator.exhaustive())
-    } else if generator
-        .adversarial_count()
-        .is_some_and(|adversarial_count| adversarial_count <= MAX_RUNS - MIN_RANDOM_INPUTS)
-    {
-        helper(
-            &test,
-            generator,
-            generator
-                .adversarial()
-                .chain(std::iter::repeat_with(|| generator.sample(rng)))
-                .take(MAX_RUNS),
-        )
-    } else {
-        helper(
-            &test,
-            generator,
-            std::iter::repeat_with(|| generator.sample(rng)).take(MAX_RUNS),
-        )
+    // TODO(ichen): consider the cost of enum dispatch here, and if it's worth
+    // instead inlining (compiler might be smart enough to see through all this
+    // anyway - measure, as always)
+    let seeds = sample(generator, MAX_RUNS, MIN_RANDOM_INPUTS, rng);
+
+    let mut passing_runs: u64 = 0;
+    for seed in seeds {
+        let test_passed = test(generator.create_value(seed.clone()));
+
+        if !test_passed {
+            return Some(FailingValueReport {
+                failing_value: generator.create_value(seed.clone()),
+                failing_value_seed: seed,
+                passing_runs,
+            });
+        }
+
+        // NOTE(ichen): Saturating add because the documentation on `Report`
+        // indicates that:
+        // > [`u64::MAX`] indicates that the test failed [`usize::MAX`]
+        // > *or more* times.
+        // FWIW, at 50 billion iterations per second, it would take over 11
+        // years to reach u64::MAX
+        passing_runs = passing_runs.saturating_add(1);
     }
+
+    None
 }
 
 fn shrink_and_generate_report<T, I: Clone>(

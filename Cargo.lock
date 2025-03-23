@@ -7,6 +7,7 @@ name = "adversary"
 version = "0.1.0"
 dependencies = [
  "adversary-macros",
+ "pair",
  "paste",
  "rand",
 ]
@@ -48,6 +49,12 @@ name = "libc"
 version = "0.2.159"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "561d97a539a36e26a9a5fad1ea11a3039a67714694aaa379433e580854bc3dc5"
+
+[[package]]
+name = "pair"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12f6ed93d0ee9ef6b8de27e51707a940c7c2275c758f444b6d6eb0f2a4de18df"
 
 [[package]]
 name = "paste"

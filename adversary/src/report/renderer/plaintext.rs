@@ -61,7 +61,7 @@ fn failure_summary<T>(output: &mut String, report: &Report<T>, converter: impl F
     write_string!(output, "Test ");
 
     if let Some(test_name) = &report.test_name {
-        write_string!(output, "{} ", test_name);
+        write_string!(output, "'{}' ", test_name);
     }
 
     let formatted_run_count = format_run_count(report.passing_runs);
@@ -79,7 +79,7 @@ fn details<T>(output: &mut String, report: &Report<T>, converter: impl Fn(&T) ->
 
     // Test: my_test_name
     if let Some(test_name) = &report.test_name {
-        writeln_string!(output, "Test: {test_name}");
+        writeln_string!(output, "Test name: {test_name}");
     }
 
     if let Some(panic_info) = &report.panic_info {
@@ -136,16 +136,44 @@ fn details<T>(output: &mut String, report: &Report<T>, converter: impl Fn(&T) ->
     // - Fail: ...
     // ...
     if !report.shrink_steps.is_empty() {
-        writeln_string!(output, "Full shrinking steps:");
+        // TODO: make this configurable
+        const STEPS_PER_SIDE: usize = 5;
 
-        for step in &report.shrink_steps {
-            let passfail = if step.test_passed { "PASS" } else { "FAIL" };
-            // TODO: consider trimming if line exceeds certain length
-            let value = converter(&step.value);
-            writeln_string!(output, "- {passfail}: {value}");
+        // TODO: allow the user to force a full output
+        if report.shrink_steps.len() <= STEPS_PER_SIDE * 2 {
+            writeln_string!(output, "Full shrinking steps:");
+
+            for step in &report.shrink_steps {
+                let passfail = if step.test_passed { "PASS" } else { "FAIL" };
+                // TODO: consider trimming if line exceeds certain length
+                let value = converter(&step.value);
+                writeln_string!(output, "- {passfail}: {value}");
+            }
+        } else {
+            writeln_string!(output, "Shrinking steps (trimmed):");
+
+            for step in &report.shrink_steps[..STEPS_PER_SIDE] {
+                let passfail = if step.test_passed { "PASS" } else { "FAIL" };
+                // TODO: consider trimming if line exceeds certain length
+                let value = converter(&step.value);
+                writeln_string!(output, "- {passfail}: {value}");
+            }
+            writeln_string!(
+                output,
+                "... ({} steps omitted)",
+                report.shrink_steps.len() - STEPS_PER_SIDE * 2
+            );
+            for step in &report.shrink_steps[report.shrink_steps.len() - STEPS_PER_SIDE..] {
+                let passfail = if step.test_passed { "PASS" } else { "FAIL" };
+                // TODO: consider trimming if line exceeds certain length
+                let value = converter(&step.value);
+                writeln_string!(output, "- {passfail}: {value}");
+            }
         }
     }
 }
+
+// TODO(ichen): colors? maybe even a custom `Terminal` report renderer?
 
 pub struct Plaintext;
 impl ReportRenderer for Plaintext {
@@ -167,6 +195,7 @@ impl ReportRenderer for Plaintext {
     }
 }
 
+// TODO: update example report based on changes since it was initially drafted
 /*
 EXAMPLE REPORT
 (Can also be output in various formats, like HTML, markdown, text, etc.)
