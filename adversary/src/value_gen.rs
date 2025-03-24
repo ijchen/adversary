@@ -84,8 +84,12 @@ pub trait ValueGen {
     /// failing value to be shrunk.
     fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_>;
 
-    // TODO: should this take a `Seed` or a `&Seed`?
+    // TODO: what if we removed the `Seed: Clone` bound, and used &Seed here?
     /// Create a [`Value`] from a [`Seed`].
+    ///
+    /// This function should be deterministic - that is, if called multiple
+    /// times with the same `Seed`, this function should return the same
+    /// `Value`.
     ///
     /// [`Value`]: ValueGen::Value
     /// [`Seed`]: ValueGen::Seed
