@@ -74,7 +74,7 @@ impl Shrinker<usize> for ArrayShrinker {
     }
 
     fn into_observations(self) -> Vec<Observation> {
-        // TODO: consider providing some more useful observations
+        // TODO(ichen): useful observations
         Vec::new()
     }
 }

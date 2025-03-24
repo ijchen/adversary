@@ -70,6 +70,7 @@ impl<Left: ValueGen, Right: ValueGen> Shrinker<(Left::Seed, Right::Seed)>
     }
 
     fn into_observations(self) -> Vec<Observation> {
+        // TODO(ichen): useful observations
         Vec::new()
     }
 }

@@ -57,6 +57,7 @@ impl<T> Shrinker<T> for JustShrinker {
     fn update(&mut self, _current_attempt_passed: bool) {}
 
     fn into_observations(self) -> Vec<Observation> {
+        // TODO(ichen): useful observations
         Vec::new()
     }
 }

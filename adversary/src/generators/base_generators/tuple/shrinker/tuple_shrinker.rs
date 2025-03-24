@@ -129,7 +129,7 @@ macro_rules! tuple_shrinker {
             }
 
             fn into_observations(self) -> Vec<Observation> {
-                // TODO: useful observations
+                // TODO(ichen): useful observations
                 Vec::new()
             }
         }

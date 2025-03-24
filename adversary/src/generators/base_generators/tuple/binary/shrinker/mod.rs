@@ -122,7 +122,7 @@ impl<GenA: ValueGen, GenB: ValueGen> Shrinker<(GenA::Seed, GenB::Seed)>
     }
 
     fn into_observations(self) -> Vec<Observation> {
-        // TODO: useful observations
+        // TODO(ichen): useful observations
         Vec::new()
     }
 }
