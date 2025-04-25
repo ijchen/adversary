@@ -99,6 +99,8 @@ impl TestFunc {
         }
 
         // Ensure the function isn't generic
+        // TODO(ichen): could it be worth someday allowing generic tests with
+        // a user-provided list of concrete types to apply?
         if !item_fn.sig.generics.params.is_empty() {
             let mut generics = item_fn.sig.generics;
             generics.where_clause = None;
@@ -160,6 +162,7 @@ impl TestFunc {
             })
             .collect::<Result<_, _>>()?;
 
+        // Ensure the function isn't variadic
         if let Some(variadic) = item_fn.sig.variadic {
             return Err(syn::Error::new(
                 variadic.span(),
@@ -319,7 +322,7 @@ impl TestFunc {
                 //
                 // TODO(ichen): figure out why specifying this type is necessary
                 //                                 vvvvvvvvvvvvvvvvvvvv
-                let converter = |(#(#arg_idents),*): &(#(#arg_types),*)| {
+                let specialized_to_string = |(#(#arg_idents),*): &(#(#arg_types),*)| {
                     struct Wrap<'a, T>(&'a T);
 
                     trait ViaDisplay { fn stringify(&self) -> ::std::string::String; }
@@ -341,7 +344,7 @@ impl TestFunc {
                         (&&&Wrap(#arg_idents)).stringify()
                     ),*], ", "))
                 };
-                ::std::eprintln!("{}", report.render::<::adversary::report::renderer::Plaintext>(converter));
+                ::std::eprintln!("{}", report.render::<::adversary::report::renderer::Plaintext>(specialized_to_string));
 
                 ::std::process::ExitCode::FAILURE
             }
