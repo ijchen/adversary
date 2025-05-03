@@ -15,6 +15,7 @@ publish = false
 workspace = true
 
 [dependencies]
+# Not updating rand to 0.9 yet - Uniform isize sampling support was removed :(
 rand = "0.8.5"
 adversary-macros = { version = "0.1.0", path = "../adversary-macros", optional = true }
 paste = "1.0.15"
