@@ -21,13 +21,18 @@ pub struct Report<T> {
     /// Information about the panic that caused test failure. May be [`None`] if
     /// either the test failure was not caused by a panic, or panic information
     /// was unavailable.
+    //
+    // TODO(ichen): consider providing more information, particularly about
+    // whether or not the panic was expected (from a test that fails by
+    // panicking), unexpected (from a test that wasn't supposed to panic, even
+    // on failure), or didn't happen (no panic).
     pub panic_info: Option<PanicInfo>,
 
     /// The number of passing attempts before test failure. Zero indicates that
     /// the test immediately failed. [`u64::MAX`] indicates that the test failed
-    /// [`usize::MAX`] *or more* times. In other words, test runs over this
-    /// value will saturate. For what it's worth, at 5 billion test runs per
-    /// second, it would take over 116 years to reach this limit.
+    /// [`u64::MAX`] *or more* times. In other words, test runs over this value
+    /// will saturate. For what it's worth, at 5 billion test runs per second,
+    /// it would take over 116 years to reach this limit.
     pub passing_runs: u64,
 
     /// Any [`Observation`]s made during shrinking
@@ -47,6 +52,7 @@ pub struct Report<T> {
 }
 
 impl<T> Report<T> {
+    // TODO(ichen): this should probably return `Option` instead of panicking
     /// Returns the original failing value.
     ///
     /// # Panics
@@ -73,6 +79,7 @@ impl<T> Report<T> {
         &first_shrinking_step.value
     }
 
+    // TODO(ichen): this should probably return `Option` instead of panicking
     /// Returns the simplest failing value.
     ///
     /// # Panics
