@@ -23,14 +23,14 @@ where
 }
 
 /// Creates an iterator of seeds sampled from the given [`ValueGen`] attempting
-/// to cover the input space as well as possible under the given constraints.
+/// to cover the input space as much as possible under the given constraints.
 ///
 /// The returned iterator will yield no more than `max_total` seeds, although it
 /// may yield fewer if they are still sufficient to cover the entire possible
 /// input space (`.exhaustive(..)` on the given `ValueGen`).
 ///
 /// The returned iterator will yield at least `min_random` randomly sampled
-/// seeds, unless fewer are still sufficient too cover the entire input space.
+/// seeds, unless fewer are still sufficient to cover the entire input space.
 ///
 /// # Panics
 /// if `max_total < min_random`

@@ -93,51 +93,70 @@ impl Shrinker<usize> for SliceShrinker {
 
 #[cfg(test)]
 mod tests {
-    use crate::{report::ShrinkStep, run_test};
+    use crate::{
+        prelude::*,
+        report::{ShrinkStep, TestOutcome},
+    };
 
     #[test]
     fn test_slice() {
-        let report = run_test(
+        let report = run_test_bool(
             |&n| n < 5,
             [0, 1, 2, 3, 4, 5, 6, 7, 8].as_slice(),
             &mut crate::rand::thread_rng(),
+            Config::default(),
         )
-        .unwrap_err();
+        .unwrap_report();
         assert_eq!(report.passing_runs, 5);
-        assert_eq!(
-            report.shrink_steps,
-            vec![
-                ShrinkStep::new(&5, false, false),
-                ShrinkStep::new(&0, false, true),
-                ShrinkStep::new(&1, false, true),
-                ShrinkStep::new(&2, false, true),
-                ShrinkStep::new(&3, false, true),
-                ShrinkStep::new(&4, false, true),
-            ]
-        );
+        let expected = vec![
+            ShrinkStep::new(
+                &5,
+                false,
+                TestOutcome::Failed {
+                    cause: FailureCause::NormalFailure,
+                },
+            ),
+            ShrinkStep::new(&0, false, TestOutcome::Passed),
+            ShrinkStep::new(&1, false, TestOutcome::Passed),
+            ShrinkStep::new(&2, false, TestOutcome::Passed),
+            ShrinkStep::new(&3, false, TestOutcome::Passed),
+            ShrinkStep::new(&4, false, TestOutcome::Passed),
+        ];
+        assert_eq!(report.shrink_steps.len(), expected.len());
+        for (actual, expected) in report.shrink_steps.iter().zip(expected.iter()) {
+            assert_eq!(actual.try_eq(expected), Some(true));
+        }
         assert_eq!(report.simplest_failing_value(), &&5);
     }
 
     #[test]
     fn test_ref_array() {
-        let report = run_test(
+        let report = run_test_bool(
             |&n| n < 5,
             &[0, 1, 2, 3, 4, 5, 6, 7, 8],
             &mut crate::rand::thread_rng(),
+            Config::default(),
         )
-        .unwrap_err();
+        .unwrap_report();
         assert_eq!(report.passing_runs, 5);
-        assert_eq!(
-            report.shrink_steps,
-            vec![
-                ShrinkStep::new(&5, false, false),
-                ShrinkStep::new(&0, false, true),
-                ShrinkStep::new(&1, false, true),
-                ShrinkStep::new(&2, false, true),
-                ShrinkStep::new(&3, false, true),
-                ShrinkStep::new(&4, false, true),
-            ]
-        );
+        let expected = vec![
+            ShrinkStep::new(
+                &5,
+                false,
+                TestOutcome::Failed {
+                    cause: FailureCause::NormalFailure,
+                },
+            ),
+            ShrinkStep::new(&0, false, TestOutcome::Passed),
+            ShrinkStep::new(&1, false, TestOutcome::Passed),
+            ShrinkStep::new(&2, false, TestOutcome::Passed),
+            ShrinkStep::new(&3, false, TestOutcome::Passed),
+            ShrinkStep::new(&4, false, TestOutcome::Passed),
+        ];
+        assert_eq!(report.shrink_steps.len(), expected.len());
+        for (actual, expected) in report.shrink_steps.iter().zip(expected.iter()) {
+            assert_eq!(actual.try_eq(expected), Some(true));
+        }
         assert_eq!(report.simplest_failing_value(), &&5);
     }
 }

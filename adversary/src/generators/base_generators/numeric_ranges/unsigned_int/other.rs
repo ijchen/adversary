@@ -64,34 +64,50 @@ mod tests {
     #[test]
     fn test_shrinks_to_min() {
         assert_eq!(
-            run_test(|_| false, 0u8..6, &mut crate::rand::thread_rng())
-                .unwrap_err()
-                .simplest_failing_value(),
+            run_test_bool(
+                |_| false,
+                0u8..6,
+                &mut crate::rand::thread_rng(),
+                Config::default()
+            )
+            .unwrap_report()
+            .simplest_failing_value(),
             &0
         );
 
         assert_eq!(
-            run_test(|n| n < 123, 45..1000u16, &mut crate::rand::thread_rng())
-                .unwrap_err()
-                .simplest_failing_value(),
+            run_test_bool(
+                |n| n < 123,
+                45..1000u16,
+                &mut crate::rand::thread_rng(),
+                Config::default()
+            )
+            .unwrap_report()
+            .simplest_failing_value(),
             &123
         );
 
         assert_eq!(
-            run_test(
+            run_test_bool(
                 |n| n < 643,
                 45..2000000usize,
-                &mut crate::rand::thread_rng()
+                &mut crate::rand::thread_rng(),
+                Config::default()
             )
-            .unwrap_err()
+            .unwrap_report()
             .simplest_failing_value(),
             &643
         );
 
         assert_eq!(
-            run_test(|n| n < 1234, 532..u128::MAX, &mut crate::rand::thread_rng())
-                .unwrap_err()
-                .simplest_failing_value(),
+            run_test_bool(
+                |n| n < 1234,
+                532..u128::MAX,
+                &mut crate::rand::thread_rng(),
+                Config::default()
+            )
+            .unwrap_report()
+            .simplest_failing_value(),
             &1234
         );
     }

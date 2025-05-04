@@ -1,4 +1,4 @@
-use crate::report::Report;
+use crate::report::{FailureCause, Report};
 
 use super::ReportRenderer;
 
@@ -82,22 +82,33 @@ fn details<T>(output: &mut String, report: &Report<T>, converter: impl Fn(&T) ->
         writeln_string!(output, "Test name: {test_name}");
     }
 
-    if let Some(panic_info) = &report.panic_info {
-        // Panic message: "Some optional string here, newlines and non-printables escaped"
-        if let Some(panic_message) = &panic_info.message {
-            let escaped_panic_message = panic_message; // TODO: escape
-            writeln_string!(output, "Panic message: {escaped_panic_message}");
-        }
+    use FailureCause as F;
+    match report.simplest_failing_cause() {
+        F::NormalFailure => { /* Nothing to do here, carry on */ }
+        F::UnexpectedPanic { panic_data }
+        | F::ExpectedPanic { panic_data }
+        | F::WrongPanicMessage { panic_data } => {
+            // Panic payload: "Some optional string here, newlines and non-printables escaped"
+            match panic_data.payload_as_string() {
+                Some(message) => {
+                    // TODO: escape the panic message (also, consider adding
+                    // surrounding quotes, and escaping those too?)
+                    let escaped_message = message;
+                    writeln_string!(output, "Panic payload: {escaped_message}");
+                }
+                None => writeln_string!(output, "Panic payload: <not a string>"),
+            };
 
-        // Panic location: src/something/whatever/foo.rs:100:24
-        if let Some(panic_location) = &panic_info.location {
-            writeln_string!(
-                output,
-                "Panic location: {}:{}:{}",
-                panic_location.file,
-                panic_location.line,
-                panic_location.col
-            );
+            // Panic location: src/something/whatever/foo.rs:100:24
+            match &panic_data.location {
+                Some(location) => writeln_string!(output, "Panic location: {location}"),
+                None => writeln_string!(output, "Panic location: <unavailable>"),
+            };
+        }
+        F::ResultErr { error } => {
+            // TODO: consider escaping like we do with panic messages?
+            // Error: "Some error message here"
+            writeln_string!(output, "Error: {error}");
         }
     }
 
@@ -135,6 +146,9 @@ fn details<T>(output: &mut String, report: &Report<T>, converter: impl Fn(&T) ->
     // - PASS: ...
     // - Fail: ...
     // ...
+    //
+    // TODO: inform the user if some failing steps failed for different reasons
+    // TODO: provide a way to view fail cause
     if !report.shrink_steps.is_empty() {
         // TODO: make this configurable
         const STEPS_PER_SIDE: usize = 5;
@@ -144,7 +158,11 @@ fn details<T>(output: &mut String, report: &Report<T>, converter: impl Fn(&T) ->
             writeln_string!(output, "Full shrinking steps:");
 
             for step in &report.shrink_steps {
-                let passfail = if step.test_passed { "PASS" } else { "FAIL" };
+                let passfail = if step.outcome.passed() {
+                    "PASS"
+                } else {
+                    "FAIL"
+                };
                 // TODO: consider trimming if line exceeds certain length
                 let value = converter(&step.value);
                 writeln_string!(output, "- {passfail}: {value}");
@@ -153,7 +171,11 @@ fn details<T>(output: &mut String, report: &Report<T>, converter: impl Fn(&T) ->
             writeln_string!(output, "Shrinking steps (trimmed):");
 
             for step in &report.shrink_steps[..STEPS_PER_SIDE] {
-                let passfail = if step.test_passed { "PASS" } else { "FAIL" };
+                let passfail = if step.outcome.passed() {
+                    "PASS"
+                } else {
+                    "FAIL"
+                };
                 // TODO: consider trimming if line exceeds certain length
                 let value = converter(&step.value);
                 writeln_string!(output, "- {passfail}: {value}");
@@ -164,7 +186,11 @@ fn details<T>(output: &mut String, report: &Report<T>, converter: impl Fn(&T) ->
                 report.shrink_steps.len() - STEPS_PER_SIDE * 2
             );
             for step in &report.shrink_steps[report.shrink_steps.len() - STEPS_PER_SIDE..] {
-                let passfail = if step.test_passed { "PASS" } else { "FAIL" };
+                let passfail = if step.outcome.passed() {
+                    "PASS"
+                } else {
+                    "FAIL"
+                };
                 // TODO: consider trimming if line exceeds certain length
                 let value = converter(&step.value);
                 writeln_string!(output, "- {passfail}: {value}");
@@ -206,7 +232,7 @@ Test 'my_test_name' failed after 3,982,552 runs. The simplest failing input foun
 
 # Details
 Test: my_test_name
-Panic message: "Some optional string here, newlines and non-printables escaped"
+Panic payload: "Some optional string here, newlines and non-printables escaped"
 Panic location: src/something/whatever/foo.rs:100:24
 Attempts taken to fail: 3,982,552
 Simplest failing input: [0, 0, 3]

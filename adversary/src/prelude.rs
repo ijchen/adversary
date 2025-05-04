@@ -1,6 +1,10 @@
 pub use crate::{
     self as adv, Canonical, IntoValueGen, ValueGen, ValueGenExt, any, just, just_with,
-    report::Report, run_test, run_test_panics,
+    report::{FailureCause, Report},
+    test_runners::{
+        Config, run_test_bool, run_test_panic, run_test_result, run_test_should_panic,
+        run_test_should_panic_with_message,
+    },
 };
 
 #[cfg(feature = "macros")]

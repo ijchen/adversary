@@ -1,14 +1,16 @@
 mod observation;
-mod panic_info;
+mod panic;
 pub mod renderer;
 mod shrink_step;
+mod test_outcome;
 
 pub use observation::{Importance, Observation};
-pub use panic_info::{PanicInfo, PanicLocation};
+pub use panic::{PanicData, PanicLocation};
 pub use renderer::ReportRenderer;
 pub use shrink_step::ShrinkStep;
+pub use test_outcome::{FailureCause, TestOutcome};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Report<T> {
     /// The name of the failing test, if available.
     ///
@@ -17,16 +19,6 @@ pub struct Report<T> {
     // TODO(ichen): allow a test configuration option provided to test runners
     // that allows the user to specify the test name - and update these docs
     pub test_name: Option<String>,
-
-    /// Information about the panic that caused test failure. May be [`None`] if
-    /// either the test failure was not caused by a panic, or panic information
-    /// was unavailable.
-    //
-    // TODO(ichen): consider providing more information, particularly about
-    // whether or not the panic was expected (from a test that fails by
-    // panicking), unexpected (from a test that wasn't supposed to panic, even
-    // on failure), or didn't happen (no panic).
-    pub panic_info: Option<PanicInfo>,
 
     /// The number of passing attempts before test failure. Zero indicates that
     /// the test immediately failed. [`u64::MAX`] indicates that the test failed
@@ -53,6 +45,7 @@ pub struct Report<T> {
 
 impl<T> Report<T> {
     // TODO(ichen): this should probably return `Option` instead of panicking
+    // (same for other methods)
     /// Returns the original failing value.
     ///
     /// # Panics
@@ -72,19 +65,18 @@ impl<T> Report<T> {
             "first shrinking step was just informational"
         );
         assert!(
-            !first_shrinking_step.test_passed,
+            !first_shrinking_step.outcome.passed(),
             "first shrinking step was not a test failure"
         );
 
         &first_shrinking_step.value
     }
 
-    // TODO(ichen): this should probably return `Option` instead of panicking
     /// Returns the simplest failing value.
     ///
     /// # Panics
     /// If the `shrink_step` field does not contain any [`ShrinkStep`]s that
-    /// have both `test_passed` and `just_informational` set to false. This
+    /// had a failing outcome and `just_informational` set to false. This
     /// shouldn't happen, because there should always at least be the original
     /// failing value, although if the `shrink_step` field has been modified by
     /// the user this may occur.
@@ -92,9 +84,31 @@ impl<T> Report<T> {
         &self
             .shrink_steps
             .iter()
-            .rfind(|step| !step.test_passed && !step.just_informational)
+            .rfind(|step| !step.outcome.passed() && !step.just_informational)
             .expect("there should always be at least one failing non-informational step, the original failing value")
             .value
+    }
+
+    /// Returns the cause of the simplest failing step.
+    ///
+    /// # Panics
+    /// If the `shrink_step` field does not contain any [`ShrinkStep`]s that
+    /// had a failing outcome and `just_informational` set to false. This
+    /// shouldn't happen, because there should always at least be the original
+    /// failing value, although if the `shrink_step` field has been modified by
+    /// the user this may occur.
+    pub fn simplest_failing_cause(&self) -> &FailureCause {
+        self
+            .shrink_steps
+            .iter()
+            .filter_map(|step| {
+                match step.outcome {
+                    TestOutcome::Passed => None,
+                    TestOutcome::Failed { ref cause } => (!step.just_informational).then_some(cause),
+                }
+            })
+            .next_back()
+            .expect("there should always be at least one failing non-informational step, the original failing value")
     }
 
     /// Renders this report using the provided [`ReportRenderer`].

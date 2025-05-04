@@ -18,6 +18,14 @@ mod tests {
         check_impls_canonical::<()>();
 
         // Check that the canonical () generator doesn't panic
-        run_test(|()| true, any(), &mut adv::rand::thread_rng()).unwrap();
+        assert!(
+            run_test_bool(
+                |()| true,
+                any(),
+                &mut adv::rand::thread_rng(),
+                Config::default(),
+            )
+            .passed()
+        );
     }
 }

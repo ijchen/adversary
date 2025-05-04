@@ -224,15 +224,18 @@ impl TestFunc {
             arg_pat: &syn::Pat,
             arg_ty: &syn::Type,
             generators: &HashMap<Ident, Expr>,
+            test_name: &str,
         ) -> Option<TokenStream> {
             use syn::Pat as P;
             match arg_pat {
                 P::Ident(pat_ident) => generators
                     .get(&pat_ident.ident)
                     .map(|generator| quote! { #generator }),
-                P::Paren(pat_paren) => get_custom_generator(&pat_paren.pat, arg_ty, generators),
+                P::Paren(pat_paren) => {
+                    get_custom_generator(&pat_paren.pat, arg_ty, generators, test_name)
+                }
                 P::Reference(pat_reference) => {
-                    get_custom_generator(&pat_reference.pat, arg_ty, generators)
+                    get_custom_generator(&pat_reference.pat, arg_ty, generators, test_name)
                 }
                 P::Tuple(pat_tuple) => {
                     let individual_gens = pat_tuple
@@ -243,14 +246,16 @@ impl TestFunc {
                             _ => todo!(),
                         })
                         .map(|(elem, elem_arg_ty)| {
-                            get_custom_generator(elem, elem_arg_ty, generators)
+                            get_custom_generator(elem, elem_arg_ty, generators, test_name)
                                 .unwrap_or_else(|| quote! { ::adversary::any::<#elem_arg_ty>() })
                         })
                         .collect::<Vec<TokenStream>>();
 
                     Some(quote! { (#(#individual_gens),*) })
                 }
-                P::Type(pat_type) => get_custom_generator(&pat_type.pat, arg_ty, generators),
+                P::Type(pat_type) => {
+                    get_custom_generator(&pat_type.pat, arg_ty, generators, test_name)
+                }
                 _ => None,
             }
         }
@@ -258,7 +263,7 @@ impl TestFunc {
             .iter()
             .map(|arg| {
                 let arg_ty = &arg.ty;
-                get_custom_generator(&arg.pat, arg_ty, &test_attribute.generators)
+                get_custom_generator(&arg.pat, arg_ty, &test_attribute.generators, &test_name)
                     .unwrap_or_else(|| quote! { ::adversary::any::<#arg_ty>() })
             })
             .collect::<Vec<_>>();
@@ -266,25 +271,51 @@ impl TestFunc {
 
         let test_run = match &output {
             Expectation::DoesNotPanic => quote! {
-                ::adversary::run_test_panics(
+                ::adversary::test_runners::run_test_panic(
                     |(#(#arg_idents),*)| inner_test(#(#arg_idents),*),
                     generator,
                     &mut rng,
+                    ::adversary::test_runners::Config {
+                        test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
+                        ..::std::default::Default::default()
+                    },
                 )
             },
-            Expectation::Panics => {
-                return quote! { compile_error!("adversary tests that should panic are not yet implemented"); }
-            }
-            Expectation::PanicsWithMessage {
-                expected_substring: _,
-            } => {
-                return quote! { compile_error!("adversary tests that should panic with a message are not yet implemented"); }
-            }
-            Expectation::ReturnsTrue => quote! {
-                ::adversary::run_test(
+            Expectation::Panics => quote! {
+                ::adversary::test_runners::run_test_should_panic(
                     |(#(#arg_idents),*)| inner_test(#(#arg_idents),*),
                     generator,
                     &mut rng,
+                    ::adversary::test_runners::Config {
+                        test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
+                        ..::std::default::Default::default()
+                    },
+                )
+            },
+            Expectation::PanicsWithMessage { expected_substring } => quote! {
+                // TODO(ichen): I think it would be better if the default were a
+                // regex match, not an exact match (but regex match isn't
+                // implemented yet)
+                ::adversary::test_runners::run_test_should_panic_with_message(
+                    |(#(#arg_idents),*)| inner_test(#(#arg_idents),*),
+                    #expected_substring,
+                    generator,
+                    &mut rng,
+                    ::adversary::test_runners::Config {
+                        test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
+                        ..::std::default::Default::default()
+                    },
+                )
+            },
+            Expectation::ReturnsTrue => quote! {
+                ::adversary::test_runners::run_test_bool(
+                    |(#(#arg_idents),*)| inner_test(#(#arg_idents),*),
+                    generator,
+                    &mut rng,
+                    ::adversary::test_runners::Config {
+                        test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
+                        ..::std::default::Default::default()
+                    },
                 )
             },
             Expectation::ReturnsOk { err_ty: _ } => {
@@ -307,10 +338,21 @@ impl TestFunc {
 
                 let run_result = #test_run;
 
-                let ::std::result::Result::Err(mut report) = run_result else {
-                    return ::std::process::ExitCode::SUCCESS;
+                // let ::std::result::Result::Err(mut report) = run_result else {
+                //     return ::std::process::ExitCode::SUCCESS;
+                // };
+                let mut report = match run_result {
+                    ::adversary::test_runners::TestResult::Passed => {
+                        return ::std::process::ExitCode::SUCCESS;
+                    },
+                    ::adversary::test_runners::TestResult::InvalidConfig(err) => {
+                        // TODO(ichen): improve this error message
+                        ::std::eprintln!("test could not run - invalid config: {err}");
+
+                        return ::std::process::ExitCode::FAILURE;
+                    },
+                    ::adversary::test_runners::TestResult::Failed(report) => report,
                 };
-                report.test_name = ::std::option::Option::Some(::std::string::String::from(#test_name));
 
                 // NOTE(ichen): Uses a cute specialization hack to convert the
                 // generic `T` value into a `String` - through `Display` if
