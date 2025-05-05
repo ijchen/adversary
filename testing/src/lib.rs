@@ -85,4 +85,17 @@ mod tests {
     // fn my_cool_test4(_: Displayer, _: Debugger, _: Nothing) -> bool {
     //     false
     // }
+
+    // #[adv_test]
+    // fn my_test(a: u64, b: u64, c: u64) -> Result<(), String> {
+    //     if b == 0 || a == c || a == b || b < 10 {
+    //         return Ok(());
+    //     }
+
+    //     if a % b == c {
+    //         return Err(format!("Failed, {a} % {b} == {c}"));
+    //     }
+
+    //     Ok(())
+    // }
 }

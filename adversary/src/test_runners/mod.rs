@@ -33,7 +33,7 @@ pub fn run_test_panic<T>(
     run_test_inner(test, generator.into_value_gen(), rng, config)
 }
 
-pub fn run_test_result<T, E: Error + 'static>(
+pub fn run_test_result<T, E: Into<Box<dyn Error>>>(
     test: fn(T) -> Result<(), E>,
     generator: impl IntoValueGen<T>,
     rng: &mut (impl Rng + ?Sized),

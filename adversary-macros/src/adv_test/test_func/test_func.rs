@@ -318,13 +318,17 @@ impl TestFunc {
                     },
                 )
             },
-            Expectation::ReturnsOk { err_ty: _ } => {
-                // NOTE(ichen): should use the specialization hack to turn the
-                // error type into a string - first Display, then Debug, then a
-                // default message for types which don't impl either.
-                // https://lukaskalbertodt.github.io/2019/12/05/generalized-autoref-based-specialization.html
-                return quote! { compile_error!("adversary tests that return a Result<(), _> are not yet implemented") };
-            }
+            Expectation::ReturnsOk { err_ty: _ } => quote! {
+                ::adversary::test_runners::run_test_result(
+                    |(#(#arg_idents),*)| inner_test(#(#arg_idents),*),
+                    generator,
+                    &mut rng,
+                    ::adversary::test_runners::Config {
+                        test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
+                        ..::std::default::Default::default()
+                    },
+                )
+            },
         };
 
         quote! {
