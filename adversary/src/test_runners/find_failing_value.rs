@@ -3,16 +3,16 @@ use crate::rand::Rng;
 use crate::report::{FailureCause, TestOutcome};
 use crate::sample::sample;
 
-use super::config::Config;
 use super::test::Test;
+use super::test_config::TestConfig;
 
 pub fn find_failing_value<T, S: Clone>(
     test: &impl Test<T>,
     generator: &impl ValueGen<Value = T, Seed = S>,
     rng: &mut (impl Rng + ?Sized),
-    config: &Config,
+    config: &TestConfig,
 ) -> FindFailingValueReport<S> {
-    let Config {
+    let TestConfig {
         max_attempts,
         min_randomized_attempts,
         ..

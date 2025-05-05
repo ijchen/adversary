@@ -21,7 +21,7 @@ pub use value_gen::{IntoValueGen, ValueGen, ValueGenExt};
 mod tests {
     use crate::{
         report::{FailureCause, ShrinkStep, TestOutcome},
-        test_runners::{Config, run_test_bool, run_test_panic},
+        test_runners::{TestConfig, run_test_bool, run_test_panic},
     };
 
     use super::*;
@@ -52,7 +52,7 @@ mod tests {
             |v: bool| !v,
             any(),
             &mut crate::rand::thread_rng(),
-            Config::default(),
+            TestConfig::default(),
         )
         .unwrap_report();
         assert_eq!(report.passing_runs, 1);
@@ -76,7 +76,7 @@ mod tests {
             |v: bool| v,
             any(),
             &mut crate::rand::thread_rng(),
-            Config::default(),
+            TestConfig::default(),
         )
         .unwrap_report();
         assert_eq!(report.passing_runs, 0);
@@ -97,7 +97,7 @@ mod tests {
             |_: bool| false,
             any(),
             &mut crate::rand::thread_rng(),
-            Config::default(),
+            TestConfig::default(),
         )
         .unwrap_report();
         assert_eq!(report.passing_runs, 0);
@@ -119,7 +119,7 @@ mod tests {
                 |_: bool| true,
                 any(),
                 &mut crate::rand::thread_rng(),
-                Config::default(),
+                TestConfig::default(),
             )
             .passed()
         );
@@ -131,7 +131,7 @@ mod tests {
             |v: bool| assert!(!v),
             any(),
             &mut crate::rand::thread_rng(),
-            Config::default(),
+            TestConfig::default(),
         )
         .unwrap_report();
 
@@ -150,7 +150,7 @@ mod tests {
             |v: bool| assert!(v, "My custom panic ({}) message [{}]", "at the disco", v),
             any(),
             &mut crate::rand::thread_rng(),
-            Config::default(),
+            TestConfig::default(),
         )
         .unwrap_report();
 

@@ -111,7 +111,7 @@ mod tests {
                 |_| false,
                 0..=6u8,
                 &mut crate::rand::thread_rng(),
-                Config::default()
+                TestConfig::default()
             )
             .unwrap_report()
             .simplest_failing_value(),
@@ -123,7 +123,7 @@ mod tests {
                 |n| n < 123,
                 45..=1000u32,
                 &mut crate::rand::thread_rng(),
-                Config::default()
+                TestConfig::default()
             )
             .unwrap_report()
             .simplest_failing_value(),
@@ -135,7 +135,7 @@ mod tests {
                 |n| n < 643,
                 45..=2000000u128,
                 &mut crate::rand::thread_rng(),
-                Config::default()
+                TestConfig::default()
             )
             .unwrap_report()
             .simplest_failing_value(),
@@ -147,7 +147,7 @@ mod tests {
                 |n| n < 1234,
                 532..=u128::MAX,
                 &mut crate::rand::thread_rng(),
-                Config::default()
+                TestConfig::default()
             )
             .unwrap_report()
             .simplest_failing_value(),
@@ -159,7 +159,7 @@ mod tests {
                 |n| n < 2500 || n % 71 != 0,
                 any::<u128>(),
                 &mut crate::rand::thread_rng(),
-                Config::default()
+                TestConfig::default()
             )
             .unwrap_report()
             .simplest_failing_value(),

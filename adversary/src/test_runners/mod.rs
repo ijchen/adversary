@@ -6,20 +6,20 @@ use test::Test;
 
 use crate::{IntoValueGen, ValueGen, rand::Rng, report::Report};
 
-mod config;
 mod find_failing_value;
 mod shrink;
 mod test;
+mod test_config;
 mod test_result;
 
-pub use config::Config;
+pub use test_config::TestConfig;
 pub use test_result::TestResult;
 
 pub fn run_test_bool<T>(
     test: fn(T) -> bool,
     generator: impl IntoValueGen<T>,
     rng: &mut (impl Rng + ?Sized),
-    config: Config,
+    config: TestConfig,
 ) -> TestResult<T> {
     run_test_inner(test, generator.into_value_gen(), rng, config)
 }
@@ -28,7 +28,7 @@ pub fn run_test_panic<T>(
     test: fn(T),
     generator: impl IntoValueGen<T>,
     rng: &mut (impl Rng + ?Sized),
-    config: Config,
+    config: TestConfig,
 ) -> TestResult<T> {
     run_test_inner(test, generator.into_value_gen(), rng, config)
 }
@@ -37,7 +37,7 @@ pub fn run_test_result<T, E: Into<Box<dyn Error>>>(
     test: fn(T) -> Result<(), E>,
     generator: impl IntoValueGen<T>,
     rng: &mut (impl Rng + ?Sized),
-    config: Config,
+    config: TestConfig,
 ) -> TestResult<T> {
     run_test_inner(test, generator.into_value_gen(), rng, config)
 }
@@ -46,7 +46,7 @@ pub fn run_test_should_panic<T>(
     test: fn(T),
     generator: impl IntoValueGen<T>,
     rng: &mut (impl Rng + ?Sized),
-    config: Config,
+    config: TestConfig,
 ) -> TestResult<T> {
     run_test_inner(
         test::should_panic(test),
@@ -61,7 +61,7 @@ pub fn run_test_should_panic_with_message<T>(
     message: impl ToString,
     generator: impl IntoValueGen<T>,
     rng: &mut (impl Rng + ?Sized),
-    config: Config,
+    config: TestConfig,
 ) -> TestResult<T> {
     run_test_inner(
         test::should_panic_with_message(test, message.to_string()),
@@ -77,7 +77,7 @@ fn run_test_inner<T>(
     test: impl Test<T>,
     generator: impl ValueGen<Value = T>,
     rng: &mut (impl Rng + ?Sized),
-    config: Config,
+    config: TestConfig,
 ) -> TestResult<T> {
     let mut generator = generator.into_value_gen();
 

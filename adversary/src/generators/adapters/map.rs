@@ -56,10 +56,8 @@ impl<U, G: ValueGen, F: Fn(G::Value) -> U> ValueGen for Map<G, F> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        IntoValueGen, ValueGenExt,
-        prelude::Config,
+        prelude::*,
         report::{FailureCause, ShrinkStep, TestOutcome},
-        test_runners::run_test_bool,
     };
 
     #[test]
@@ -70,7 +68,7 @@ mod tests {
                 .into_value_gen()
                 .adv_map(|t| t.to_string()),
             &mut crate::rand::thread_rng(),
-            Config::default(),
+            TestConfig::default(),
         )
         .unwrap_report();
         assert_eq!(report.passing_runs, 10);

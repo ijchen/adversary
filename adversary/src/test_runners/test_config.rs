@@ -1,4 +1,4 @@
-pub struct Config {
+pub struct TestConfig {
     /// The maximum number of attempts to find a failing value before giving up.
     ///
     /// Note that fewer attempts may be made, particularly when all values may
@@ -15,7 +15,7 @@ pub struct Config {
     pub test_name: Option<String>,
 }
 
-impl Default for Config {
+impl Default for TestConfig {
     fn default() -> Self {
         Self {
             max_attempts: 1_000_000,

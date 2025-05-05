@@ -275,7 +275,7 @@ impl TestFunc {
                     |(#(#arg_idents),*)| inner_test(#(#arg_idents),*),
                     generator,
                     &mut rng,
-                    ::adversary::test_runners::Config {
+                    ::adversary::test_runners::TestConfig {
                         test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
                         ..::std::default::Default::default()
                     },
@@ -286,7 +286,7 @@ impl TestFunc {
                     |(#(#arg_idents),*)| inner_test(#(#arg_idents),*),
                     generator,
                     &mut rng,
-                    ::adversary::test_runners::Config {
+                    ::adversary::test_runners::TestConfig {
                         test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
                         ..::std::default::Default::default()
                     },
@@ -301,7 +301,7 @@ impl TestFunc {
                     #expected_substring,
                     generator,
                     &mut rng,
-                    ::adversary::test_runners::Config {
+                    ::adversary::test_runners::TestConfig {
                         test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
                         ..::std::default::Default::default()
                     },
@@ -312,7 +312,7 @@ impl TestFunc {
                     |(#(#arg_idents),*)| inner_test(#(#arg_idents),*),
                     generator,
                     &mut rng,
-                    ::adversary::test_runners::Config {
+                    ::adversary::test_runners::TestConfig {
                         test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
                         ..::std::default::Default::default()
                     },
@@ -323,7 +323,7 @@ impl TestFunc {
                     |(#(#arg_idents),*)| inner_test(#(#arg_idents),*),
                     generator,
                     &mut rng,
-                    ::adversary::test_runners::Config {
+                    ::adversary::test_runners::TestConfig {
                         test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
                         ..::std::default::Default::default()
                     },

@@ -23,7 +23,7 @@ mod tests {
                 |()| true,
                 any(),
                 &mut adv::rand::thread_rng(),
-                Config::default(),
+                TestConfig::default(),
             )
             .passed()
         );

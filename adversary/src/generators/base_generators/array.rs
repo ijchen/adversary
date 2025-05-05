@@ -92,7 +92,7 @@ mod tests {
             |n| n < 5,
             [0, 1, 2, 3, 4, 5, 6, 7, 8],
             &mut crate::rand::thread_rng(),
-            Config::default(),
+            TestConfig::default(),
         )
         .unwrap_report();
         assert_eq!(report.passing_runs, 5);
