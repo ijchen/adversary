@@ -95,7 +95,7 @@ impl Shrinker<usize> for SliceShrinker {
 mod tests {
     use crate::{
         prelude::*,
-        report::{ShrinkStep, TestOutcome},
+        report::{FailureCause, ShrinkStep, TestOutcome},
     };
 
     #[test]

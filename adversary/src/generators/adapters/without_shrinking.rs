@@ -1,4 +1,4 @@
-use crate::{ValueGen, shrinkers::NeverShrink};
+use crate::{ValueGen, shrinker::NeverShrink};
 
 pub struct WithoutShrinking<G>(G);
 

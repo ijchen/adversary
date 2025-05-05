@@ -83,7 +83,7 @@ impl Shrinker<usize> for ArrayShrinker {
 mod tests {
     use crate::{
         prelude::*,
-        report::{ShrinkStep, TestOutcome},
+        report::{FailureCause, ShrinkStep, TestOutcome},
     };
 
     #[test]

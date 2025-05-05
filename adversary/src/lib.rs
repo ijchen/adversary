@@ -1,14 +1,11 @@
 pub mod generators;
-mod into_value_gen;
 pub mod prelude;
 pub mod report;
 mod sample;
 mod self_test_helpers;
 mod shrinker;
-pub mod shrinkers;
 pub mod test_runners;
 mod value_gen;
-mod value_gen_ext;
 
 #[cfg(feature = "macros")]
 pub use adversary_macros::adv_test;
@@ -18,10 +15,7 @@ pub use adversary_macros::adv_test;
 pub use rand;
 
 pub use generators::{Canonical, any, bool, just, just_with};
-pub use into_value_gen::IntoValueGen;
-// pub use test_runners::run_test as new_run_test;
-pub use value_gen::ValueGen;
-pub use value_gen_ext::ValueGenExt;
+pub use value_gen::{IntoValueGen, ValueGen, ValueGenExt};
 
 #[cfg(test)]
 mod tests {
