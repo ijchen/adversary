@@ -342,9 +342,6 @@ impl TestFunc {
 
                 let run_result = #test_run;
 
-                // let ::std::result::Result::Err(mut report) = run_result else {
-                //     return ::std::process::ExitCode::SUCCESS;
-                // };
                 let mut report = match run_result {
                     ::adversary::test_runners::TestResult::Passed => {
                         return ::std::process::ExitCode::SUCCESS;
@@ -365,9 +362,6 @@ impl TestFunc {
                 //
                 // See:
                 // https://lukaskalbertodt.github.io/2019/12/05/generalized-autoref-based-specialization.html
-                //
-                // TODO(ichen): figure out why specifying this type is necessary
-                //                                 vvvvvvvvvvvvvvvvvvvv
                 let specialized_to_string = |(#(#arg_idents),*): &(#(#arg_types),*)| {
                     struct Wrap<'a, T>(&'a T);
 
