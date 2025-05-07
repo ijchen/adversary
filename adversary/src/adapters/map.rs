@@ -1,18 +1,18 @@
 use crate::ValueGen;
 
-pub fn map<G: ValueGen, U>(
-    inner_generator: G,
-    map_function: impl Fn(G::Value) -> U,
-) -> impl ValueGen<Value = U, Seed = G::Seed> {
-    Map {
-        inner_generator,
-        f: map_function,
-    }
+#[derive(Debug)]
+pub struct Map<G, F> {
+    inner: G,
+    f: F,
 }
 
-struct Map<G, F> {
-    inner_generator: G,
-    f: F,
+impl<U, G: ValueGen, F: Fn(G::Value) -> U> Map<G, F> {
+    pub fn new(inner_gen: G, f: F) -> Self {
+        Self {
+            inner: inner_gen,
+            f,
+        }
+    }
 }
 
 impl<U, G: ValueGen, F: Fn(G::Value) -> U> ValueGen for Map<G, F> {
@@ -25,31 +25,31 @@ impl<U, G: ValueGen, F: Fn(G::Value) -> U> ValueGen for Map<G, F> {
         Self: 'a;
 
     fn cardinality(&self) -> Option<usize> {
-        self.inner_generator.cardinality()
+        self.inner.cardinality()
     }
 
     fn exhaustive(&self) -> impl Iterator<Item = Self::Seed> {
-        self.inner_generator.exhaustive()
+        self.inner.exhaustive()
     }
 
     fn adversarial_count(&self) -> Option<usize> {
-        self.inner_generator.adversarial_count()
+        self.inner.adversarial_count()
     }
 
     fn adversarial(&self) -> impl Iterator<Item = Self::Seed> {
-        self.inner_generator.adversarial()
+        self.inner.adversarial()
     }
 
     fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::Seed {
-        self.inner_generator.sample(rng)
+        self.inner.sample(rng)
     }
 
     fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
-        self.inner_generator.new_shrinker(failing_value_seed)
+        self.inner.new_shrinker(failing_value_seed)
     }
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {
-        (self.f)(self.inner_generator.create_value(seed))
+        (self.f)(self.inner.create_value(seed))
     }
 }
 

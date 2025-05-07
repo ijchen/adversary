@@ -1,3 +1,4 @@
+pub mod adapters;
 pub mod generators;
 pub mod prelude;
 pub mod report;

@@ -1,13 +1,14 @@
 use crate::ValueGen;
 
-pub fn without_adversarial<G: ValueGen>(
-    inner_generator: G,
-) -> impl ValueGen<Value = G::Value, Seed = G::Seed> {
-    WithoutAdversarial { inner_generator }
+#[derive(Debug)]
+pub struct WithoutAdversarial<G> {
+    inner: G,
 }
 
-struct WithoutAdversarial<G> {
-    inner_generator: G,
+impl<G: ValueGen> WithoutAdversarial<G> {
+    pub fn new(inner_gen: G) -> Self {
+        Self { inner: inner_gen }
+    }
 }
 
 impl<G: ValueGen> ValueGen for WithoutAdversarial<G> {
@@ -20,11 +21,11 @@ impl<G: ValueGen> ValueGen for WithoutAdversarial<G> {
         Self: 'a;
 
     fn cardinality(&self) -> Option<usize> {
-        self.inner_generator.cardinality()
+        self.inner.cardinality()
     }
 
     fn exhaustive(&self) -> impl Iterator<Item = Self::Seed> {
-        self.inner_generator.exhaustive()
+        self.inner.exhaustive()
     }
 
     fn adversarial_count(&self) -> Option<usize> {
@@ -36,14 +37,14 @@ impl<G: ValueGen> ValueGen for WithoutAdversarial<G> {
     }
 
     fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::Seed {
-        self.inner_generator.sample(rng)
+        self.inner.sample(rng)
     }
 
     fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
-        self.inner_generator.new_shrinker(failing_value_seed)
+        self.inner.new_shrinker(failing_value_seed)
     }
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {
-        self.inner_generator.create_value(seed)
+        self.inner.create_value(seed)
     }
 }

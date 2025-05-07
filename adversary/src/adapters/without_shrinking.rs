@@ -1,6 +1,15 @@
 use crate::{ValueGen, shrinker::NeverShrink};
 
-pub struct WithoutShrinking<G>(G);
+#[derive(Debug)]
+pub struct WithoutShrinking<G> {
+    inner: G,
+}
+
+impl<G: ValueGen> WithoutShrinking<G> {
+    pub fn new(inner_gen: G) -> Self {
+        Self { inner: inner_gen }
+    }
+}
 
 impl<G: ValueGen> ValueGen for WithoutShrinking<G> {
     type Value = G::Value;
@@ -12,23 +21,23 @@ impl<G: ValueGen> ValueGen for WithoutShrinking<G> {
         Self: 'a;
 
     fn cardinality(&self) -> Option<usize> {
-        self.0.cardinality()
+        self.inner.cardinality()
     }
 
     fn exhaustive(&self) -> impl Iterator<Item = Self::Seed> {
-        self.0.exhaustive()
+        self.inner.exhaustive()
     }
 
     fn adversarial_count(&self) -> Option<usize> {
-        self.0.adversarial_count()
+        self.inner.adversarial_count()
     }
 
     fn adversarial(&self) -> impl Iterator<Item = Self::Seed> {
-        self.0.adversarial()
+        self.inner.adversarial()
     }
 
     fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::Seed {
-        self.0.sample(rng)
+        self.inner.sample(rng)
     }
 
     fn new_shrinker(&self, _seed: Self::Seed) -> Self::Shrinker<'_> {
@@ -36,12 +45,6 @@ impl<G: ValueGen> ValueGen for WithoutShrinking<G> {
     }
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {
-        self.0.create_value(seed)
-    }
-}
-
-impl<G: ValueGen> WithoutShrinking<G> {
-    pub fn new(inner_generator: G) -> Self {
-        Self(inner_generator)
+        self.inner.create_value(seed)
     }
 }

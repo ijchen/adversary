@@ -1,24 +1,24 @@
 use crate::ValueGen;
 
-// TODO(ichen): consider implications of users incorrectly adding adversarial
-// values outside the set of correct values for the generator (ex, adding `3` to
-// a shrinker of integers in `10..20`)
-pub fn add_adversarial<G: ValueGen>(
-    inner_generator: G,
+#[derive(Debug)]
+pub struct AddAdversarial<G: ValueGen> {
+    inner: G,
     additional_adversarial_values: Box<[G::Seed]>,
-) -> impl ValueGen<Value = G::Value, Seed = G::Seed> {
-    AddAdversarial {
-        inner_generator,
-        additional_adversarial_values,
+}
+
+impl<G: ValueGen> AddAdversarial<G> {
+    // TODO(ichen): consider implications of users incorrectly adding
+    // adversarial values outside the set of correct values for the generator
+    // (ex, adding `3` to a ValueGen of integers in `10..20`)
+    pub fn new(inner_gen: G, additional_adversarial_values: Box<[G::Seed]>) -> Self {
+        Self {
+            inner: inner_gen,
+            additional_adversarial_values,
+        }
     }
 }
 
-struct AddAdversarial<G, U> {
-    inner_generator: G,
-    additional_adversarial_values: Box<[U]>,
-}
-
-impl<G: ValueGen> ValueGen for AddAdversarial<G, G::Seed> {
+impl<G: ValueGen> ValueGen for AddAdversarial<G> {
     type Value = G::Value;
     type Seed = G::Seed;
     // TODO: use ATPIT once stabilized
@@ -28,15 +28,15 @@ impl<G: ValueGen> ValueGen for AddAdversarial<G, G::Seed> {
         Self: 'a;
 
     fn cardinality(&self) -> Option<usize> {
-        self.inner_generator.cardinality()
+        self.inner.cardinality()
     }
 
     fn exhaustive(&self) -> impl Iterator<Item = Self::Seed> {
-        self.inner_generator.exhaustive()
+        self.inner.exhaustive()
     }
 
     fn adversarial_count(&self) -> Option<usize> {
-        self.inner_generator
+        self.inner
             .adversarial_count()
             .and_then(|adversarial_count| {
                 usize::checked_add(adversarial_count, self.additional_adversarial_values.len())
@@ -49,18 +49,18 @@ impl<G: ValueGen> ValueGen for AddAdversarial<G, G::Seed> {
         self.additional_adversarial_values
             .iter()
             .cloned()
-            .chain(self.inner_generator.adversarial())
+            .chain(self.inner.adversarial())
     }
 
     fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::Seed {
-        self.inner_generator.sample(rng)
+        self.inner.sample(rng)
     }
 
     fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
-        self.inner_generator.new_shrinker(failing_value_seed)
+        self.inner.new_shrinker(failing_value_seed)
     }
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {
-        self.inner_generator.create_value(seed)
+        self.inner.create_value(seed)
     }
 }

@@ -1,49 +1,46 @@
 use crate::{
     IntoValueGen, ValueGen,
-    generators::adapters::{WithoutShrinking, add_adversarial, flatten, map, without_adversarial},
+    adapters::{AddAdversarial, Flatten, Map, WithoutAdversarial, WithoutShrinking},
 };
 
 pub trait ValueGenExt: ValueGen + Sized {
     // TODO: docs
-    fn adv_map<F: Fn(Self::Value) -> T, T>(
-        self,
-        map_function: F,
-    ) -> impl ValueGen<Value = T, Seed = Self::Seed> {
-        map(self, map_function)
+    fn adv_map<T, F: Fn(Self::Value) -> T>(self, map_function: F) -> Map<Self, F> {
+        Map::new(self, map_function)
     }
 
     // TODO: docs
-    fn adv_flatten<T>(self) -> impl ValueGen<Value = T>
+    fn adv_flatten<T>(self) -> Flatten<Self, <Self::Value as IntoValueGen<T>>::Gen>
     where
         Self::Value: IntoValueGen<T>,
     {
-        flatten(self)
+        Flatten::new(self)
     }
 
     // TODO: docs
     fn adv_flat_map<F: Fn(Self::Value) -> G, G: IntoValueGen<T>, T>(
         self,
         map_function: F,
-    ) -> impl ValueGen<Value = T> {
+    ) -> Flatten<Map<Self, F>, G::Gen> {
         self.adv_map(map_function).adv_flatten()
     }
 
     // TODO: docs
-    fn adv_without_shrinking(self) -> impl ValueGen<Value = Self::Value, Seed = Self::Seed> {
+    fn adv_without_shrinking(self) -> WithoutShrinking<Self> {
         WithoutShrinking::new(self)
     }
 
     // TODO: docs
-    fn adv_without_adversarial(self) -> impl ValueGen<Value = Self::Value, Seed = Self::Seed> {
-        without_adversarial(self)
+    fn adv_without_adversarial(self) -> WithoutAdversarial<Self> {
+        WithoutAdversarial::new(self)
     }
 
     // TODO: docs
-    fn adv_add_adversarial(
+    fn adv_add_adversarial<I: Into<Box<[Self::Seed]>>>(
         self,
-        additional_adversarial_values: impl Into<Box<[Self::Seed]>>,
-    ) -> impl ValueGen<Value = Self::Value, Seed = Self::Seed> {
-        add_adversarial(self, additional_adversarial_values.into())
+        additional_adversarial_values: I,
+    ) -> AddAdversarial<Self> {
+        AddAdversarial::new(self, additional_adversarial_values.into())
     }
 }
 
