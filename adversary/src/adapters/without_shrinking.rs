@@ -1,4 +1,4 @@
-use crate::{ValueGen, shrinker::NeverShrink};
+use crate::{RangeAwareValueGen, ValueGen, shrinker::NeverShrink};
 
 #[derive(Debug)]
 pub struct WithoutShrinking<G> {
@@ -46,5 +46,11 @@ impl<G: ValueGen> ValueGen for WithoutShrinking<G> {
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {
         self.inner.create_value(seed)
+    }
+}
+
+impl<G: RangeAwareValueGen> RangeAwareValueGen for WithoutShrinking<G> {
+    fn value_in_range(&self, value: &Self::Value) -> bool {
+        self.inner.value_in_range(value)
     }
 }

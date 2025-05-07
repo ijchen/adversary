@@ -1,5 +1,5 @@
 use crate::{
-    ValueGen,
+    RangeAwareValueGen, ValueGen,
     report::{Importance, Observation},
     shrinker::Shrinker,
 };
@@ -86,6 +86,15 @@ impl ValueGen for ChanceGen {
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {
         seed
+    }
+}
+
+impl RangeAwareValueGen for ChanceGen {
+    fn value_in_range(&self, value: &Self::Value) -> bool {
+        match value {
+            true => self.chance_of_true > 0.0,
+            false => self.chance_of_true < 1.0,
+        }
     }
 }
 

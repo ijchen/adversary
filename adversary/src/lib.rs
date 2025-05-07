@@ -16,7 +16,7 @@ pub use adversary_macros::adv_test;
 pub use rand;
 
 pub use generators::{Canonical, any, bool, just, just_with};
-pub use value_gen::{IntoValueGen, ValueGen, ValueGenExt};
+pub use value_gen::{IntoValueGen, RangeAwareValueGen, ValueGen, ValueGenExt};
 
 #[cfg(test)]
 mod tests {

@@ -1,7 +1,8 @@
 use std::ops::RangeInclusive;
 
 use crate::{
-    IntoValueGen, ValueGen, generators::base_generators::numeric_ranges::RangeInclusiveGen,
+    IntoValueGen, RangeAwareValueGen, ValueGen,
+    generators::base_generators::numeric_ranges::RangeInclusiveGen,
 };
 
 use super::shrinker::RangeInclusiveShrinkerSigned;
@@ -103,6 +104,12 @@ macro_rules! signed_range_inclusive {
 
             fn create_value(&self, seed: Self::Seed) -> Self::Value {
                 seed
+            }
+        }
+
+        impl RangeAwareValueGen for RangeInclusiveGen<$i> {
+            fn value_in_range(&self, value: &Self::Value) -> bool {
+                (self.min..=self.max).contains(value)
             }
         }
     )+};

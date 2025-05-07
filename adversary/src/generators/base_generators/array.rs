@@ -1,4 +1,4 @@
-use crate::{IntoValueGen, ValueGen, report::Observation, shrinker::Shrinker};
+use crate::{IntoValueGen, RangeAwareValueGen, ValueGen, report::Observation, shrinker::Shrinker};
 
 impl<T: Clone, const N: usize> IntoValueGen<T> for [T; N] {
     // TODO: use ATPIT once stabilized
@@ -51,6 +51,12 @@ impl<T: Clone, const N: usize> ValueGen for ArrayValueGen<T, N> {
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {
         self.0[seed].clone()
+    }
+}
+
+impl<T: Clone + PartialEq, const N: usize> RangeAwareValueGen for ArrayValueGen<T, N> {
+    fn value_in_range(&self, value: &Self::Value) -> bool {
+        self.0.contains(value)
     }
 }
 

@@ -1,6 +1,6 @@
 mod shrinker;
 
-use crate::{IntoValueGen, ValueGen};
+use crate::{IntoValueGen, RangeAwareValueGen, ValueGen};
 
 use super::cartesian_product;
 
@@ -54,5 +54,13 @@ impl<GenA: ValueGen, GenB: ValueGen> ValueGen for TupleGen2<GenA, GenB> {
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {
         (self.0.create_value(seed.0), self.1.create_value(seed.1))
+    }
+}
+
+impl<GenA: RangeAwareValueGen, GenB: RangeAwareValueGen> RangeAwareValueGen
+    for TupleGen2<GenA, GenB>
+{
+    fn value_in_range(&self, value: &Self::Value) -> bool {
+        self.0.value_in_range(&value.0) && self.1.value_in_range(&value.1)
     }
 }

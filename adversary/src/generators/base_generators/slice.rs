@@ -1,4 +1,4 @@
-use crate::{IntoValueGen, ValueGen, report::Observation, shrinker::Shrinker};
+use crate::{IntoValueGen, RangeAwareValueGen, ValueGen, report::Observation, shrinker::Shrinker};
 
 impl<'a, T> IntoValueGen<&'a T> for &'a [T] {
     // TODO: use ATPIT once stabilized
@@ -62,6 +62,12 @@ impl<'a, T> ValueGen for SliceValueGen<'a, T> {
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {
         &self.0[seed]
+    }
+}
+
+impl<'a, T: PartialEq> RangeAwareValueGen for SliceValueGen<'a, T> {
+    fn value_in_range(&self, value: &Self::Value) -> bool {
+        self.0.contains(value)
     }
 }
 

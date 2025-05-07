@@ -1,4 +1,4 @@
-use crate::ValueGen;
+use crate::{RangeAwareValueGen, ValueGen};
 
 #[derive(Debug)]
 pub struct AddAdversarial<G: ValueGen> {
@@ -62,5 +62,11 @@ impl<G: ValueGen> ValueGen for AddAdversarial<G> {
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {
         self.inner.create_value(seed)
+    }
+}
+
+impl<G: RangeAwareValueGen> RangeAwareValueGen for AddAdversarial<G> {
+    fn value_in_range(&self, value: &Self::Value) -> bool {
+        self.inner.value_in_range(value)
     }
 }

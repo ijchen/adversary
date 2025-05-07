@@ -1,6 +1,6 @@
 use std::ops::RangeInclusive;
 
-use crate::{IntoValueGen, ValueGen};
+use crate::{IntoValueGen, RangeAwareValueGen, ValueGen};
 
 use super::{super::RangeInclusiveGen, shrinker::RangeInclusiveShrinkerUnsigned};
 
@@ -91,6 +91,12 @@ macro_rules! unsigned_range_inclusive {
 
             fn create_value(&self, seed: Self::Seed) -> Self::Value {
                 seed
+            }
+        }
+
+        impl RangeAwareValueGen for RangeInclusiveGen<$t> {
+            fn value_in_range(&self, value: &Self::Value) -> bool {
+                (self.min..=self.max).contains(value)
             }
         }
     )+};

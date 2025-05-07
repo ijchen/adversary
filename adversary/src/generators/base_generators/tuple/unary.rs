@@ -1,4 +1,4 @@
-use crate::{IntoValueGen, ValueGen};
+use crate::{IntoValueGen, RangeAwareValueGen, ValueGen};
 
 // TODO: once ATPIT is stabilized, we can just use this simpler implementation
 // impl<T, IntoGen: IntoValueGen<T>> IntoValueGen<(T,)> for (IntoGen,) {
@@ -58,5 +58,11 @@ impl<G: ValueGen> ValueGen for UnaryTupleValueGen<G> {
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {
         (self.0.create_value(seed),)
+    }
+}
+
+impl<G: RangeAwareValueGen> RangeAwareValueGen for UnaryTupleValueGen<G> {
+    fn value_in_range(&self, value: &Self::Value) -> bool {
+        self.0.value_in_range(&value.0)
     }
 }

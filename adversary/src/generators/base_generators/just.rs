@@ -1,4 +1,4 @@
-use crate::{ValueGen, report::Observation, shrinker::Shrinker};
+use crate::{RangeAwareValueGen, ValueGen, report::Observation, shrinker::Shrinker};
 
 #[repr(transparent)]
 struct JustWith<F>(F);
@@ -43,7 +43,13 @@ impl<T, F: Fn() -> T> ValueGen for JustWith<F> {
     }
 
     fn create_value(&self, (): Self::Seed) -> Self::Value {
-        (self.0)()
+        self.0()
+    }
+}
+
+impl<T: PartialEq, F: Fn() -> T> RangeAwareValueGen for JustWith<F> {
+    fn value_in_range(&self, value: &Self::Value) -> bool {
+        self.0() == *value
     }
 }
 

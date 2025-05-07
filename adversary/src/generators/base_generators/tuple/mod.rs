@@ -4,7 +4,7 @@ mod pair;
 mod shrinker;
 mod unary;
 
-use crate::{IntoValueGen, ValueGen};
+use crate::{IntoValueGen, RangeAwareValueGen, ValueGen};
 
 pub use pair::Pair;
 
@@ -87,6 +87,14 @@ macro_rules! impl_tuple_into_value_gen {
 
             fn create_value(&self, seed: Self::Seed) -> Self::Value {
                 ($(self.$index.create_value(seed.$index)),+)
+            }
+        }
+
+        impl<$([<Gen $letter>]: RangeAwareValueGen),+> RangeAwareValueGen
+            for [<TupleGen $n>]<$([<Gen $letter>]),+>
+        {
+            fn value_in_range(&self, value: &Self::Value) -> bool {
+                ($(self.$index.value_in_range(&value.$index))&&+)
             }
         }
     )*}};
