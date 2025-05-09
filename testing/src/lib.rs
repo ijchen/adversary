@@ -34,6 +34,14 @@ mod tests {
         (100..1209451).contains(&b)
     }
 
+    #[adv_test]
+    fn vec_test(list: Vec<i32>) -> bool {
+        list.iter()
+            .copied()
+            .try_fold(0i32, |accum, elem| accum.checked_add(elem))
+            .is_none_or(|n| n % 10 != 9)
+    }
+
     // #[derive(Clone)]
     // struct Foo;
     // impl adv::Canonical for Foo {

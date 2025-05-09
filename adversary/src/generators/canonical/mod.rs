@@ -2,6 +2,7 @@ mod bool;
 mod ints;
 mod tuple;
 mod unit;
+mod vec;
 
 use crate::ValueGen;
 
