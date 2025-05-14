@@ -22,8 +22,7 @@ impl<G: ValueGen, L: RangeAwareValueGen<Value = usize>> ValueGen for VecValueGen
     type Value = Vec<G::Value>;
     type Seed = Box<[G::Seed]>;
 
-    // TODO(ichen): shrinking
-    type Shrinker<'a>
+    type Shrinker<'a> // TODO(ichen): shrinking
         = NeverShrink
     where
         Self: 'a;
@@ -93,14 +92,20 @@ impl<G: ValueGen, L: RangeAwareValueGen<Value = usize>> ValueGen for VecValueGen
 
         let mut adversarial = Vec::with_capacity(self.adversarial_count().unwrap_or_default());
 
+        // If 0 is a valid length, add the empty vector
         if self.len_gen.value_in_range(&0) {
-            adversarial.push(Box::new([]) as _);
+            adversarial.push(vec![].into_boxed_slice());
         }
 
+        // If the length of a vector containing all adversarial values together
+        // is a valid length for the length gen, add that "all adversarial
+        // values" vector
         if elem_gen_adversarial_count.is_some_and(|count| self.len_gen.value_in_range(&count)) {
             adversarial.push(self.elem_gen.adversarial().collect());
         }
 
+        // If 1 is a valid length, add all `elem_gen` adversarial values as
+        // single-element vectors
         if elem_gen_adversarial_count.is_some() && self.len_gen.value_in_range(&1) {
             adversarial.extend(
                 self.elem_gen
@@ -115,7 +120,7 @@ impl<G: ValueGen, L: RangeAwareValueGen<Value = usize>> ValueGen for VecValueGen
     fn sample(&self, rng: &mut (impl rand::Rng + ?Sized)) -> Self::Seed {
         let len = self.len_gen.create_value(self.len_gen.sample(rng));
 
-        // A `std::iter::repeat_with_n` would be kinda nice here
+        // TODO(ichen): a `std::iter::repeat_with_n` would be kinda nice
         std::iter::repeat_with(|| self.elem_gen.sample(rng))
             .take(len)
             .collect()
