@@ -25,6 +25,7 @@ use crate::{report::Observation, shrinker::Shrinker};
 /// just organizes them all together.
 ///
 /// # How sign effects simplicity
+///
 /// It's worth discussing how sign (positive vs. negative) effects how "simple"
 /// a value is considered. Of course, simplicity is both subjective and
 /// context-dependent. Fortunately, this isn't really a correctness issue - at

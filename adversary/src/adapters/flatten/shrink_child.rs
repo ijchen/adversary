@@ -35,7 +35,7 @@ where
         })
     }
 
-    pub fn update<'any>(&mut self, current_attempt_passed: bool) {
+    pub fn update(&mut self, current_attempt_passed: bool) {
         self.child_shrinker
             .with_dependent_mut(|child_shrinker| child_shrinker.update(current_attempt_passed))
     }

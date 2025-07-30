@@ -79,11 +79,11 @@ fn run_test_inner<T>(
     rng: &mut (impl Rng + ?Sized),
     config: TestConfig,
 ) -> TestResult<T> {
-    let mut generator = generator.into_value_gen();
+    let generator = generator.into_value_gen();
 
     // Find a failing value
     let (failing_seed, passing_runs, cause) =
-        match find_failing_value(&test, &mut generator, rng, &config) {
+        match find_failing_value(&test, &generator, rng, &config) {
             FindFailingValueReport::NeverFailed => return TestResult::Passed,
             FindFailingValueReport::InvalidConfig(err) => return TestResult::InvalidConfig(err),
             FindFailingValueReport::Failed {

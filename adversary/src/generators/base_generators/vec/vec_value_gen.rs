@@ -36,7 +36,7 @@ impl<G: ValueGen, L: RangeAwareValueGen<Value = usize>> ValueGen for VecValueGen
             .exhaustive()
             .map(|len_seed| {
                 let len: u32 = self.len_gen.create_value(len_seed).try_into().ok()?;
-                elem_cardinality.checked_pow(len.try_into().ok()?)
+                elem_cardinality.checked_pow(len)
             })
             .try_fold(0, |accum, elem| usize::checked_add(accum, elem?))
     }
@@ -71,11 +71,10 @@ impl<G: ValueGen, L: RangeAwareValueGen<Value = usize>> ValueGen for VecValueGen
             adversarial_count += 1;
         }
 
-        if let Some(count) = elem_gen_adversarial_count {
-            // TODO(ichen): use if-let-chains when stabilized
-            if self.len_gen.value_in_range(&1) {
-                adversarial_count += count;
-            }
+        if let Some(count) = elem_gen_adversarial_count
+            && self.len_gen.value_in_range(&1)
+        {
+            adversarial_count += count;
         }
 
         Some(adversarial_count)

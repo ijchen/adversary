@@ -224,18 +224,15 @@ impl TestFunc {
             arg_pat: &syn::Pat,
             arg_ty: &syn::Type,
             generators: &HashMap<Ident, Expr>,
-            test_name: &str,
         ) -> Option<TokenStream> {
             use syn::Pat as P;
             match arg_pat {
                 P::Ident(pat_ident) => generators
                     .get(&pat_ident.ident)
                     .map(|generator| quote! { #generator }),
-                P::Paren(pat_paren) => {
-                    get_custom_generator(&pat_paren.pat, arg_ty, generators, test_name)
-                }
+                P::Paren(pat_paren) => get_custom_generator(&pat_paren.pat, arg_ty, generators),
                 P::Reference(pat_reference) => {
-                    get_custom_generator(&pat_reference.pat, arg_ty, generators, test_name)
+                    get_custom_generator(&pat_reference.pat, arg_ty, generators)
                 }
                 P::Tuple(pat_tuple) => {
                     let individual_gens = pat_tuple
@@ -246,16 +243,14 @@ impl TestFunc {
                             _ => todo!(),
                         })
                         .map(|(elem, elem_arg_ty)| {
-                            get_custom_generator(elem, elem_arg_ty, generators, test_name)
+                            get_custom_generator(elem, elem_arg_ty, generators)
                                 .unwrap_or_else(|| quote! { ::adversary::any::<#elem_arg_ty>() })
                         })
                         .collect::<Vec<TokenStream>>();
 
                     Some(quote! { (#(#individual_gens),*) })
                 }
-                P::Type(pat_type) => {
-                    get_custom_generator(&pat_type.pat, arg_ty, generators, test_name)
-                }
+                P::Type(pat_type) => get_custom_generator(&pat_type.pat, arg_ty, generators),
                 _ => None,
             }
         }
@@ -263,7 +258,7 @@ impl TestFunc {
             .iter()
             .map(|arg| {
                 let arg_ty = &arg.ty;
-                get_custom_generator(&arg.pat, arg_ty, &test_attribute.generators, &test_name)
+                get_custom_generator(&arg.pat, arg_ty, &test_attribute.generators)
                     .unwrap_or_else(|| quote! { ::adversary::any::<#arg_ty>() })
             })
             .collect::<Vec<_>>();
