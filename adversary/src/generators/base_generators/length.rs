@@ -1,19 +1,23 @@
 use std::marker::PhantomData;
 
 use crate::{
-    ValueGen, generators::base_generators::numeric_ranges::RangeInclusiveShrinkerUnsigned,
+    RangeAwareValueGen, ValueGen,
+    generators::base_generators::numeric_ranges::RangeInclusiveShrinkerUnsigned,
     report::Observation, shrinker::Shrinker,
 };
 
 /// A [`ValueGen`] that produces lengths for a collection of `T`s.
 //
 // TODO(ijchen): more useful information
-pub fn length_gen<T>() -> impl ValueGen<Value = usize, Seed = usize> {
+pub fn length_gen<T>() -> impl RangeAwareValueGen<Value = usize, Seed = usize> {
     LengthGen::<T>::new()
 }
 
+// See: https://doc.rust-lang.org/std/ptr/index.html#allocated-object
+const MAX_COLLECTION_LEN: usize = isize::MAX as usize;
+
 pub struct LengthGen<T> {
-    _phantom: PhantomData<T>,
+    _phantom: PhantomData<fn(T)>,
 }
 
 struct Bucket {
@@ -92,11 +96,11 @@ impl<T> ValueGen for LengthGen<T> {
         Self: 'a;
 
     fn cardinality(&self) -> Option<usize> {
-        None
+        Some(MAX_COLLECTION_LEN + 1)
     }
 
     fn exhaustive(&self) -> impl Iterator<Item = Self::Seed> {
-        usize::MIN..=usize::MAX
+        usize::MIN..=MAX_COLLECTION_LEN
     }
 
     fn adversarial_count(&self) -> Option<usize> {
@@ -135,6 +139,12 @@ impl<T> ValueGen for LengthGen<T> {
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {
         seed
+    }
+}
+
+impl<T> RangeAwareValueGen for LengthGen<T> {
+    fn value_in_range(&self, value: &Self::Value) -> bool {
+        *value <= MAX_COLLECTION_LEN
     }
 }
 
