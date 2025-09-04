@@ -58,13 +58,13 @@ pub fn run_test_should_panic<T>(
 
 pub fn run_test_should_panic_with_message<T>(
     test: fn(T),
-    message: impl ToString,
+    message: impl Into<String>,
     generator: impl IntoValueGen<T>,
     rng: &mut (impl Rng + ?Sized),
     config: TestConfig,
 ) -> TestResult<T> {
     run_test_inner(
-        test::should_panic_with_message(test, message.to_string()),
+        test::should_panic_with_message(test, message.into()),
         generator.into_value_gen(),
         rng,
         config,
