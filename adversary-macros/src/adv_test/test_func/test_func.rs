@@ -375,6 +375,8 @@ impl TestFunc {
                         fn stringify(&self) -> ::std::string::String { ::std::format!("<{}>", ::std::any::type_name::<T>()) }
                     }
 
+                    // TODO: is this ::std::format!() necessary? Doesn't join
+                    // give us a string?
                     ::std::format!("{}", <[_]>::join(&[#(
                         (&&&Wrap(#arg_idents)).stringify()
                     ),*], ", "))
