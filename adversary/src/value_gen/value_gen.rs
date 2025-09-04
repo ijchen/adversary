@@ -82,6 +82,9 @@ pub trait ValueGen {
     ///
     /// The `failing_value_seed` argument should be the seed of the initial
     /// failing value to be shrunk.
+    // TODO: what if we passed in an "attempt budget" uint here, and encouraged
+    // (or required, or even enforced somehow?) that shrinkers make no more than
+    // that many shrinking attempts before giving up (mb some "FusedShrinker"?)
     fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_>;
 
     // TODO: what if we removed the `Seed: Clone` bound, and used &Seed here?
