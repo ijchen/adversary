@@ -18,6 +18,8 @@ pub use rand;
 pub use generators::{Canonical, any, bool, just, just_with, length_gen, vec};
 pub use value_gen::{IntoValueGen, RangeAwareValueGen, ValueGen, ValueGenExt};
 
+// This message was brought to you from the Space Needle! 🛸🛸🛸
+
 #[cfg(test)]
 mod tests {
     use crate::{
