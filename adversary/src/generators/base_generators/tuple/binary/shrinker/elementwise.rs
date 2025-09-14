@@ -32,19 +32,19 @@ impl<'gens, GenA: ValueGen, GenB: ValueGen> Elementwise<'gens, GenA, GenB> {
 
     pub fn progress_if_necessary(&mut self, generators: (&'gens GenA, &'gens GenB)) {
         // If the first shrinker is done, progress to the second
-        if let Step::ShrinkingA(shrinker) = &mut self.step {
-            if shrinker.current_attempt().is_none() {
-                self.step = Step::ShrinkingB(Box::new(
-                    generators.1.new_shrinker(self.current_values.1.clone()),
-                ));
-            }
+        if let Step::ShrinkingA(shrinker) = &mut self.step
+            && shrinker.current_attempt().is_none()
+        {
+            self.step = Step::ShrinkingB(Box::new(
+                generators.1.new_shrinker(self.current_values.1.clone()),
+            ));
         }
 
         // If the second shrinker is done, progress to Done
-        if let Step::ShrinkingB(shrinker) = &mut self.step {
-            if shrinker.current_attempt().is_none() {
-                self.step = Step::Done;
-            }
+        if let Step::ShrinkingB(shrinker) = &mut self.step
+            && shrinker.current_attempt().is_none()
+        {
+            self.step = Step::Done;
         }
     }
 
@@ -70,9 +70,7 @@ impl<'gens, GenA: ValueGen, GenB: ValueGen> Elementwise<'gens, GenA, GenB> {
         match &mut self.step {
             Step::ShrinkingA(shrinker) => shrinker.update(current_attempt_passed),
             Step::ShrinkingB(shrinker) => shrinker.update(current_attempt_passed),
-            Step::Done => panic!(concat!(
-                "`Elementwise::update` called while in `Step::Done`"
-            )),
+            Step::Done => panic!("`Elementwise::update` called while in `Step::Done`"),
         }
 
         self.progress_if_necessary(generators);

@@ -40,52 +40,52 @@ impl<'gens, GenA: ValueGen, GenB: ValueGen> TupleShrinker2<'gens, GenA, GenB> {
 
     pub fn progress_if_necessary(&mut self) {
         // If ElementwiseFirstPass is done, progress to TogetherFirstPass
-        if let Phase::ElementwiseFirstPass(phase) = &self.phase {
-            if phase.is_done() {
-                self.phase = Phase::TogetherFirstPass(Pair::new(
-                    self.generators
-                        .0
-                        .new_shrinker(self.current_values.0.clone()),
-                    self.generators
-                        .1
-                        .new_shrinker(self.current_values.1.clone()),
-                    self.current_values.0.clone(),
-                    self.current_values.1.clone(),
-                ));
-            }
+        if let Phase::ElementwiseFirstPass(phase) = &self.phase
+            && phase.is_done()
+        {
+            self.phase = Phase::TogetherFirstPass(Pair::new(
+                self.generators
+                    .0
+                    .new_shrinker(self.current_values.0.clone()),
+                self.generators
+                    .1
+                    .new_shrinker(self.current_values.1.clone()),
+                self.current_values.0.clone(),
+                self.current_values.1.clone(),
+            ));
         }
 
         // If TogetherFirstPass is done, progress to ElementwiseSecondPass
-        if let Phase::TogetherFirstPass(phase) = &self.phase {
-            if phase.is_done() {
-                self.phase = Phase::ElementwiseSecondPass(Elementwise::new(
-                    self.generators,
-                    self.current_values.clone(),
-                ));
-            }
+        if let Phase::TogetherFirstPass(phase) = &self.phase
+            && phase.is_done()
+        {
+            self.phase = Phase::ElementwiseSecondPass(Elementwise::new(
+                self.generators,
+                self.current_values.clone(),
+            ));
         }
 
         // If ElementwiseSecondPass is done, progress to TogetherSecondPass
-        if let Phase::ElementwiseSecondPass(phase) = &self.phase {
-            if phase.is_done() {
-                self.phase = Phase::TogetherSecondPass(Pair::new(
-                    self.generators
-                        .0
-                        .new_shrinker(self.current_values.0.clone()),
-                    self.generators
-                        .1
-                        .new_shrinker(self.current_values.1.clone()),
-                    self.current_values.0.clone(),
-                    self.current_values.1.clone(),
-                ));
-            }
+        if let Phase::ElementwiseSecondPass(phase) = &self.phase
+            && phase.is_done()
+        {
+            self.phase = Phase::TogetherSecondPass(Pair::new(
+                self.generators
+                    .0
+                    .new_shrinker(self.current_values.0.clone()),
+                self.generators
+                    .1
+                    .new_shrinker(self.current_values.1.clone()),
+                self.current_values.0.clone(),
+                self.current_values.1.clone(),
+            ));
         }
 
         // If TogetherSecondPass is done, progress to Done
-        if let Phase::TogetherSecondPass(phase) = &self.phase {
-            if phase.is_done() {
-                self.phase = Phase::Done;
-            }
+        if let Phase::TogetherSecondPass(phase) = &self.phase
+            && phase.is_done()
+        {
+            self.phase = Phase::Done;
         }
     }
 }
