@@ -42,6 +42,14 @@ mod tests {
     //         .is_none_or(|n| n % 10 != 9)
     // }
 
+    #[adv_test]
+    fn vec_test(list: Vec<u32>) -> bool {
+        list.iter()
+            .copied()
+            .try_fold(0u32, |accum, elem| accum.checked_add(elem))
+            .is_none_or(|n| n % 10 != 9 || n < 1000)
+    }
+
     // #[derive(Clone)]
     // struct Foo;
     // impl adv::Canonical for Foo {

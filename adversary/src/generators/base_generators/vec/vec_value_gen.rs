@@ -1,4 +1,4 @@
-use crate::{IntoValueGen, RangeAwareValueGen, ValueGen, shrinker::NeverShrink};
+use crate::{IntoValueGen, RangeAwareValueGen, ValueGen, vec::shrinker::VecShrinker};
 
 use super::{lazy_collected_iter::LazyCollectedIter, multi_radix_counter::MultiRadixCounter};
 pub struct VecValueGen<G: ValueGen, L: RangeAwareValueGen<Value = usize>> {
@@ -22,8 +22,8 @@ impl<G: ValueGen, L: RangeAwareValueGen<Value = usize>> ValueGen for VecValueGen
     type Value = Vec<G::Value>;
     type Seed = Box<[G::Seed]>;
 
-    type Shrinker<'a> // TODO(ichen): shrinking
-        = NeverShrink
+    type Shrinker<'a>
+        = VecShrinker<'a, G>
     where
         Self: 'a;
 
@@ -125,8 +125,8 @@ impl<G: ValueGen, L: RangeAwareValueGen<Value = usize>> ValueGen for VecValueGen
             .collect()
     }
 
-    fn new_shrinker(&self, _failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
-        NeverShrink::new()
+    fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
+        VecShrinker::new(&self.elem_gen, failing_value_seed)
     }
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {
