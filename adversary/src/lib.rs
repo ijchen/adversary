@@ -12,7 +12,8 @@ mod value_gen;
 pub use adversary_macros::adv_test;
 
 // TODO(ichen): I don't really want to re-export this whole crate - we only need
-// rand::Rng for ValueGen. Instead, have our own Rng trait.
+// rand::Rng for ValueGen. Instead, have our own Rng type/trait (or maybe we get
+// std::random?).
 pub use rand;
 
 pub use generators::{Canonical, any, bool, just, just_with, length_gen, vec};
