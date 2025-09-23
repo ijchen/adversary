@@ -7,6 +7,7 @@ missing features:
 - [ ] Make to-do list
 - [ ] Ensure the macro output is a lint-friendly as possible
 - [ ] Consider whether it is desirable to allow nullary #\[adv_test\] tests
+- [ ] `#[derive(Canonical)]`?
 
 # License
 
