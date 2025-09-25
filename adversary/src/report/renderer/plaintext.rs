@@ -132,7 +132,7 @@ fn details<T>(output: &mut String, report: &Report<T>, converter: impl Fn(&T) ->
         "Original failing input: {}",
         converter(report.original_failing_value())
     );
-    // TODO: observations, ex:
+
     // Observations:
     // - The vector length was reduced to 3, but lengths under 3 started passing
     // - The value at index 0 probably doesn't matter - it was instantly reduced to the simplest value
@@ -140,6 +140,18 @@ fn details<T>(output: &mut String, report: &Report<T>, converter: impl Fn(&T) ->
     // - The value at index 2 was reduced to 3, but values under 3 started passing
     // - A second pass over the vector was unable to shrink any elements further.
     // - The test seems to fail consistently - 1,000 runs all failed
+    if !report.observations.is_empty() {
+        writeln_string!(output, "Observations:");
+        for observation in &report.observations {
+            // TODO(ijchen): do something more interesting with importance
+            use crate::report::Importance as I;
+            match observation.importance {
+                I::Important => writeln_string!(output, "- {}", observation.contents),
+                I::MaybeRelevant => writeln_string!(output, "- {}", observation.contents),
+                I::ProbablyUnimportant => writeln_string!(output, "- {}", observation.contents),
+            }
+        }
+    }
 
     // Full shrinking steps:
     // - FAIL: ...

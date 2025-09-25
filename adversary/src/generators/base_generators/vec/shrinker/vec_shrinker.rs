@@ -1,70 +1,86 @@
 use crate::{
-    ValueGen,
+    RangeAwareValueGen, ValueGen,
     shrinker::Shrinker,
-    vec::shrinker::{
-        done::Done, pairs::Pairs, remove_elems::RemoveElems, shrink_elements::ShrinkElements,
-        single_elems::SingleElems, subsets::Subsets, try_empty::TryEmpty,
-    },
+    vec::shrinker::{Done, Pairs, RemoveElems, ShrinkElements, SingleElems, Subsets, TryEmpty},
 };
 
-// TODO phases:
-// 1. Shrink the size
-//   i. Try simple zero length
-//     - If failing, we're done
-//   ii. Try single-element vec for each elem
-//     - If failing, jump to shrinking element
-//   iii. If vec length is less than some threshold, try all pairs of elems (in
-//        same order)
-//   iv. Try removing single elements at a time (go through each elem and remove
-//       it)
-//   v. Try subsets of various lengths (TODO: how to determine lengths? How to
-//      select elements?)
-// 2. Shrink the elements
-//   i. Go through each element and shrink it
-// 3. Repeat until no progress is made (NOTE: don't jump to size shrink if we're
-//    already at zero or one (or maybe even two?) length)
+// TODO(ijchen): better documentation on the phases, including specifically on each phase's struct.
+// See the unsigned integer shrinker for an example of how I want this documentation to look.
 
-pub enum VecShrinker<'value_gen, G: ValueGen> {
+pub enum VecShrinker<'gens, G: ValueGen, L: RangeAwareValueGen<Value = usize>> {
     // Try an empty vec
-    TryEmpty(TryEmpty<'value_gen, G>),
+    TryEmpty(TryEmpty<'gens, G, L>),
 
     // Try each element by itself in a single-element vec
-    SingleElems(SingleElems<'value_gen, G>),
+    SingleElems(SingleElems<'gens, G, L>),
 
     // Try all pairs of two elements
-    Pairs(Pairs<'value_gen, G>),
+    Pairs(Pairs<'gens, G, L>),
 
     // Try removing single elements at a time
-    RemoveElems(RemoveElems<'value_gen, G>),
+    RemoveElems(RemoveElems<'gens, G, L>),
 
     // Try subsets of the vec
-    Subsets(Subsets<'value_gen, G>),
+    Subsets(Subsets<'gens, G, L>),
 
     // Shrink each element
-    ShrinkElements(ShrinkElements<'value_gen, G>),
+    ShrinkElements(ShrinkElements<'gens, G, L>),
 
     // No more progress to be made - we're done
-    Done(Done<G>),
+    Done(Done<G, L>),
 }
 
-impl<'value_gen, G: ValueGen> VecShrinker<'value_gen, G> {
-    pub fn new(value_gen: &'value_gen G, failing_value_seed: Box<[G::Seed]>) -> Self {
+impl<'gens, G: ValueGen, L: RangeAwareValueGen<Value = usize>> VecShrinker<'gens, G, L> {
+    pub fn new(value_gen: &'gens G, len_gen: &'gens L, failing_value_seed: Box<[G::Seed]>) -> Self {
         // If the seed is already empty, no need to shrink further
         if failing_value_seed.is_empty() {
             return Self::Done(Done::new());
         }
 
-        // If the seed only has one inner seed, jump straight to shrinking the element
-        if failing_value_seed.len() == 1 {
-            return Self::ShrinkElements(ShrinkElements::new(value_gen, failing_value_seed));
+        // Start with the `TryEmpty` step, if possible
+        let failing_value_seed = match TryEmpty::new(value_gen, len_gen, failing_value_seed) {
+            Ok(try_empty) => return Self::TryEmpty(try_empty),
+            Err(simplest_known_failing) => simplest_known_failing,
+        };
+
+        // `TryEmpty` had to be skipped, try `SingleElems`
+        let failing_value_seed = match SingleElems::new(value_gen, len_gen, failing_value_seed) {
+            Ok(single_elems) => return Self::SingleElems(single_elems),
+            Err(simplest_known_failing) => simplest_known_failing,
+        };
+
+        // `SingleElems` had to be skipped, try `Pairs`
+        let failing_value_seed = match Pairs::new(value_gen, len_gen, failing_value_seed) {
+            Ok(pairs) => return Self::Pairs(pairs),
+            Err(simplest_known_failing) => simplest_known_failing,
+        };
+
+        // `Pairs` had to be skipped, try `RemoveElems`
+        let failing_value_seed =
+            match RemoveElems::new(value_gen, len_gen, failing_value_seed, false) {
+                Ok(remove_elems) => return Self::RemoveElems(remove_elems),
+                Err(simplest_known_failing) => simplest_known_failing,
+            };
+
+        // `RemoveElems` had to be skipped, try `Subsets`
+        let failing_value_seed = match Subsets::new(value_gen, len_gen, failing_value_seed, false) {
+            Ok(subsets) => return Self::Subsets(subsets),
+            Err(simplest_known_failing) => simplest_known_failing,
+        };
+
+        // `Subsets` had to be skipped, try `ShrinkElements`
+        if let Ok(shrink_elements) = ShrinkElements::new(value_gen, len_gen, failing_value_seed) {
+            return Self::ShrinkElements(shrink_elements);
         }
 
-        // Otherwise, start in the `TryEmpty` step
-        Self::TryEmpty(TryEmpty::new(value_gen, failing_value_seed))
+        // `ShrinkElements` had to be skipped, we're done
+        Self::Done(Done::new())
     }
 }
 
-impl<'value_gen, G: ValueGen> Shrinker<Box<[G::Seed]>> for VecShrinker<'value_gen, G> {
+impl<'gens, G: ValueGen, L: RangeAwareValueGen<Value = usize>> Shrinker<Box<[G::Seed]>>
+    for VecShrinker<'gens, G, L>
+{
     fn current_attempt(&self) -> Option<Box<[G::Seed]>> {
         match self {
             VecShrinker::TryEmpty(step) => step.current_attempt(),

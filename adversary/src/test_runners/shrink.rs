@@ -1,6 +1,6 @@
 use crate::{
     ValueGen,
-    report::{FailureCause, Observation, ShrinkStep, TestOutcome},
+    report::{FailureCause, Importance, Observation, ShrinkStep, TestOutcome},
     shrinker::Shrinker as _,
 };
 
@@ -11,6 +11,7 @@ pub fn shrink<T, S: Clone>(
     generator: &impl ValueGen<Value = T, Seed = S>,
     failing_value_seed: S,
     cause: FailureCause,
+    max_shrink_steps: usize,
 ) -> (Vec<Observation>, Vec<ShrinkStep<T>>) {
     let mut shrinker = generator.new_shrinker(failing_value_seed.clone());
 
@@ -19,9 +20,7 @@ pub fn shrink<T, S: Clone>(
         false,
         TestOutcome::Failed { cause },
     )];
-    // TODO(ichen): limit how many times this loop can run (to guard against
-    // faulty Shrinker impls)
-    loop {
+    while shrink_steps.len() - 1 < max_shrink_steps {
         // TODO: allow info-gathering attempts
         let Some(seed) = shrinker.current_attempt() else {
             break;
@@ -38,5 +37,13 @@ pub fn shrink<T, S: Clone>(
         ));
     }
 
-    (shrinker.into_observations(), shrink_steps)
+    let mut observations = shrinker.into_observations();
+    if shrink_steps.len() - 1 == max_shrink_steps {
+        observations.push(Observation::new(
+            "Shrinking might have been able to make more progress, but was ended early after reaching the maximum number of shrinking steps.".to_string(),
+            Importance::MaybeRelevant,
+        ));
+    }
+
+    (observations, shrink_steps)
 }

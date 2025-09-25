@@ -13,6 +13,10 @@ pub struct TestConfig {
 
     /// The name of the test, if available.
     pub test_name: Option<String>,
+
+    /// The maximum number of shrink steps before giving up and ending shrinking
+    /// early.
+    pub max_shrink_steps: usize,
 }
 
 impl Default for TestConfig {
@@ -21,6 +25,7 @@ impl Default for TestConfig {
             max_attempts: 1_000_000,
             min_randomized_attempts: 200_000,
             test_name: None,
+            max_shrink_steps: 1_000_000,
         }
     }
 }

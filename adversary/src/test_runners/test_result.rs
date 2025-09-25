@@ -1,5 +1,6 @@
 use crate::report::Report;
 
+#[derive(Debug)]
 pub enum TestResult<T> {
     Passed,
     Failed(Report<T>),

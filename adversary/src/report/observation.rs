@@ -13,9 +13,15 @@ impl Observation {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Importance {
-    Important,           // Always displayed to the user
-    MaybeRelevant,       // Sometimes displayed to the user
-    ProbablyUnimportant, // Never displayed to the user
+    /// An important observation - always displayed to the user
+    Important,
+
+    /// A possibly relevant observation - sometimes displayed to the user
+    #[default]
+    MaybeRelevant,
+
+    /// A probably unimportant observation - rarely displayed to the user
+    ProbablyUnimportant,
 }

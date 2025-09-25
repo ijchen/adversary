@@ -23,7 +23,7 @@ impl<G: ValueGen, L: RangeAwareValueGen<Value = usize>> ValueGen for VecValueGen
     type Seed = Box<[G::Seed]>;
 
     type Shrinker<'a>
-        = VecShrinker<'a, G>
+        = VecShrinker<'a, G, L>
     where
         Self: 'a;
 
@@ -126,7 +126,7 @@ impl<G: ValueGen, L: RangeAwareValueGen<Value = usize>> ValueGen for VecValueGen
     }
 
     fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
-        VecShrinker::new(&self.elem_gen, failing_value_seed)
+        VecShrinker::new(&self.elem_gen, &self.len_gen, failing_value_seed)
     }
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {

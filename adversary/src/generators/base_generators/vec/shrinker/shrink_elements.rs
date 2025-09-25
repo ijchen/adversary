@@ -1,30 +1,40 @@
 use crate::{
-    ValueGen,
+    RangeAwareValueGen, ValueGen,
     shrinker::Shrinker as _,
-    vec::shrinker::{VecShrinker, done::Done},
+    vec::shrinker::{Done, Pairs, RemoveElems, SingleElems, Subsets, VecShrinker},
 };
 
 #[derive(Debug)]
-pub struct ShrinkElements<'value_gen, G: ValueGen> {
-    value_gen: &'value_gen G,
+pub struct ShrinkElements<'gens, G: ValueGen, L: RangeAwareValueGen<Value = usize>> {
+    value_gen: &'gens G,
+    len_gen: &'gens L,
     simplest_known_failing: Box<[G::Seed]>,
     index: usize, // index == simplest_known_failing.len() indicates we're done shrinking
-    // Invariant: if self isn't done shrinking (our .current_attempt() returns `Some`), neither is
+    // Invariant: if self isn't done shrinking (index < simplest_known_failing.len()), neither is
     // elem_shrinker
-    elem_shrinker: G::Shrinker<'value_gen>,
+    elem_shrinker: G::Shrinker<'gens>,
     made_progress_this_round: bool,
     made_progress_at_all: bool,
 }
 
-impl<'value_gen, G: ValueGen> ShrinkElements<'value_gen, G> {
-    pub fn new(value_gen: &'value_gen G, simplest_known_failing: Box<[G::Seed]>) -> Self {
-        // TODO: document panic condition
-        assert!(!simplest_known_failing.is_empty());
+impl<'gens, G: ValueGen, L: RangeAwareValueGen<Value = usize>> ShrinkElements<'gens, G, L> {
+    /// Returns a new [`ShrinkElements`], or [`Err`] with `simplest_known_failing` if this step
+    /// should be skipped.
+    pub fn new(
+        value_gen: &'gens G,
+        len_gen: &'gens L,
+        simplest_known_failing: Box<[G::Seed]>,
+    ) -> Result<Self, Box<[G::Seed]>> {
+        // If the seed is empty, there are no elements to shrink
+        if simplest_known_failing.is_empty() {
+            return Err(simplest_known_failing);
+        }
 
         let index = 0;
         let shrinker = value_gen.new_shrinker(simplest_known_failing[index].clone());
         let mut this = Self {
             value_gen,
+            len_gen,
             simplest_known_failing,
             index,
             elem_shrinker: shrinker,
@@ -34,7 +44,22 @@ impl<'value_gen, G: ValueGen> ShrinkElements<'value_gen, G> {
 
         this.progress_if_shrinker_done();
 
-        this
+        // If no element shrinker could make progress, we have no work to do
+        if this.index == this.simplest_known_failing.len() {
+            return Err(this.simplest_known_failing);
+        }
+
+        Ok(this)
+    }
+
+    fn new_with_past_progress(
+        value_gen: &'gens G,
+        len_gen: &'gens L,
+        simplest_known_failing: Box<[G::Seed]>,
+    ) -> Result<Self, Box<[G::Seed]>> {
+        let mut this = Self::new(value_gen, len_gen, simplest_known_failing)?;
+        this.made_progress_at_all = true;
+        Ok(this)
     }
 
     fn progress_if_shrinker_done(&mut self) {
@@ -55,7 +80,7 @@ impl<'value_gen, G: ValueGen> ShrinkElements<'value_gen, G> {
     }
 }
 
-impl<'value_gen, G: ValueGen> ShrinkElements<'value_gen, G> {
+impl<'gens, G: ValueGen, L: RangeAwareValueGen<Value = usize>> ShrinkElements<'gens, G, L> {
     pub fn current_attempt(&self) -> Option<Box<[G::Seed]>> {
         (self.index < self.simplest_known_failing.len()).then(|| {
             let mut attempt = self.simplest_known_failing.clone();
@@ -67,7 +92,7 @@ impl<'value_gen, G: ValueGen> ShrinkElements<'value_gen, G> {
         })
     }
 
-    pub fn update(mut self, current_attempt_passed: bool) -> VecShrinker<'value_gen, G> {
+    pub fn update(mut self, current_attempt_passed: bool) -> VecShrinker<'gens, G, L> {
         assert!(self.index < self.simplest_known_failing.len());
 
         // If the current attempt passed, update our element shrinker and carry on
@@ -81,17 +106,59 @@ impl<'value_gen, G: ValueGen> ShrinkElements<'value_gen, G> {
                 // If we've made progress in shrinking some elements this round, try again from the
                 // start in case shrinking later elements has made it possible to shrink earlier
                 // elements
-                if self.made_progress_this_round {
-                    VecShrinker::ShrinkElements(Self::new(
+                let simplest_known_failing = if self.made_progress_this_round {
+                    match Self::new_with_past_progress(
                         self.value_gen,
+                        self.len_gen,
                         self.simplest_known_failing,
-                    ))
-                }
+                    ) {
+                        Ok(shrink_elements) => return VecShrinker::ShrinkElements(shrink_elements),
+                        Err(simplest_known_failing) => simplest_known_failing,
+                    }
+                } else {
+                    self.simplest_known_failing
+                };
+
                 // If we've made progress at all shrinking elements, go back to trying to shrink the
                 // length in case shrinking elements has made it possible to shrink the length
-                else if self.made_progress_at_all {
-                    // If we haven't made progress shrinking any elements, move on to TODO
-                    todo!()
+                if self.made_progress_at_all {
+                    // Try `SingleElems`
+                    let simplest_known_failing = match SingleElems::new(
+                        self.value_gen,
+                        self.len_gen,
+                        simplest_known_failing,
+                    ) {
+                        Ok(single_elems) => return VecShrinker::SingleElems(single_elems),
+                        Err(simplest_known_failing) => simplest_known_failing,
+                    };
+
+                    // `SingleElems` had to be skipped, try `Pairs`
+                    let simplest_known_failing =
+                        match Pairs::new(self.value_gen, self.len_gen, simplest_known_failing) {
+                            Ok(pairs) => return VecShrinker::Pairs(pairs),
+                            Err(simplest_known_failing) => simplest_known_failing,
+                        };
+
+                    // `Pairs` had to be skipped, try `RemoveElems`
+                    let simplest_known_failing = match RemoveElems::new(
+                        self.value_gen,
+                        self.len_gen,
+                        simplest_known_failing,
+                        false,
+                    ) {
+                        Ok(remove_elems) => return VecShrinker::RemoveElems(remove_elems),
+                        Err(simplest_known_failing) => simplest_known_failing,
+                    };
+
+                    // `RemoveElems` had to be skipped, try `Subsets`
+                    if let Ok(subsets) =
+                        Subsets::new(self.value_gen, self.len_gen, simplest_known_failing, false)
+                    {
+                        return VecShrinker::Subsets(subsets);
+                    };
+
+                    // All length-shrinking steps had to be skipped, we're done
+                    VecShrinker::Done(Done::new())
                 }
                 // If we didn't make any progress shrinking any elements, we're done
                 else {
@@ -105,30 +172,22 @@ impl<'value_gen, G: ValueGen> ShrinkElements<'value_gen, G> {
         }
         // If the current attempt failed, we have a new simplest known failing
         else {
+            self.made_progress_this_round = true;
+            self.made_progress_at_all = true;
+
             // Update the simplest known failing with our new shrunk element
             let mut simplest_known_failing = self.simplest_known_failing;
             simplest_known_failing[self.index] = self
                 .elem_shrinker
                 .current_attempt()
                 .expect("element shrinker was done, but we aren't");
+            self.simplest_known_failing = simplest_known_failing;
 
-            // Update the shrinker (will be progressed further after constructing Self below)
-            let mut elem_shrinker = self.elem_shrinker;
-            elem_shrinker.update(false);
+            // Update the shrinker
+            self.elem_shrinker.update(false);
+            self.progress_if_shrinker_done();
 
-            // Construct a new (and updated) `Self`, also ensuring we handle the element shrinker
-            // potentially being done after our above update
-            let mut new = Self {
-                value_gen: self.value_gen,
-                simplest_known_failing,
-                index: self.index,
-                elem_shrinker,
-                made_progress_this_round: true,
-                made_progress_at_all: true,
-            };
-            new.progress_if_shrinker_done();
-
-            VecShrinker::ShrinkElements(new)
+            VecShrinker::ShrinkElements(self)
         }
     }
 

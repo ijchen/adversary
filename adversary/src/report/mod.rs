@@ -10,6 +10,8 @@ pub use renderer::ReportRenderer;
 pub use shrink_step::ShrinkStep;
 pub use test_outcome::{FailureCause, TestOutcome};
 
+// TODO(ijchen): make the fields private and just expose a constructor and getters and such, it's
+// not worth all these caveats in documentation and possible panics.
 #[derive(Debug)]
 pub struct Report<T> {
     /// The name of the failing test, if available.
@@ -27,7 +29,11 @@ pub struct Report<T> {
     /// it would take over 116 years to reach this limit.
     pub passing_runs: u64,
 
-    /// Any [`Observation`]s made during shrinking
+    /// Any [`Observation`]s made during shrinking.
+    ///
+    /// This field should be sorted by importance, with most important first. This is guaranteed by
+    /// the test runners in this crate which generate [`Report`]s, although since the field is `pub`
+    /// nothing stops other code from violating this invariant by modifying the field directly.
     pub observations: Vec<Observation>,
 
     /// Each step taken during the shrinking process, from the original failing

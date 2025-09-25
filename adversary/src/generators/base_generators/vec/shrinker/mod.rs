@@ -8,7 +8,7 @@ mod try_empty;
 mod vec_shrinker;
 
 use done::Done;
-use pairs::{MAX_LEN_BEFORE_SKIP, Pairs};
+use pairs::Pairs;
 use remove_elems::RemoveElems;
 use shrink_elements::ShrinkElements;
 use single_elems::SingleElems;

@@ -94,9 +94,16 @@ fn run_test_inner<T>(
         };
 
     // Shrink the failing value
-    let (observations, shrink_steps) = shrink(&test, &generator, failing_seed, cause);
+    let (mut observations, shrink_steps) = shrink(
+        &test,
+        &generator,
+        failing_seed,
+        cause,
+        config.max_shrink_steps,
+    );
 
     // Generate a report
+    observations.sort_by_key(|o| o.importance);
     TestResult::Failed(Report {
         test_name: config.test_name,
         passing_runs,

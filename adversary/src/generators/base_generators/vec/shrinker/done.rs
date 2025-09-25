@@ -1,13 +1,13 @@
 use std::marker::PhantomData;
 
-use crate::{ValueGen, vec::shrinker::VecShrinker};
+use crate::{RangeAwareValueGen, ValueGen, vec::shrinker::VecShrinker};
 
-#[derive(Debug)]
-pub struct Done<G> {
-    _phantom: PhantomData<fn(G)>,
+#[derive(Debug, Default)]
+pub struct Done<G, L> {
+    _phantom: PhantomData<fn(G, L)>,
 }
 
-impl<G: ValueGen> Done<G> {
+impl<G: ValueGen, L: RangeAwareValueGen<Value = usize>> Done<G, L> {
     pub fn new() -> Self {
         Self {
             _phantom: PhantomData,
@@ -18,7 +18,7 @@ impl<G: ValueGen> Done<G> {
         None
     }
 
-    pub fn update<'a>(self, _current_attempt_passed: bool) -> VecShrinker<'a, G> {
+    pub fn update<'a>(self, _current_attempt_passed: bool) -> VecShrinker<'a, G, L> {
         panic!(
             "Done::update called (indicates VecShrinker::update was called while done shrinking)"
         );
