@@ -29,9 +29,9 @@ impl Hash for Chance {
 }
 
 impl Chance {
-    pub const IMPOSSIBLE: Self = Self(0.0);
-    pub const EQUAL: Self = Self(0.5);
-    pub const GUARANTEED: Self = Self(1.0);
+    pub const IMPOSSIBLE: Self = Self::from_probability(0.0).unwrap();
+    pub const EQUAL: Self = Self::from_probability(0.5).unwrap();
+    pub const GUARANTEED: Self = Self::from_probability(1.0).unwrap();
 
     pub const fn from_probability(probability: f64) -> Option<Self> {
         if probability.is_nan() || probability < 0.0 || probability > 1.0 {
@@ -44,28 +44,28 @@ impl Chance {
         Some(Self(probability.abs()))
     }
 
-    pub fn from_ratio(numerator: u64, denominator: u64) -> Option<Self> {
+    pub const fn from_ratio(numerator: u64, denominator: u64) -> Option<Self> {
         Self::from_probability(numerator as f64 / denominator as f64)
     }
 
-    pub fn from_percent(percent: f64) -> Option<Self> {
+    pub const fn from_percent(percent: f64) -> Option<Self> {
         Self::from_probability(percent / 100.0)
     }
 
-    pub fn as_probability(self) -> f64 {
+    pub const fn as_probability(self) -> f64 {
         self.0
     }
 
-    pub fn as_percent(self) -> f64 {
+    pub const fn as_percent(self) -> f64 {
         self.0 * 100.0
     }
 
-    pub fn is_possible(self) -> bool {
-        self != Self::IMPOSSIBLE
+    pub const fn is_possible(self) -> bool {
+        self.0 != Self::IMPOSSIBLE.0
     }
 
-    pub fn is_guaranteed(self) -> bool {
-        self == Self::GUARANTEED
+    pub const fn is_guaranteed(self) -> bool {
+        self.0 == Self::GUARANTEED.0
     }
 
     pub(crate) fn gen_bool(self, rng: &mut (impl crate::rand::Rng + ?Sized)) -> bool {
