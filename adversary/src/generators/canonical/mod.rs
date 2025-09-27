@@ -1,4 +1,5 @@
 mod bool;
+mod r#box;
 mod ints;
 mod tuple;
 mod unit;
