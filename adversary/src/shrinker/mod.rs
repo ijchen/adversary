@@ -2,7 +2,7 @@ mod never_shrink;
 mod shrinker;
 
 // TODO(ijchen): I think I want to publicly expose this module, probably as
-// `shrinking` or something.
+// `shrinking` or `shrinkers` orsomething.
 
 // TODO: generic shrinker that wraps another shrinker but just adds a step at
 // the end that runs the final failing inputs many times to determine if it

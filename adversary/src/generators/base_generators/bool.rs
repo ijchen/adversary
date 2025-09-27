@@ -1,14 +1,13 @@
 use crate::{
-    RangeAwareValueGen, ValueGen,
+    Chance, RangeAwareValueGen, ValueGen,
     report::{Importance, Observation},
     shrinker::Shrinker,
 };
 
-pub fn chance(chance_of_true: f64, shrink_to: bool) -> impl ValueGen<Value = bool> {
-    assert!((0.0..=1.0).contains(&chance_of_true));
-
+pub fn chance(chance_of_true: Chance, shrink_to: bool) -> impl ValueGen<Value = bool> {
+    // TODO(ijchen): this
     assert!(
-        chance_of_true != 0.0 && chance_of_true != 1.0,
+        chance_of_true.is_possible() && !chance_of_true.is_guaranteed(),
         "chance bool generators guaranteed to always return true or false are not yet implemented - use `just(true/false)` instead"
     );
 
@@ -18,24 +17,8 @@ pub fn chance(chance_of_true: f64, shrink_to: bool) -> impl ValueGen<Value = boo
     }
 }
 
-pub fn chance_ratio(
-    numerator: u64,
-    denominator: u64,
-    shrink_to: bool,
-) -> impl ValueGen<Value = bool> {
-    assert!(denominator != 0);
-    assert!(numerator <= denominator);
-
-    // TODO(ichen): do this in a way that doesn't just cast to a float (should
-    // be able to just test `rng.gen_range(0..denominator) < numerator`)
-    let chance_of_true = numerator as f64 / denominator as f64;
-
-    chance(chance_of_true, shrink_to)
-}
-
 struct ChanceGen {
-    // Should be in [0.0, 1.0]
-    chance_of_true: f64,
+    chance_of_true: Chance,
     shrink_to: bool,
 }
 
@@ -65,7 +48,7 @@ impl ValueGen for ChanceGen {
     }
 
     fn sample(&self, rng: &mut (impl crate::rand::Rng + ?Sized)) -> Self::Seed {
-        rng.gen_bool(self.chance_of_true)
+        self.chance_of_true.gen_bool(rng)
     }
 
     fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
@@ -92,8 +75,8 @@ impl ValueGen for ChanceGen {
 impl RangeAwareValueGen for ChanceGen {
     fn value_in_range(&self, value: &Self::Value) -> bool {
         match value {
-            true => self.chance_of_true > 0.0,
-            false => self.chance_of_true < 1.0,
+            true => self.chance_of_true.is_possible(),
+            false => !self.chance_of_true.is_guaranteed(),
         }
     }
 }

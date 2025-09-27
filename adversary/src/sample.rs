@@ -7,6 +7,7 @@ enum EitherIter<A, B> {
     B(B),
 }
 
+// TODO(ijchen): implement important default methods (or just pull in a dependency for this)
 impl<A, B> Iterator for EitherIter<A, B>
 where
     A: Iterator,

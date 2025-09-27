@@ -1,4 +1,5 @@
 pub mod adapters;
+mod chance;
 pub mod generators;
 pub mod prelude;
 pub mod report;
@@ -16,6 +17,7 @@ pub use adversary_macros::adv_test;
 // std::random?).
 pub use rand;
 
+pub use chance::Chance;
 pub use generators::{Canonical, any, bool, just, just_with, length_gen, vec};
 pub use value_gen::{IntoValueGen, RangeAwareValueGen, ValueGen, ValueGenExt};
 
