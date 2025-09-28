@@ -10,6 +10,10 @@ opt-level = 3           # Enable optimizations
 debug-assertions = true # True is the default value, but make it clear we care
 overflow-checks = true  # True is the default value, but make it clear we care
 
+[profile.profiling]
+inherits = "release"
+debug = true         # Include full debug information
+
 [workspace.lints.clippy]
 module_inception = "allow" # I don't mind this pattern
 allow_attributes = "warn"  # TODO

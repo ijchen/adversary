@@ -3,7 +3,6 @@ pub enum IterTwo<A, B> {
     B(B),
 }
 
-// TODO(ijchen): implement important default methods (or just pull in a dependency for this)
 impl<A, B> Iterator for IterTwo<A, B>
 where
     A: Iterator,
@@ -17,9 +16,26 @@ where
             IterTwo::B(iter) => iter.next(),
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self {
+            IterTwo::A(iter) => iter.size_hint(),
+            IterTwo::B(iter) => iter.size_hint(),
+        }
+    }
+
+    fn fold<B2, F>(self, init: B2, f: F) -> B2
+    where
+        Self: Sized,
+        F: FnMut(B2, Self::Item) -> B2,
+    {
+        match self {
+            IterTwo::A(iter) => iter.fold(init, f),
+            IterTwo::B(iter) => iter.fold(init, f),
+        }
+    }
 }
 
-// TODO(ijchen): implement important default methods (or just pull in a dependency for this)
 pub enum IterThree<A, B, C> {
     A(A),
     B(B),
@@ -39,6 +55,26 @@ where
             IterThree::A(iter) => iter.next(),
             IterThree::B(iter) => iter.next(),
             IterThree::C(iter) => iter.next(),
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self {
+            IterThree::A(iter) => iter.size_hint(),
+            IterThree::B(iter) => iter.size_hint(),
+            IterThree::C(iter) => iter.size_hint(),
+        }
+    }
+
+    fn fold<B2, F>(self, init: B2, f: F) -> B2
+    where
+        Self: Sized,
+        F: FnMut(B2, Self::Item) -> B2,
+    {
+        match self {
+            IterThree::A(iter) => iter.fold(init, f),
+            IterThree::B(iter) => iter.fold(init, f),
+            IterThree::C(iter) => iter.fold(init, f),
         }
     }
 }
