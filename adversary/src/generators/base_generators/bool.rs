@@ -5,12 +5,6 @@ use crate::{
 };
 
 pub fn chance(chance_of_true: Chance, shrink_to: bool) -> impl ValueGen<Value = bool> {
-    // TODO(ijchen): this
-    assert!(
-        chance_of_true.is_possible() && !chance_of_true.is_guaranteed(),
-        "chance bool generators guaranteed to always return true or false are not yet implemented - use `just(true/false)` instead"
-    );
-
     ChanceGen {
         chance_of_true,
         shrink_to,
@@ -32,19 +26,28 @@ impl ValueGen for ChanceGen {
         Self: 'a;
 
     fn cardinality(&self) -> Option<usize> {
-        Some(2)
+        match self.chance_of_true {
+            Chance::IMPOSSIBLE | Chance::GUARANTEED => Some(1),
+            _ => Some(2),
+        }
     }
 
     fn exhaustive(&self) -> impl Iterator<Item = Self::Seed> {
-        [false, true].into_iter()
+        match self.chance_of_true {
+            Chance::IMPOSSIBLE => [false].as_slice(),
+            Chance::GUARANTEED => [true].as_slice(),
+            _ => [false, true].as_slice(),
+        }
+        .into_iter()
+        .copied()
     }
 
     fn adversarial_count(&self) -> Option<usize> {
-        Some(2)
+        self.cardinality()
     }
 
     fn adversarial(&self) -> impl Iterator<Item = Self::Seed> {
-        [false, true].into_iter()
+        self.exhaustive()
     }
 
     fn sample(&self, rng: &mut (impl crate::rand::Rng + ?Sized)) -> Self::Seed {
@@ -52,19 +55,25 @@ impl ValueGen for ChanceGen {
     }
 
     fn new_shrinker(&self, failing_value_seed: Self::Seed) -> Self::Shrinker<'_> {
-        let mut shrinker = BoolShrinker {
-            shrink_to: self.shrink_to,
-            t: Default::default(),
-            f: Default::default(),
-        };
+        // If we're guaranteed to always return true or false, there's no point shrinking (and in
+        // fact, the current implementation of BoolShrinker assumes both values are possible)
+        if matches!(self.chance_of_true, Chance::IMPOSSIBLE | Chance::GUARANTEED) {
+            return BoolShrinker::DoNotShrink;
+        }
 
+        let mut t = ObservedOutcomes::Nothing;
+        let mut f = ObservedOutcomes::Nothing;
         match failing_value_seed {
-            true => &mut shrinker.t,
-            false => &mut shrinker.f,
+            true => &mut t,
+            false => &mut f,
         }
         .observe_outcome(false);
 
-        shrinker
+        BoolShrinker::Shrink {
+            shrink_to: self.shrink_to,
+            t,
+            f,
+        }
     }
 
     fn create_value(&self, seed: Self::Seed) -> Self::Value {
@@ -81,22 +90,29 @@ impl RangeAwareValueGen for ChanceGen {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct BoolShrinker {
-    shrink_to: bool,
-    t: ObservedOutcomes,
-    f: ObservedOutcomes,
+#[derive(Debug)]
+enum BoolShrinker {
+    DoNotShrink,
+    Shrink {
+        shrink_to: bool,
+        t: ObservedOutcomes,
+        f: ObservedOutcomes,
+    },
 }
 
 impl Shrinker<bool> for BoolShrinker {
     fn current_attempt(&self) -> Option<bool> {
-        // If we haven't tried our "shrink to" value yet, try it
-        let shrink_to_observed = match self.shrink_to {
-            true => self.t,
-            false => self.f,
+        let Self::Shrink { shrink_to, t, f } = self else {
+            return None;
         };
-        if shrink_to_observed == ObservedOutcomes::Nothing {
-            return Some(self.shrink_to);
+
+        // If we haven't tried our "shrink to" value yet, try it
+        let shrink_to_observed = match shrink_to {
+            true => t,
+            false => f,
+        };
+        if shrink_to_observed == &ObservedOutcomes::Nothing {
+            return Some(*shrink_to);
         }
 
         // TODO: do this again when informational shrink attempts are back
@@ -115,32 +131,42 @@ impl Shrinker<bool> for BoolShrinker {
     }
 
     fn update(&mut self, current_attempt_passed: bool) {
-        let todo_current_attempt = self.current_attempt().unwrap();
+        let Some(todo_current_attempt) = self.current_attempt() else {
+            panic!("`BoolShrinker::update` called while done shrinking");
+        };
+
+        let Self::Shrink { t, f, .. } = self else {
+            unreachable!()
+        };
 
         match todo_current_attempt {
-            true => self.t.observe_outcome(current_attempt_passed),
-            false => self.f.observe_outcome(current_attempt_passed),
+            true => t.observe_outcome(current_attempt_passed),
+            false => f.observe_outcome(current_attempt_passed),
         }
     }
 
     fn into_observations(self) -> Vec<Observation> {
+        let Self::Shrink { t, f, .. } = self else {
+            return Vec::new();
+        };
+
         let mut observations = Vec::new();
 
-        if self.f == ObservedOutcomes::Both {
+        if f == ObservedOutcomes::Both {
             observations.push(Observation::new(
                 "false was observed both passing and failing - possible non-deterministic behavior",
                 Importance::MaybeRelevant,
             ));
         }
 
-        if self.t == ObservedOutcomes::Both {
+        if t == ObservedOutcomes::Both {
             observations.push(Observation::new(
                 "true was observed both passing and failing - possible non-deterministic behavior",
                 Importance::MaybeRelevant,
             ));
         }
 
-        if self.t.has_failed() && self.f.has_failed() {
+        if t.has_failed() && f.has_failed() {
             observations.push(Observation::new(
                 "both true and false were observed as failing - this value probably doesn't matter",
                 Importance::MaybeRelevant,
@@ -151,9 +177,8 @@ impl Shrinker<bool> for BoolShrinker {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ObservedOutcomes {
-    #[default]
     Nothing,
     Passed,
     Failed,
