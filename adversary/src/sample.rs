@@ -1,27 +1,6 @@
 use rand::Rng;
 
-use crate::ValueGen;
-
-enum EitherIter<A, B> {
-    A(A),
-    B(B),
-}
-
-// TODO(ijchen): implement important default methods (or just pull in a dependency for this)
-impl<A, B> Iterator for EitherIter<A, B>
-where
-    A: Iterator,
-    B: Iterator<Item = A::Item>,
-{
-    type Item = A::Item;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            EitherIter::A(iter) => iter.next(),
-            EitherIter::B(iter) => iter.next(),
-        }
-    }
-}
+use crate::{ValueGen, n_iters::IterTwo};
 
 /// Creates an iterator of seeds sampled from the given [`ValueGen`] attempting
 /// to cover the input space as much as possible under the given constraints.
@@ -51,14 +30,14 @@ pub fn sample<G: ValueGen>(
         .cardinality()
         .is_some_and(|cardinality| cardinality <= max_total)
     {
-        return EitherIter::A(value_gen.exhaustive());
+        return IterTwo::A(value_gen.exhaustive());
     }
 
     // If we can't do every possible seed, do as many adversarial values as we
     // can while still including at least `min_random` random values.
     // (this can't overflow - we assert `min_random <= max_total` above)
     let max_adversarial = max_total - min_random;
-    EitherIter::B(
+    IterTwo::B(
         value_gen
             .adversarial()
             .take(max_adversarial)

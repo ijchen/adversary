@@ -12,6 +12,7 @@ impl MultiRadixCounter {
     }
 }
 
+// TODO: implement important default methods
 impl Iterator for MultiRadixCounter {
     type Item = Vec<usize>;
 

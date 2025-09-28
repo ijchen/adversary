@@ -19,6 +19,7 @@ impl<G: ValueGen> ValueGenIter<G> {
     }
 }
 
+// TODO: implement important default methods
 impl<G: ValueGen> Iterator for ValueGenIter<G> {
     type Item = G::Seed;
 

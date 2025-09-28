@@ -1,6 +1,7 @@
 mod bool;
 mod r#box;
 mod ints;
+mod option;
 mod tuple;
 mod unit;
 mod vec;

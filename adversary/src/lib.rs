@@ -1,6 +1,7 @@
 pub mod adapters;
 mod chance;
 pub mod generators;
+mod n_iters;
 pub mod prelude;
 pub mod report;
 mod sample;

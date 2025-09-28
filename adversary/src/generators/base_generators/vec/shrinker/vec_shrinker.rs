@@ -83,37 +83,37 @@ impl<'gens, G: ValueGen, L: RangeAwareValueGen<Value = usize>> Shrinker<Box<[G::
 {
     fn current_attempt(&self) -> Option<Box<[G::Seed]>> {
         match self {
-            VecShrinker::TryEmpty(step) => step.current_attempt(),
-            VecShrinker::SingleElems(step) => step.current_attempt(),
-            VecShrinker::Pairs(step) => step.current_attempt(),
-            VecShrinker::RemoveElems(step) => step.current_attempt(),
-            VecShrinker::Subsets(step) => step.current_attempt(),
-            VecShrinker::ShrinkElements(step) => step.current_attempt(),
-            VecShrinker::Done(step) => step.current_attempt(),
+            Self::TryEmpty(step) => step.current_attempt(),
+            Self::SingleElems(step) => step.current_attempt(),
+            Self::Pairs(step) => step.current_attempt(),
+            Self::RemoveElems(step) => step.current_attempt(),
+            Self::Subsets(step) => step.current_attempt(),
+            Self::ShrinkElements(step) => step.current_attempt(),
+            Self::Done(step) => step.current_attempt(),
         }
     }
 
     fn update(&mut self, current_attempt_passed: bool) {
-        *self = match std::mem::replace(self, VecShrinker::Done(Done::new())) {
-            VecShrinker::TryEmpty(step) => step.update(current_attempt_passed),
-            VecShrinker::SingleElems(step) => step.update(current_attempt_passed),
-            VecShrinker::Pairs(step) => step.update(current_attempt_passed),
-            VecShrinker::RemoveElems(step) => step.update(current_attempt_passed),
-            VecShrinker::Subsets(step) => step.update(current_attempt_passed),
-            VecShrinker::ShrinkElements(step) => step.update(current_attempt_passed),
-            VecShrinker::Done(step) => step.update(current_attempt_passed),
+        *self = match std::mem::replace(self, Self::Done(Done::new())) {
+            Self::TryEmpty(step) => step.update(current_attempt_passed),
+            Self::SingleElems(step) => step.update(current_attempt_passed),
+            Self::Pairs(step) => step.update(current_attempt_passed),
+            Self::RemoveElems(step) => step.update(current_attempt_passed),
+            Self::Subsets(step) => step.update(current_attempt_passed),
+            Self::ShrinkElements(step) => step.update(current_attempt_passed),
+            Self::Done(step) => step.update(current_attempt_passed),
         };
     }
 
     fn into_observations(self) -> Vec<crate::report::Observation> {
         match self {
-            VecShrinker::TryEmpty(step) => step.into_observations(),
-            VecShrinker::SingleElems(step) => step.into_observations(),
-            VecShrinker::Pairs(step) => step.into_observations(),
-            VecShrinker::RemoveElems(step) => step.into_observations(),
-            VecShrinker::Subsets(step) => step.into_observations(),
-            VecShrinker::ShrinkElements(step) => step.into_observations(),
-            VecShrinker::Done(step) => step.into_observations(),
+            Self::TryEmpty(step) => step.into_observations(),
+            Self::SingleElems(step) => step.into_observations(),
+            Self::Pairs(step) => step.into_observations(),
+            Self::RemoveElems(step) => step.into_observations(),
+            Self::Subsets(step) => step.into_observations(),
+            Self::ShrinkElements(step) => step.into_observations(),
+            Self::Done(step) => step.into_observations(),
         }
     }
 }
