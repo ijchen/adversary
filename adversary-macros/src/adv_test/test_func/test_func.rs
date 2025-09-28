@@ -235,6 +235,10 @@ impl TestFunc {
                     get_custom_generator(&pat_reference.pat, arg_ty, generators)
                 }
                 P::Tuple(pat_tuple) => {
+                    if pat_tuple.elems.is_empty() {
+                        return None;
+                    }
+
                     let individual_gens = pat_tuple
                         .elems
                         .iter()
@@ -350,24 +354,23 @@ impl TestFunc {
                     ::adversary::test_runners::TestResult::Failed(report) => report,
                 };
 
-                // NOTE(ichen): Uses a cute specialization hack to convert the
-                // generic `T` value into a `String` - through `Display` if
-                // possible, then `Debug` if possible, and finally falling back
-                // to a default message for types which don't implement either.
+                // NOTE(ichen): Uses a cute specialization hack to convert the generic `T` value
+                // into a `String` - through `Debug` if possible, then `Display` if possible, and
+                // finally falling back to a default message for types which don't implement either.
                 //
                 // See:
                 // https://lukaskalbertodt.github.io/2019/12/05/generalized-autoref-based-specialization.html
                 let specialized_to_string = |(#(#arg_idents),*): &(#(#arg_types),*)| {
                     struct Wrap<'a, T>(&'a T);
 
-                    trait ViaDisplay { fn stringify(&self) -> ::std::string::String; }
-                    impl<'a, T: ::std::fmt::Display> ViaDisplay for &&Wrap<'a, T> {
-                        fn stringify(&self) -> ::std::string::String { ::std::format!("{}", self.0) }
+                    trait ViaDebug { fn stringify(&self) -> ::std::string::String; }
+                    impl<'a, T: ::std::fmt::Debug> ViaDebug for &&Wrap<'a, T> {
+                        fn stringify(&self) -> ::std::string::String { ::std::format!("{:?}", self.0) }
                     }
 
-                    trait ViaDebug { fn stringify(&self) -> ::std::string::String; }
-                    impl<'a, T: ::std::fmt::Debug> ViaDebug for &Wrap<'a, T> {
-                        fn stringify(&self) -> ::std::string::String { ::std::format!("{:?}", self.0) }
+                    trait ViaDisplay { fn stringify(&self) -> ::std::string::String; }
+                    impl<'a, T: ::std::fmt::Display> ViaDisplay for &Wrap<'a, T> {
+                        fn stringify(&self) -> ::std::string::String { ::std::format!("{}", self.0) }
                     }
 
                     trait Fallback { fn stringify(&self) -> ::std::string::String; }
@@ -375,11 +378,9 @@ impl TestFunc {
                         fn stringify(&self) -> ::std::string::String { ::std::format!("<{}>", ::std::any::type_name::<T>()) }
                     }
 
-                    // TODO: is this ::std::format!() necessary? Doesn't join
-                    // give us a string?
-                    ::std::format!("{}", <[_]>::join(&[#(
+                    <[_]>::join(&[#(
                         (&&&Wrap(#arg_idents)).stringify()
-                    ),*], ", "))
+                    ),*], ", ")
                 };
                 ::std::eprintln!("{}", report.render::<::adversary::report::renderer::Plaintext>(specialized_to_string));
 

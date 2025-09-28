@@ -109,8 +109,20 @@ mod tests {
     //         write!(f, "My cool Displayer!!!")
     //     }
     // }
+    // #[derive(Clone, Debug)]
+    // struct Both;
+    // impl adv::Canonical for Both {
+    //     fn canonical() -> impl ValueGen<Value = Self> + Send + Sync + Unpin {
+    //         just(Both)
+    //     }
+    // }
+    // impl std::fmt::Display for Both {
+    //     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    //         write!(f, "This shouldn't show up")
+    //     }
+    // }
     // #[adv_test]
-    // fn my_cool_test4(_: Displayer, _: Debugger, _: Nothing) -> bool {
+    // fn my_cool_test4(_: Displayer, _: Debugger, _: Both, _: Nothing) -> bool {
     //     false
     // }
 
