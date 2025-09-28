@@ -111,7 +111,7 @@ macro_rules! shrink_magnitude {
                 let mut new_magnitude_shrinker = self.magnitude_shrinker.clone();
                 new_magnitude_shrinker.update(current_attempt_passed);
 
-                // If there's more magnitude shrinking to do, keep going (@bee)
+                // If there's more magnitude shrinking to do, keep going
                 if new_magnitude_shrinker.current_attempt().is_some() {
                     // Invariant: TODO: justify invariants
                     return RangeInclusiveShrinkerSigned::ShrinkMagnitude(Self {
