@@ -35,18 +35,12 @@ macro_rules! try_simplest {
         const _: () = assert!(size_of::<$i>() == size_of::<$u>());
 
         impl TrySimplest<$i> {
-            // TODO: we probably want to ensure we aren't given the simplest
-            // value in the given range, because we should not have gotten here.
             /// Constructs a new [`TrySimplest`].
             ///
             /// # Panics
             /// if the invariant `min <= simplest_known_failing <= max` is not
             /// true.
             pub fn new(simplest_known_failing: $i, (min, max): ($i, $i)) -> Self {
-                // TODO: sweep through `assert!`s and make most of them be
-                // `debug_assert!`s (unless truly they could actually panic in
-                // the absence of a library bug - in which case, it should for
-                // sure have a corresponding message with it)
                 debug_assert!(min <= simplest_known_failing && simplest_known_failing <= max);
 
                 // Invariant: "Valid ordering" must be upheld by the caller, and
@@ -65,9 +59,6 @@ macro_rules! try_simplest {
                 }
                 // If the simplest value passed, move on to "Shrink magnitude"
                 else {
-                    // TODO: there are probably some cases where we don't want
-                    // to do ShrinkMagnitude... right? Some times it doesn't
-                    // make sense?
                     RangeInclusiveShrinkerSigned::ShrinkMagnitude(ShrinkMagnitude::<$i, $u>::new(
                         self.simplest_known_failing,
                         (self.min, self.max)

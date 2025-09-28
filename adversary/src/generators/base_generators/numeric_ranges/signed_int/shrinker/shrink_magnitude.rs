@@ -2,27 +2,24 @@ use crate::shrinker::Shrinker as _;
 
 use super::{
     super::super::unsigned_int::RangeInclusiveShrinkerUnsigned, RangeInclusiveShrinkerSigned,
+    flip_sign::FlipSign,
 };
 
 /// Implementation of the "Shrink magnitude" phase of signed integer shrinking.
 ///
 /// # Description
 /// This phase tries the shrink the magnitude (absolute value) of the current
-/// simplest failing value, maintaining its sign.
+/// simplest failing value while maintaining its sign.
 ///
 /// # Next phase
-/// TODO: update
-/// If the simplest value is found to be failing, shrinking ends immediately.
-/// Otherwise, the simplest value isn't (always) failing, so we move on to the
-/// next step, shrink magnitude.
+/// When magnitude shrinking is complete, we move to the "Flip sign" phase to
+/// try finding a simpler failing value with the opposite sign.
 ///
 /// # Goal
-/// TODO: update
-/// The goal behind this step is to waste no time trying more complicated values
-/// if the simplest value will fail anyway.
+/// The goal is to reduce the magnitude (absolute value) of the current simplest
+/// failing value while maintaining its sign, making it simpler.
 //
 // # Invariants
-// TODO: update
 //
 // ## The "Valid ordering" invariant
 // `self.min <= self.simplest_known_failing <= self.max`
@@ -88,12 +85,15 @@ macro_rules! shrink_magnitude {
             pub fn current_attempt(&self) -> Option<$i> {
                 let magnitude = self.magnitude_shrinker.current_attempt().expect("`ShrinkMagnitude` 'Magnitude shrinker not done' invariant violated");
                 Some(if self.simplest_known_failing >= 0 {
-                    // TODO: why can't this .unwrap() panic?
+                    // This conversion cannot fail because magnitude is derived from
+                    // the absolute value of a signed integer, so it's within the
+                    // valid range for the signed type.
                     <$i>::try_from(magnitude).unwrap()
                 } else {
-                    // TODO: why can't this .unwrap() panic?
-                    // Note: we don't just cast to $i and flip the sign because
-                    // <$i>::MIN.unsigned_abs() > <$i>::MAX
+                    // This conversion cannot fail because magnitude is derived from
+                    // the absolute value of a signed integer, so it's within the
+                    // valid range for the signed type. We use checked_sub_unsigned
+                    // instead of casting and negating because <$i>::MIN.unsigned_abs() > <$i>::MAX
                     <$i>::checked_sub_unsigned(0, magnitude).unwrap()
                 })
             }
@@ -113,7 +113,9 @@ macro_rules! shrink_magnitude {
 
                 // If there's more magnitude shrinking to do, keep going
                 if new_magnitude_shrinker.current_attempt().is_some() {
-                    // Invariant: TODO: justify invariants
+                    // All invariants are maintained: the new simplest_known_failing is
+                    // either the original (if current attempt passed) or the current
+                    // attempt (if it failed), both of which are within the valid range.
                     return RangeInclusiveShrinkerSigned::ShrinkMagnitude(Self {
                         min: self.min,
                         max: self.max,
@@ -123,8 +125,11 @@ macro_rules! shrink_magnitude {
                     });
                 }
 
-                // TODO
-                todo!()
+                // Move to flip sign phase to try the opposite sign
+                RangeInclusiveShrinkerSigned::FlipSign(FlipSign::<$i, $u>::new(
+                    new_simplest_known_failing,
+                    (self.min, self.max)
+                ))
             }
         }
     )+};

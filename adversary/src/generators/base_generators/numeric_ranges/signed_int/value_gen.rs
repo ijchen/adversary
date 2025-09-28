@@ -189,58 +189,79 @@ mod tests {
         );
     }
 
-    // TODO(ichen): comment tests back in when shrinking is implemented
     // TODO: have a cooler name
-    // #[test]
-    // fn test_with_cool_name() {
-    //     assert_eq!(
-    //         run_test(|_| false, -42..=6, &mut crate::rand::thread_rng())
-    //             .unwrap_err()
-    //             .simplest_failing_value,
-    //         0
-    //     );
+    #[test]
+    fn test_with_cool_name() {
+        assert_eq!(
+            *run_test_bool(
+                |_| false,
+                -42..=6,
+                &mut crate::rand::thread_rng(),
+                TestConfig::default()
+            )
+            .unwrap_report()
+            .simplest_failing_value(),
+            0
+        );
 
-    //     assert_eq!(
-    //         run_test(|n| n < 123, -45..=1000i64, &mut crate::rand::thread_rng())
-    //             .unwrap_err()
-    //             .simplest_failing_value,
-    //         123
-    //     );
+        assert_eq!(
+            *run_test_bool(
+                |n| n < 123,
+                -45..=1000i64,
+                &mut crate::rand::thread_rng(),
+                TestConfig::default()
+            )
+            .unwrap_report()
+            .simplest_failing_value(),
+            123
+        );
 
-    //     assert_eq!(
-    //         run_test(
-    //             |_| false,
-    //             i128::MIN..=i128::MAX,
-    //             &mut crate::rand::thread_rng()
-    //         )
-    //         .unwrap_err()
-    //         .simplest_failing_value,
-    //         0
-    //     );
+        assert_eq!(
+            *run_test_bool(
+                |_| false,
+                i128::MIN..=i128::MAX,
+                &mut crate::rand::thread_rng(),
+                TestConfig::default()
+            )
+            .unwrap_report()
+            .simplest_failing_value(),
+            0
+        );
 
-    //     assert_eq!(
-    //         run_test(|n| n > -100, -421..=-21i32, &mut crate::rand::thread_rng())
-    //             .unwrap_err()
-    //             .simplest_failing_value,
-    //         -100
-    //     );
+        assert_eq!(
+            *run_test_bool(
+                |n| n > -100,
+                -421..=-21i32,
+                &mut crate::rand::thread_rng(),
+                TestConfig::default()
+            )
+            .unwrap_report()
+            .simplest_failing_value(),
+            -100
+        );
 
-    //     assert_eq!(
-    //         run_test(
-    //             |n| n < 643,
-    //             45..=2000000i128,
-    //             &mut crate::rand::thread_rng()
-    //         )
-    //         .unwrap_err()
-    //         .simplest_failing_value,
-    //         643
-    //     );
+        assert_eq!(
+            *run_test_bool(
+                |n| n < 643,
+                45..=2000000i128,
+                &mut crate::rand::thread_rng(),
+                TestConfig::default()
+            )
+            .unwrap_report()
+            .simplest_failing_value(),
+            643
+        );
 
-    //     assert_eq!(
-    //         run_test(|n| n > -6, i16::MIN..=3, &mut crate::rand::thread_rng())
-    //             .unwrap_err()
-    //             .simplest_failing_value,
-    //         -6
-    //     );
-    // }
+        assert_eq!(
+            *run_test_bool(
+                |n| n > -6,
+                i16::MIN..=3,
+                &mut crate::rand::thread_rng(),
+                TestConfig::default()
+            )
+            .unwrap_report()
+            .simplest_failing_value(),
+            -6
+        );
+    }
 }

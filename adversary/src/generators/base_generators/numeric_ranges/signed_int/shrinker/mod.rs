@@ -8,10 +8,12 @@
 //! see the documentation in their respective modules.
 
 mod done;
+mod flip_sign;
 mod shrink_magnitude;
 mod try_simplest;
 
 use done::Done;
+use flip_sign::FlipSign;
 use shrink_magnitude::ShrinkMagnitude;
 use try_simplest::TrySimplest;
 
@@ -83,6 +85,7 @@ use crate::{report::Observation, shrinker::Shrinker};
 pub enum RangeInclusiveShrinkerSigned<I, U> {
     TrySimplest(TrySimplest<I>),
     ShrinkMagnitude(ShrinkMagnitude<I, U>),
+    FlipSign(FlipSign<I, U>),
     Done(Done<I, U>),
 }
 
@@ -110,7 +113,6 @@ macro_rules! shrinker {
                 Self::TrySimplest(TrySimplest::<$i>::new(simplest_known_failing, (min, max)))
             }
 
-            #[expect(unused, reason = "will be used by flip sign step")]
             /// Returns the most complex (furthest from 0, in this case) value
             /// with the opposite sign of `n` which is still simpler than `n`,
             /// or [`None`] if there is no simpler value of the opposite sign.
@@ -175,6 +177,7 @@ macro_rules! shrinker {
                 match self {
                     Self::TrySimplest(phase) => phase.current_attempt(),
                     Self::ShrinkMagnitude(phase) => phase.current_attempt(),
+                    Self::FlipSign(phase) => phase.current_attempt(),
                     Self::Done(phase) => phase.current_attempt(),
                 }
             }
@@ -183,6 +186,7 @@ macro_rules! shrinker {
                 *self = match self {
                     Self::TrySimplest(phase) => phase.next_phase(current_attempt_passed),
                     Self::ShrinkMagnitude(phase) => phase.next_phase(current_attempt_passed),
+                    Self::FlipSign(phase) => phase.next_phase(current_attempt_passed),
                     Self::Done(phase) => phase.next_phase(current_attempt_passed),
                 }
             }
