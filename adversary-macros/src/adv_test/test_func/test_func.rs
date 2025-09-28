@@ -268,16 +268,18 @@ impl TestFunc {
             .collect::<Vec<_>>();
         let generator = quote! { (#(#generators),*) };
 
+        let config = match &test_attribute.config {
+            Some(config) => quote! { #config },
+            None => quote! { ::adversary::test_runners::TestConfig::default() },
+        };
+
         let test_run = match &output {
             Expectation::DoesNotPanic => quote! {
                 ::adversary::test_runners::run_test_panic(
                     |(#(#arg_idents),*)| inner_test(#(#arg_idents),*),
                     generator,
                     &mut rng,
-                    ::adversary::test_runners::TestConfig {
-                        test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
-                        ..::std::default::Default::default()
-                    },
+                    config,
                 )
             },
             Expectation::Panics => quote! {
@@ -285,10 +287,7 @@ impl TestFunc {
                     |(#(#arg_idents),*)| inner_test(#(#arg_idents),*),
                     generator,
                     &mut rng,
-                    ::adversary::test_runners::TestConfig {
-                        test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
-                        ..::std::default::Default::default()
-                    },
+                    config,
                 )
             },
             Expectation::PanicsWithMessage { expected_substring } => quote! {
@@ -300,10 +299,7 @@ impl TestFunc {
                     #expected_substring,
                     generator,
                     &mut rng,
-                    ::adversary::test_runners::TestConfig {
-                        test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
-                        ..::std::default::Default::default()
-                    },
+                    config,
                 )
             },
             Expectation::ReturnsTrue => quote! {
@@ -311,10 +307,7 @@ impl TestFunc {
                     |(#(#arg_idents),*)| inner_test(#(#arg_idents),*),
                     generator,
                     &mut rng,
-                    ::adversary::test_runners::TestConfig {
-                        test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
-                        ..::std::default::Default::default()
-                    },
+                    config,
                 )
             },
             Expectation::ReturnsOk { err_ty: _ } => quote! {
@@ -322,10 +315,7 @@ impl TestFunc {
                     |(#(#arg_idents),*)| inner_test(#(#arg_idents),*),
                     generator,
                     &mut rng,
-                    ::adversary::test_runners::TestConfig {
-                        test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
-                        ..::std::default::Default::default()
-                    },
+                    config,
                 )
             },
         };
@@ -338,6 +328,10 @@ impl TestFunc {
 
                 let mut generator = #generator;
                 let mut rng = ::adversary::rand::thread_rng();
+                let config = ::adversary::test_runners::TestConfig {
+                    test_name: ::std::option::Option::Some(::std::string::ToString::to_string(#test_name)),
+                    ..#config
+                };
 
                 let run_result = #test_run;
 

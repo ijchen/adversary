@@ -50,18 +50,6 @@ mod tests {
     //         .is_none_or(|n| n % 10 != 9 || n < 1000)
     // }
 
-    // TODO(ijchen): this runs slow when MIN_LEN gets bigger than ~6-7 - figure out why
-    #[adv_test]
-    fn vec_test(list: Vec<Option<u32>>) -> bool {
-        const MIN_LEN: usize = 6;
-        list.len() < MIN_LEN
-            || list
-                .iter()
-                .copied()
-                .try_fold(0u32, |accum, elem| accum.checked_add(elem.unwrap_or(0)))
-                .is_none_or(|n| n % 10 != 9 || n < 1000)
-    }
-
     // #[derive(Clone)]
     // struct Foo;
     // impl adv::Canonical for Foo {
